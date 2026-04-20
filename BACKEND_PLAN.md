@@ -447,9 +447,9 @@ bun run db:migrate
 ```
 
 ### Done criteria
-- [ ] `drizzle/0000_init.sql` committed.
-- [ ] Tables visible in `bun run db:studio`.
-- [ ] `bun run build` still green.
+- [x] `drizzle/0000_init.sql` committed. (Actual filename: `drizzle/0000_mute_betty_ross.sql` — Drizzle auto-names. See D1.1.)
+- [x] Tables visible in `bun run db:studio`. (Verified by direct query: `addresses`, `orders`, `payment_events`, `user_profiles`, `users` + extensions `citext` + `pgcrypto` + custom indexes.)
+- [x] `bun run build` still green.
 
 ### Common mistakes
 - Forgetting the `citext` extension → case-sensitive email leads to duplicate accounts (`A@x.com` and `a@x.com`).
@@ -919,10 +919,11 @@ GitHub Action on merge to `main`:
 When resuming this plan in a new session:
 
 1. **Read `BACKEND_PLAN.md` top to bottom first.** Every phase has a Done-criteria checklist — find the first unchecked item; that's your starting point.
-2. **Read `MEMORY.md`** for project context.
+2. **Read `BACKEND_DEVIATIONS.md`** — the append-only log of every drift from this plan. Do not carry forward a deviation silently; either respect it (`keep`) or resolve it at the phase it's scheduled for.
+3. **Read `MEMORY.md`** for project context.
 3. **Do not re-choose the stack.** Invariants are locked.
 4. **Update the checklist in this file** at the end of the phase you complete. Check boxes under "Done criteria". Do not silently skip items.
-5. **Any deviation from the plan requires updating the plan itself** in the same commit — future sessions will trust this doc over memory.
+5. **Any deviation from the plan requires a new entry in `BACKEND_DEVIATIONS.md`** in the same commit — and, if the deviation changes the plan's future direction, update this file too. Future sessions will trust these docs over memory.
 6. **When in doubt about a contract, the Zod schema is authoritative**, not the prose description above it.
 
 ---
