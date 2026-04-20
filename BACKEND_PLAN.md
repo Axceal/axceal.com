@@ -341,10 +341,10 @@ export const AERO = {
 **Interim dev workflow (before domain is verified):** Use Resend's default `onboarding@resend.dev` sender and the account-owner's email as the test recipient. Swap to the real domain once DNS is green. The `EmailProvider` adapter makes this a one-line change.
 
 ### Done criteria
-- [ ] `bun run build` succeeds.
-- [ ] `bun run db:studio` connects to Neon.
-- [ ] A test file `tests/redis.test.ts` can `SET`/`GET` a key on Upstash.
-- [ ] Importing `env` in any file fails fast when a var is missing.
+- [x] `bun run build` succeeds.
+- [x] `bun run db:studio` connects to Neon. (Verified via direct `select version()` → PostgreSQL 17.8.)
+- [x] A test file `tests/redis.test.ts` can `SET`/`GET` a key on Upstash.
+- [x] Importing `env` in any file fails fast when a var is missing.
 
 ### Common mistakes
 - Forgetting to validate env → silent `undefined` bugs in prod. Always go through `env`.
@@ -882,6 +882,16 @@ Add `@sentry/nextjs` only if team wants it. Env-gated so dev doesn't send events
 
 ### 11.2 Env vars in Vercel
 All keys from `.env.example`, production values. Neon pooled URL. Razorpay **live** keys. `NEXTAUTH_URL` = production domain. `EMAIL_FROM` on verified Resend domain.
+
+> **🔒 MANDATORY credential rotation before go-live.** All dev-mode credentials were exposed in chat transcripts during Phases 0–8 (Neon password, Upstash token, `NEXTAUTH_SECRET`, Razorpay test keys). Before flipping to production:
+> 1. Rotate the Neon `neondb_owner` password (use a production Neon project/branch, not dev).
+> 2. Regenerate the Upstash REST token (use a production Upstash DB, not dev).
+> 3. Regenerate `NEXTAUTH_SECRET` (`openssl rand -base64 32`). Rotating invalidates all dev sessions — expected.
+> 4. Use Razorpay **live** Key ID + Secret (issued only after KYC approval).
+> 5. Set the new `RAZORPAY_WEBHOOK_SECRET` (Razorpay dashboard → Webhooks → generate on webhook creation).
+> 6. Enter all of these **directly in Vercel's env var UI** — never paste into chat, never commit, never have Claude Read the file.
+>
+> Dev `.env.local` stays untouched; dev services can keep running on their existing (burned) credentials since they're not internet-facing targets of real value.
 
 ### 11.3 Razorpay webhook
 Register webhook URL `https://<domain>/api/payments/webhook` with events: `payment.captured`, `payment.failed`. Copy the secret into `RAZORPAY_WEBHOOK_SECRET`.
