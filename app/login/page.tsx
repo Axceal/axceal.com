@@ -1,30 +1,60 @@
 "use client";
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { SvgText } from "../components/SvgText";
 import { SvgInput } from "../components/SvgInput";
 
 type ActiveField = "email" | "password";
 
-export default function LoginPage() {
+function LoginPageInner() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const callbackUrl = searchParams.get("callbackUrl") ?? "/account";
+    const justRegistered = searchParams.get("registered") === "1";
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    // Default to "email" — the indicator always points to the first field
     const [activeField, setActiveField] = useState<ActiveField>("email");
+    const [submitting, setSubmitting] = useState(false);
+    const [message, setMessage] = useState<{ kind: "info" | "error"; text: string } | null>(
+        justRegistered ? { kind: "info", text: "Account created. Log in to continue." } : null,
+    );
 
     const emailWrapRef = useRef<HTMLDivElement>(null);
     const passwordWrapRef = useRef<HTMLDivElement>(null);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        // TODO: implement auth
+        if (submitting) return;
+        if (!email || !password) {
+            setMessage({ kind: "error", text: "Enter email and password." });
+            return;
+        }
+        setSubmitting(true);
+        setMessage(null);
+        try {
+            const res = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,
+            });
+            if (!res || res.error || !res.ok) {
+                setMessage({ kind: "error", text: "Invalid email or password." });
+                return;
+            }
+            router.push(callbackUrl);
+        } catch {
+            setMessage({ kind: "error", text: "Network error. Please try again." });
+        } finally {
+            setSubmitting(false);
+        }
     };
 
-    // Force a re-render after mount so refs resolve and indicatorTop is correct
     const [, forceUpdate] = useState(0);
     useEffect(() => { forceUpdate(n => n + 1); }, []);
 
-    // Position indicator just ABOVE the active pill (8px gap above top edge)
     const GAP = 2.5;
     const activeRef = activeField === "email" ? emailWrapRef : passwordWrapRef;
     const indicatorTop = activeRef.current
@@ -35,7 +65,6 @@ export default function LoginPage() {
         setActiveField(field);
     }, []);
 
-    // On blur return the indicator to the first field (email)
     const handleBlur = useCallback(() => {
         setActiveField("email");
     }, []);
@@ -46,7 +75,6 @@ export default function LoginPage() {
                 onSubmit={handleLogin}
                 className="relative flex flex-col items-center gap-6 w-[280px]"
             >
-                {/* Title */}
                 <SvgText
                     text="Log into Axceal Account"
                     weight="600"
@@ -54,12 +82,6 @@ export default function LoginPage() {
                     className="text-[#1e1e1e] flex self-start"
                 />
 
-                {/* 
-                    Active-field indicator — always visible.
-                    Starts above Email (first field). 
-                    Slides to above whichever field is active.
-                    Returns to Email on blur.
-                */}
                 <div
                     className="absolute left-1/2 -translate-x-1/2 w-[40px] h-[2.5px] bg-[#0000f4] rounded-full pointer-events-none transition-[top,opacity] duration-200 ease-in-out"
                     style={{
@@ -68,7 +90,6 @@ export default function LoginPage() {
                     }}
                 />
 
-                {/* Email pill */}
                 <div ref={emailWrapRef} className="w-full">
                     <SvgInput
                         id="login-email"
@@ -84,7 +105,6 @@ export default function LoginPage() {
                     />
                 </div>
 
-                {/* Password pill */}
                 <div ref={passwordWrapRef} className="w-full">
                     <SvgInput
                         id="login-password"
@@ -100,7 +120,6 @@ export default function LoginPage() {
                     />
                 </div>
 
-                {/* Forgot password */}
                 <Link href="/forgot-password" className="self-center mt-2">
                     <SvgText
                         text="Forgot Password"
@@ -110,22 +129,28 @@ export default function LoginPage() {
                     />
                 </Link>
 
-                {/* Spacer */}
-                <div className="h-[160px]" />
+                <div className="h-[120px] flex items-center justify-center text-center">
+                    {message && (
+                        <SvgText
+                            text={message.text}
+                            weight="600"
+                            height={12}
+                            className={message.kind === "error" ? "text-[#e11d48]" : "text-[#0000f4]"}
+                        />
+                    )}
+                </div>
 
-                {/* Login button */}
                 <button
                     id="login-submit"
                     type="submit"
-                    className="w-fit bg-[#f1f1f1] rounded-full px-10 py-4.5 cursor-pointer hover:bg-[#0000f4] transition-colors flex justify-center group"
+                    disabled={submitting}
+                    className="w-fit bg-[#f1f1f1] rounded-full px-10 py-4.5 cursor-pointer hover:bg-[#0000f4] transition-colors flex justify-center group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#f1f1f1]"
                 >
-                    <SvgText text="Login" weight="600" height={16} className="text-[#0000f4] group-hover:text-white" />
+                    <SvgText text={submitting ? "Logging in..." : "Login"} weight="600" height={16} className="text-[#0000f4] group-hover:text-white" />
                 </button>
 
-                {/* or */}
                 <SvgText text="or" weight="600" height={16} className="text-[#1e1e1e]" />
 
-                {/* Create account */}
                 <Link
                     href="/create-account"
                     id="go-to-create-account"
@@ -135,5 +160,13 @@ export default function LoginPage() {
                 </Link>
             </form>
         </main>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<main className="flex-1" />}>
+            <LoginPageInner />
+        </Suspense>
     );
 }

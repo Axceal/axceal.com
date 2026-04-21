@@ -1,10 +1,10 @@
 "use client";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SvgText } from "../../components/SvgText";
 import { SvgInput } from "../../components/SvgInput";
 import { RightArrow } from "../../components/icons/RightArrow";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 const SPRING = { type: "spring", stiffness: 280, damping: 28 } as const;
 const GAP = 2.5; // px above the active row's top edge
 
@@ -53,7 +53,18 @@ function formatPhoneInput(v: string, oldVal: string) {
     return `${d.slice(0, half)} - ${d.slice(half)}`;
 }
 
+// useSearchParams() triggers a build-time CSR bailout unless the caller is
+// wrapped in a Suspense boundary — do it at the page shell so the inner
+// component can read qty inline.
 export default function BillingShippingPage() {
+    return (
+        <Suspense fallback={null}>
+            <BillingShippingPageInner />
+        </Suspense>
+    );
+}
+
+function BillingShippingPageInner() {
     // ── Billing state ──────────────────────────────────────────────────────────
     const [billingFirst, setBillingFirst] = useState("");
     const [billingLast, setBillingLast] = useState("");
@@ -122,6 +133,82 @@ export default function BillingShippingPage() {
     const onShippingFocus = useCallback((f: ShippingField) => setActiveShipping(f), []);
     const onShippingBlur = useCallback(() => setActiveShipping("sFirst"), []);
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    // qty arrives as ?qty=N from /order/units; clamp to the server-enforced range.
+    const quantity = (() => {
+        const raw = Number(searchParams.get("qty"));
+        if (!Number.isFinite(raw) || raw < 1) return 1;
+        if (raw > 5) return 5;
+        return Math.floor(raw);
+    })();
+
+    const [submitting, setSubmitting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const idempotencyKeyRef = useRef<string>("");
+    useEffect(() => {
+        const STORAGE_KEY = "order:idempotency-key";
+        let key = sessionStorage.getItem(STORAGE_KEY);
+        if (!key) {
+            key = crypto.randomUUID();
+            sessionStorage.setItem(STORAGE_KEY, key);
+        }
+        idempotencyKeyRef.current = key;
+    }, []);
+
+    function extractDigits(s: string): string {
+        return s.replace(/\D/g, "");
+    }
+
+    function buildAddress(side: "billing" | "shipping") {
+        const isB = side === "billing";
+        return {
+            firstName: (isB ? billingFirst : shippingFirst).trim(),
+            lastName: (isB ? billingLast : shippingLast).trim(),
+            line1: (isB ? billingAddress : shippingAddress).trim(),
+            country: (isB ? billingCountry : shippingCountry).trim(),
+            state: (isB ? billingState : shippingState).trim(),
+            zip: (isB ? billingZip : shippingZip).trim(),
+            phoneCountryCode: extractDigits((isB ? billingCode : shippingCode).join("")),
+            phone: extractDigits(isB ? billingPhone : shippingPhone),
+            phoneSign: (isB ? billingSign : shippingSign) as "+" | "-",
+        };
+    }
+
+    async function handleProceed() {
+        if (submitting) return;
+        setErrorMsg(null);
+
+        const billing = buildAddress("billing");
+        // "Same as Billing" → copy billing into shipping client-side so the
+        // server always receives both addresses (user decision 2026-04-21).
+        const shipping = showShipping ? buildAddress("shipping") : billing;
+
+        setSubmitting(true);
+        try {
+            const res = await fetch("/api/orders", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                    quantity,
+                    billingAddress: billing,
+                    shippingAddress: shipping,
+                    idempotencyKey: idempotencyKeyRef.current,
+                }),
+            });
+            const body = await res.json().catch(() => null);
+            if (!res.ok || !body?.ok) {
+                setErrorMsg(body?.error?.message ?? "Could not place order. Please check your details and try again.");
+                return;
+            }
+            const orderId = body.data.id as string;
+            router.push(`/order/payment?orderId=${orderId}`);
+        } catch {
+            setErrorMsg("Network error. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
+    }
 
     // pill height: height={14} + py-[20px] (20 × 2) = 54 px — every input row uses this
     const pill = "bg-[#f1f1f1] text-[#1e1e1e] rounded-full px-5 py-[18px]";
@@ -520,13 +607,17 @@ export default function BillingShippingPage() {
             </div>
 
             {/* ── Proceed button ── */}
-            <div className="flex justify-center mt-14">
+            <div className="flex flex-col items-center mt-14 gap-3">
+                {errorMsg && (
+                    <SvgText text={errorMsg} weight="600" height={12} className="text-[#c00000]" />
+                )}
                 <button
-                    onClick={() => router.push("/order/payment")}
+                    onClick={handleProceed}
+                    disabled={submitting}
                     type="button"
-                    className="bg-[#f1f1f1] rounded-full px-10 py-4.5 cursor-pointer hover:bg-[#0000f4] transition-colors flex justify-center group focus:outline-none focus-visible:outline-none"
+                    className="bg-[#f1f1f1] rounded-full px-10 py-4.5 cursor-pointer hover:bg-[#0000f4] transition-colors flex justify-center group focus:outline-none focus-visible:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                    <SvgText text="Proceed" weight="600" height={16} className="text-[#aaaaaa] group-hover:text-white" />
+                    <SvgText text={submitting ? "Placing order..." : "Proceed"} weight="600" height={16} className="text-[#aaaaaa] group-hover:text-white" />
                 </button>
             </div>
 

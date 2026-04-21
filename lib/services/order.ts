@@ -1,0 +1,105 @@
+import { and, desc, eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { addresses, orders, type Order as OrderRow } from "@/lib/db/schema";
+import { AERO } from "@/lib/product";
+import { AppError, ErrorCode } from "@/lib/http/errors";
+import { logger } from "@/lib/logger";
+import type { CreateOrderRequest, OrderResponse } from "@/lib/contracts/order";
+
+function rowToResponse(row: OrderRow): OrderResponse {
+  return {
+    id: row.id,
+    status: row.status as OrderResponse["status"],
+    quantity: row.quantity,
+    totalPaise: row.totalPaise,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+async function findByIdempotencyKey(
+  userId: string,
+  idempotencyKey: string,
+): Promise<OrderRow | undefined> {
+  return db.query.orders.findFirst({
+    where: and(
+      eq(orders.userId, userId),
+      eq(orders.idempotencyKey, idempotencyKey),
+    ),
+  });
+}
+
+export async function createOrder(
+  userId: string,
+  input: CreateOrderRequest,
+): Promise<OrderResponse> {
+  const existing = await findByIdempotencyKey(userId, input.idempotencyKey);
+  if (existing) return rowToResponse(existing);
+
+  const [billingRow] = await db
+    .insert(addresses)
+    .values({ userId, ...input.billingAddress })
+    .returning();
+
+  let shippingRowId: string | null = null;
+  if (input.shippingAddress) {
+    const [s] = await db
+      .insert(addresses)
+      .values({ userId, ...input.shippingAddress })
+      .returning();
+    shippingRowId = s.id;
+  }
+
+  const unitPricePaise = AERO.priceInPaise;
+  const totalPaise = unitPricePaise * input.quantity;
+
+  try {
+    const [orderRow] = await db
+      .insert(orders)
+      .values({
+        userId,
+        sku: AERO.sku,
+        quantity: input.quantity,
+        unitPricePaise,
+        totalPaise,
+        status: "pending",
+        billingAddressId: billingRow.id,
+        shippingAddressId: shippingRowId,
+        billingAddressSnapshot: input.billingAddress,
+        shippingAddressSnapshot: input.shippingAddress ?? null,
+        idempotencyKey: input.idempotencyKey,
+      })
+      .returning();
+    return rowToResponse(orderRow);
+  } catch (err) {
+    // Lost the race against a concurrent request with the same idempotency key.
+    // Re-lookup and return the winner's row.
+    const winner = await findByIdempotencyKey(userId, input.idempotencyKey);
+    if (winner) {
+      logger.info(
+        { userId, idempotencyKey: input.idempotencyKey },
+        "idempotency race resolved — returning existing order",
+      );
+      return rowToResponse(winner);
+    }
+    throw err;
+  }
+}
+
+export async function listOrders(userId: string): Promise<OrderResponse[]> {
+  const rows = await db.query.orders.findMany({
+    where: eq(orders.userId, userId),
+    orderBy: [desc(orders.createdAt)],
+  });
+  return rows.map(rowToResponse);
+}
+
+export async function getOrder(
+  userId: string,
+  id: string,
+): Promise<OrderResponse> {
+  const row = await db.query.orders.findFirst({
+    where: and(eq(orders.id, id), eq(orders.userId, userId)),
+  });
+  if (!row) throw new AppError(ErrorCode.NOT_FOUND, "Order not found", 404);
+  return rowToResponse(row);
+}

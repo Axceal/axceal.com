@@ -2,6 +2,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { SvgText } from "../components/SvgText";
 import { SvgInput } from "../components/SvgInput";
 
@@ -19,6 +20,10 @@ export default function CreateAccountPage() {
     // Which OTP digit is currently focused (-1 = none)
     const [focusedOtpIdx, setFocusedOtpIdx] = useState(-1);
 
+    const [sendingOtp, setSendingOtp] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [message, setMessage] = useState<{ kind: "info" | "error"; text: string } | null>(null);
+
     // Wrapper refs for each field group (indicator anchors to these)
     const emailWrapRef = useRef<HTMLDivElement>(null);
     const otpWrapRef = useRef<HTMLDivElement>(null);
@@ -29,9 +34,29 @@ export default function CreateAccountPage() {
     const [, forceUpdate] = useState(0);
     useEffect(() => { forceUpdate(n => n + 1); }, []);
 
-    const handleSendOtp = () => {
-        if (email) {
-            // TODO: trigger OTP API
+    const handleSendOtp = async () => {
+        if (!email || sendingOtp) return;
+        setSendingOtp(true);
+        setMessage(null);
+        try {
+            const res = await fetch("/api/auth/send-otp", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+            const body = await res.json();
+            if (!res.ok || !body?.ok) {
+                setMessage({
+                    kind: "error",
+                    text: body?.error?.message ?? "Could not send OTP. Please try again.",
+                });
+                return;
+            }
+            setMessage({ kind: "info", text: "OTP sent. Check your inbox." });
+        } catch {
+            setMessage({ kind: "error", text: "Network error. Please try again." });
+        } finally {
+            setSendingOtp(false);
         }
     };
 
@@ -51,10 +76,63 @@ export default function CreateAccountPage() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // TODO: implement account creation
-        router.push("/account/details/name");
+        if (submitting) return;
+
+        const otpCode = otp.join("");
+        if (!email) return setMessage({ kind: "error", text: "Enter your email." });
+        if (otpCode.length !== 4) return setMessage({ kind: "error", text: "Enter the 4-digit OTP." });
+        if (password.length < 8) return setMessage({ kind: "error", text: "Password must be at least 8 characters." });
+        if (password !== rePassword) return setMessage({ kind: "error", text: "Passwords do not match." });
+
+        setSubmitting(true);
+        setMessage(null);
+        try {
+            const verifyRes = await fetch("/api/auth/verify-otp", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ email, otp: otpCode }),
+            });
+            const verifyBody = await verifyRes.json();
+            if (!verifyRes.ok || !verifyBody?.ok) {
+                setMessage({
+                    kind: "error",
+                    text: verifyBody?.error?.message ?? "OTP verification failed.",
+                });
+                return;
+            }
+            const otpToken: string = verifyBody.data.otpToken;
+
+            const registerRes = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ email, password, otpToken }),
+            });
+            const registerBody = await registerRes.json();
+            if (!registerRes.ok || !registerBody?.ok) {
+                setMessage({
+                    kind: "error",
+                    text: registerBody?.error?.message ?? "Could not create account.",
+                });
+                return;
+            }
+
+            const signInRes = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,
+            });
+            if (!signInRes || signInRes.error || !signInRes.ok) {
+                router.push("/login?registered=1");
+                return;
+            }
+            router.push("/account");
+        } catch {
+            setMessage({ kind: "error", text: "Network error. Please try again." });
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleFocus = useCallback((field: ActiveField) => setActiveField(field), []);
@@ -118,9 +196,10 @@ export default function CreateAccountPage() {
                                 type="button"
                                 id="send-otp-btn"
                                 onClick={handleSendOtp}
-                                className="bg-[#aaaaaa]  text-white font-semibold rounded-full px-5 py-3 cursor-pointer hover:bg-[#0000f4] transition-colors shrink-0 flex items-center"
+                                disabled={sendingOtp || !email}
+                                className="bg-[#aaaaaa]  text-white font-semibold rounded-full px-5 py-3 cursor-pointer hover:bg-[#0000f4] transition-colors shrink-0 flex items-center disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#aaaaaa]"
                             >
-                                <SvgText text="Send OTP" weight="600" height={14} className="text-white h-full" />
+                                <SvgText text={sendingOtp ? "Sending..." : "Send OTP"} weight="600" height={14} className="text-white h-full" />
                             </button>
                         }
                     />
@@ -190,16 +269,26 @@ export default function CreateAccountPage() {
                     />
                 </div>
 
-                {/* Spacer */}
-                <div className="h-[40px]" />
+                {/* Message / spacer (fixed height so layout stays stable) */}
+                <div className="h-[40px] flex items-center justify-center text-center">
+                    {message && (
+                        <SvgText
+                            text={message.text}
+                            weight="600"
+                            height={12}
+                            className={message.kind === "error" ? "text-[#e11d48]" : "text-[#0000f4]"}
+                        />
+                    )}
+                </div>
 
                 {/* Next button */}
                 <button
                     id="create-account-submit"
                     type="submit"
-                    className="w-fit bg-[#f1f1f1] rounded-full px-10 py-4.5 cursor-pointer hover:bg-[#0000f4] transition-colors flex justify-center group"
+                    disabled={submitting}
+                    className="w-fit bg-[#f1f1f1] rounded-full px-10 py-4.5 cursor-pointer hover:bg-[#0000f4] transition-colors flex justify-center group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#f1f1f1]"
                 >
-                    <SvgText text="Next" weight="600" height={16} className="text-[#aaaaaa] group-hover:text-white" />
+                    <SvgText text={submitting ? "Creating..." : "Next"} weight="600" height={16} className="text-[#aaaaaa] group-hover:text-white group-disabled:group-hover:text-[#aaaaaa]" />
                 </button>
 
                 {/* or */}

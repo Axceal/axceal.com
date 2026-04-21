@@ -1,17 +1,76 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { UserIcon } from "../components/icons/UserIcon";
 import { SvgText } from "../components/SvgText";
 import { Squircle } from "../components/Squircle";
+import { ordinal } from "./details/_helpers";
 
 const SPRING = { type: "spring", stiffness: 280, damping: 28 } as const;
 // user card width (300) + gap-[10px] (10) = 310px horizontal shift
 const SHIFT = 500;
 
+type AccountOverview = {
+    email: string;
+    createdAt: string;
+    profile: {
+        firstName: string | null;
+        lastName: string | null;
+        birthday: string | null;
+        gender: "female" | "male" | "private" | null;
+        phoneCountryCode: string | null;
+        phone: string | null;
+        phoneSign: "+" | "-";
+    };
+};
+
+const MONTHS_FULL = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+];
+
+function formatCreatedAt(iso: string): string {
+    const d = new Date(iso);
+    return `${ordinal(d.getDate())} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function splitEmail(email: string): [string, string] {
+    const at = email.indexOf("@");
+    if (at === -1) return [email, ""];
+    return [email.slice(0, at), email.slice(at)];
+}
+
 export default function Account() {
     const [ordersOpen, setOrdersOpen] = useState(false);
+    const [data, setData] = useState<AccountOverview | null>(null);
+
+    useEffect(() => {
+        const ac = new AbortController();
+        fetch("/api/account/me", { signal: ac.signal, cache: "no-store" })
+            .then(async (r) => (r.ok ? r.json() : null))
+            .then((body: { ok?: boolean; data?: AccountOverview } | null) => {
+                if (body?.ok && body.data) setData(body.data);
+            })
+            .catch(() => { /* ignore */ });
+        return () => ac.abort();
+    }, []);
+
+    const [localPart, domainPart] = data ? splitEmail(data.email) : ["", ""];
+    const createdLine = data
+        ? `Account created on ${formatCreatedAt(data.createdAt)}.`
+        : "";
+
+    const p = data?.profile;
+    const hasAny = p && (p.firstName || p.lastName || p.birthday || p.gender || p.phone);
+    const filled: string[] = [];
+    if (p?.firstName || p?.lastName) filled.push("Name");
+    if (p?.birthday) filled.push("Birthday");
+    if (p?.gender) filled.push("Gender");
+    if (p?.phone) filled.push("Phone Number");
+    const descriptionTail = hasAny
+        ? `Includes ${filled.join(", ")}`
+        : "Add your Name, Birthday, Gender & Phone Number";
 
     return (
         <main className="flex-1 flex items-center justify-center overflow-hidden">
@@ -31,15 +90,15 @@ export default function Account() {
                             <UserIcon className="w-[28px] h-[28px] text-white stroke-[#0000f4]" />
                         </div>
                         <div className="flex flex-col gap-1">
-                            <SvgText text="userEmail" weight="600" height={16} className="text-black" />
-                            <SvgText text="@example.com" weight="500" height={16} className="text-[#aaaaaa]" />
+                            <SvgText text={localPart || " "} weight="600" height={16} className="text-black" />
+                            <SvgText text={domainPart || " "} weight="500" height={16} className="text-[#aaaaaa]" />
                         </div>
                     </div>
 
                     {/* Account description */}
                     <p className="text-[14px] font-semibold text-[#aaaaaa] leading-[1.5]">
                         <SvgText
-                            text={"Account created on 04th June 2026.\nIncludes Phone Number, Birthday, \nBilling & Shipping address"}
+                            text={`${createdLine}\n${descriptionTail}`}
                             weight="600"
                             height={14}
                             className="text-[#aaaaaa]"

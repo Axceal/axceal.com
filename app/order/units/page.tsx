@@ -147,7 +147,7 @@ export default function OrderUnitsPage() {
                 {/* Proceed button */}
                 <button
                     type="button"
-                    onClick={() => router.push("/order/billing-shipping")}
+                    onClick={() => router.push(`/order/billing-shipping?qty=${quantity}`)}
                     className="bg-[#0000f4] rounded-full px-[40px] py-4.5 mt-[140px] cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus-visible:outline-none flex justify-center"
                 >
                     <SvgText text="Proceed" weight="600" height={16} className="text-white" />

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -14,6 +14,12 @@ const SLIDE_VARIANTS = {
     exit: (dir: number) => ({ x: dir * -60, opacity: 0 }),
 };
 
+const GENDER_UI_TO_SERVER: Record<string, "female" | "male" | "private"> = {
+    "Female": "female",
+    "Male": "male",
+    "Keep it Private": "private",
+};
+
 function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
@@ -22,8 +28,11 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         firstName, lastName,
         selDay, selMonth, yearPrefix, yearSuffix,
         gender,
-        phone,
+        country, phone, phoneSign,
     } = useAccountDetails();
+
+    const [submitting, setSubmitting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     // ── Step index ────────────────────────────────────────────────────────────
     const segment = pathname.split("/").pop() ?? "";
@@ -49,7 +58,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         selDay !== null && yearSuffix.length === suffixLen,
         gender,
         phone.every(d => d !== ""),
-    ][stepIndex]);
+    ][stepIndex]) && !submitting;
 
     // ── Sidebar (completed steps above current) ───────────────────────────────
     const sidebarItems: { text: string; href: string }[] = [];
@@ -57,8 +66,68 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     if (stepIndex >= 2 && birthdayText) sidebarItems.push({ text: birthdayText, href: STEP_ROUTES[1] });
     if (stepIndex >= 3 && gender) sidebarItems.push({ text: gender, href: STEP_ROUTES[2] });
 
-    const handleNext = () => {
-        if (stepIndex < 3) router.push(STEP_ROUTES[stepIndex + 1]);
+    const buildStepPatch = (): Record<string, unknown> | null => {
+        if (stepIndex === 0) {
+            return {
+                firstName: firstName.trim() || null,
+                lastName: lastName.trim() || null,
+            };
+        }
+        if (stepIndex === 1) {
+            if (selDay === null || yearSuffix.length !== suffixLen) return null;
+            const yyyy = yearPrefix + yearSuffix;
+            const mm = String(selMonth + 1).padStart(2, "0");
+            const dd = String(selDay).padStart(2, "0");
+            return { birthday: `${yyyy}-${mm}-${dd}` };
+        }
+        if (stepIndex === 2) {
+            if (!gender) return null;
+            const mapped = GENDER_UI_TO_SERVER[gender];
+            if (!mapped) return null;
+            return { gender: mapped };
+        }
+        if (stepIndex === 3) {
+            if (!phone.every(d => d !== "")) return null;
+            const code = country.code.replace(/\D/g, "");
+            return {
+                phoneCountryCode: code,
+                phone: phone.join(""),
+                phoneSign,
+            };
+        }
+        return null;
+    };
+
+    const handleNext = async () => {
+        if (!canNext || submitting) return;
+        const patch = buildStepPatch();
+        if (!patch) return;
+
+        setSubmitting(true);
+        setErrorMsg(null);
+        try {
+            const res = await fetch("/api/account/profile", {
+                method: "PUT",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(patch),
+            });
+            const body = await res.json().catch(() => null);
+            if (!res.ok || !body?.ok) {
+                setErrorMsg(body?.error?.message ?? "Could not save. Please try again.");
+                return;
+            }
+        } catch {
+            setErrorMsg("Network error. Please try again.");
+            return;
+        } finally {
+            setSubmitting(false);
+        }
+
+        if (stepIndex < 3) {
+            router.push(STEP_ROUTES[stepIndex + 1]);
+        } else {
+            router.push("/");
+        }
     };
 
     return (
@@ -109,8 +178,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                         </AnimatePresence>
                     </div>
 
-                    {/* Spacer */}
-                    <div className="h-2" />
+                    {/* Spacer / error */}
+                    <div className="h-6 flex items-center justify-center text-center">
+                        {errorMsg && (
+                            <SvgText text={errorMsg} weight="600" height={12} className="text-[#e11d48]" />
+                        )}
+                    </div>
 
                     {/* Bottom actions */}
                     <div className="flex flex-col items-center gap-4 w-full">
@@ -128,7 +201,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                         >
                             <motion.div animate={{ color: canNext ? "#ffffff" : "#aaaaaa" }} transition={SPRING} className="flex items-center justify-center text-center">
                                 <SvgText
-                                    text={stepIndex === 3 ? "Proceed" : "Next"}
+                                    text={submitting ? "Saving..." : stepIndex === 3 ? "Proceed" : "Next"}
                                     weight="600" height={16}
                                 />
                             </motion.div>

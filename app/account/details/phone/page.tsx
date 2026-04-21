@@ -13,10 +13,9 @@ export default function PhonePage() {
         countrySearch, setCountrySearch,
         showSearch, setShowSearch,
         phone, setPhone,
-        phoneRefs,
+        phoneSign: sign, setPhoneSign: setSign,
     } = useAccountDetails();
 
-    const [sign, setSign] = useState<"+" | "-">("+");
     const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
 
     const handlePhoneChange = (i: number, val: string) => {
