@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomInt } from "node:crypto";
 import { redis } from "@/lib/redis";
 import { AppError, ErrorCode } from "@/lib/http/errors";
 
@@ -13,8 +13,7 @@ const otpKey = (email: string) => `otp:${email}`;
 const tokenKey = (token: string) => `otp:verify-token:${token}`;
 
 export function generateOtp(): string {
-  const n = Math.floor(Math.random() * 10000);
-  return n.toString().padStart(4, "0");
+  return randomInt(0, 10000).toString().padStart(4, "0");
 }
 
 export async function storeOtp(email: string, code: string): Promise<void> {
@@ -59,6 +58,84 @@ export async function issueOtpToken(email: string): Promise<string> {
   const record: TokenRecord = { email };
   await redis.set(tokenKey(token), record, { ex: TOKEN_TTL_SEC });
   return token;
+}
+
+// Login-scoped OTPs — separate keys prevent cross-flow reuse with registration OTPs
+const loginOtpKey = (email: string) => `otp:login:${email}`;
+
+export async function storeLoginOtp(email: string, code: string): Promise<void> {
+  const record: OtpRecord = { code, attempts: 0 };
+  await redis.set(loginOtpKey(email), record, { ex: OTP_TTL_SEC });
+}
+
+export async function verifyLoginOtp(email: string, code: string): Promise<void> {
+  const key = loginOtpKey(email);
+  const record = (await redis.get<OtpRecord>(key)) ?? null;
+
+  if (!record) {
+    throw new AppError(
+      ErrorCode.OTP_EXPIRED,
+      "OTP expired or not found. Please request a new one.",
+      400,
+    );
+  }
+
+  if (record.attempts >= MAX_ATTEMPTS) {
+    await redis.del(key);
+    throw new AppError(
+      ErrorCode.INVALID_OTP,
+      "Too many incorrect attempts. Please request a new OTP.",
+      400,
+    );
+  }
+
+  if (record.code !== code) {
+    const next: OtpRecord = { code: record.code, attempts: record.attempts + 1 };
+    const ttl = await redis.ttl(key);
+    await redis.set(key, next, { ex: ttl > 0 ? ttl : OTP_TTL_SEC });
+    throw new AppError(ErrorCode.INVALID_OTP, "Incorrect OTP.", 400);
+  }
+
+  await redis.del(key);
+}
+
+// Change-password scoped OTPs — separate keys prevent cross-flow reuse
+const changePwOtpKey = (email: string) => `otp:change-pw:${email}`;
+
+export async function storeChangePasswordOtp(email: string, code: string): Promise<void> {
+  const record: OtpRecord = { code, attempts: 0 };
+  await redis.set(changePwOtpKey(email), record, { ex: OTP_TTL_SEC });
+}
+
+export async function verifyChangePasswordOtp(email: string, code: string): Promise<void> {
+  const key = changePwOtpKey(email);
+  const record = (await redis.get<OtpRecord>(key)) ?? null;
+
+  if (!record) {
+    throw new AppError(
+      ErrorCode.OTP_EXPIRED,
+      "OTP expired or not found. Please request a new one.",
+      400,
+    );
+  }
+
+  if (record.attempts >= MAX_ATTEMPTS) {
+    await redis.del(key);
+    throw new AppError(
+      ErrorCode.INVALID_OTP,
+      "Too many incorrect attempts. Please request a new OTP.",
+      400,
+    );
+  }
+
+  if (record.code !== code) {
+    const next: OtpRecord = { code: record.code, attempts: record.attempts + 1 };
+    const ttl = await redis.ttl(key);
+    await redis.set(key, next, { ex: ttl > 0 ? ttl : OTP_TTL_SEC });
+    throw new AppError(ErrorCode.INVALID_OTP, "Incorrect OTP.", 400);
+  }
+
+  await redis.del(key);
 }
 
 export async function consumeOtpToken(token: string): Promise<string> {

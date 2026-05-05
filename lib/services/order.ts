@@ -1,10 +1,10 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { addresses, orders, type Order as OrderRow } from "@/lib/db/schema";
+import { addresses, orders, users, type Order as OrderRow } from "@/lib/db/schema";
 import { AERO } from "@/lib/product";
 import { AppError, ErrorCode } from "@/lib/http/errors";
 import { logger } from "@/lib/logger";
-import type { CreateOrderRequest, OrderResponse } from "@/lib/contracts/order";
+import type { CreateOrderRequest, OrderDetailResponse, OrderResponse } from "@/lib/contracts/order";
 
 function rowToResponse(row: OrderRow): OrderResponse {
   return {
@@ -89,6 +89,7 @@ export async function listOrders(userId: string): Promise<OrderResponse[]> {
   const rows = await db.query.orders.findMany({
     where: eq(orders.userId, userId),
     orderBy: [desc(orders.createdAt)],
+    limit: 100,
   });
   return rows.map(rowToResponse);
 }
@@ -96,10 +97,35 @@ export async function listOrders(userId: string): Promise<OrderResponse[]> {
 export async function getOrder(
   userId: string,
   id: string,
-): Promise<OrderResponse> {
-  const row = await db.query.orders.findFirst({
-    where: and(eq(orders.id, id), eq(orders.userId, userId)),
-  });
+): Promise<OrderDetailResponse> {
+  const rows = await db
+    .select({
+      id: orders.id,
+      status: orders.status,
+      quantity: orders.quantity,
+      totalPaise: orders.totalPaise,
+      createdAt: orders.createdAt,
+      razorpayPaymentId: orders.razorpayPaymentId,
+      billingAddressSnapshot: orders.billingAddressSnapshot,
+      shippingAddressSnapshot: orders.shippingAddressSnapshot,
+      email: users.email,
+    })
+    .from(orders)
+    .innerJoin(users, eq(orders.userId, users.id))
+    .where(and(eq(orders.id, id), eq(orders.userId, userId)));
+
+  const row = rows[0];
   if (!row) throw new AppError(ErrorCode.NOT_FOUND, "Order not found", 404);
-  return rowToResponse(row);
+
+  return {
+    id: row.id,
+    status: row.status as OrderDetailResponse["status"],
+    quantity: row.quantity,
+    totalPaise: row.totalPaise,
+    createdAt: row.createdAt.toISOString(),
+    razorpayPaymentId: row.razorpayPaymentId,
+    email: row.email,
+    billingAddressSnapshot: row.billingAddressSnapshot as OrderDetailResponse["billingAddressSnapshot"],
+    shippingAddressSnapshot: row.shippingAddressSnapshot as OrderDetailResponse["shippingAddressSnapshot"],
+  };
 }

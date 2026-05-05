@@ -5,15 +5,20 @@ import { withHandler } from "@/lib/http/handler";
 import { RegisterRequest, RegisterResponse } from "@/lib/contracts/auth";
 import { AppError, ErrorCode } from "@/lib/http/errors";
 import { consumeOtpToken } from "@/lib/auth/otp";
+import { issuePendingMfaToken } from "@/lib/auth/pending-mfa";
 import { hashPassword } from "@/lib/auth/password";
+import { getClientIp } from "@/lib/http/request";
 import { db } from "@/lib/db/client";
 import { users, userProfiles } from "@/lib/db/schema";
 import { logger } from "@/lib/logger";
+import { rateLimit } from "@/lib/http/rate-limit";
 
 export const POST = withHandler({
   input: RegisterRequest,
   output: RegisterResponse,
-  handler: async ({ input }) => {
+  handler: async ({ input, req }) => {
+    const ip = getClientIp(req);
+    await rateLimit(`register:ip:${ip}`, { limit: 10, windowSec: 3600 });
     const { email, password, otpToken } = input;
 
     const tokenEmail = await consumeOtpToken(otpToken);
@@ -58,6 +63,9 @@ export const POST = withHandler({
       throw new AppError(ErrorCode.INTERNAL, "Failed to create user profile.", 500);
     }
 
-    return { userId: userRow.id };
+    const ua = req.headers.get("user-agent") ?? "";
+    const signupSessionToken = await issuePendingMfaToken(userRow.id, email, ip, ua);
+
+    return { userId: userRow.id, signupSessionToken };
   },
 });

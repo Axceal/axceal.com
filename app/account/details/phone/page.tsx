@@ -1,88 +1,80 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SvgText } from "../../../components/SvgText";
 import { SvgInput } from "../../../components/SvgInput";
-import { useAccountDetails } from "../_context";
-import { COUNTRIES, SPRING } from "../_constants";
+import { SPRING } from "../constants";
+import { DisableCircle } from "../../../components/icons/DisableCircle";
+import { usePhoneForm } from "./hooks/usePhoneForm";
 
 export default function PhonePage() {
     const {
         firstName,
         country, setCountry,
         countrySearch, setCountrySearch,
-        showSearch, setShowSearch,
-        phone, setPhone,
-        phoneSign: sign, setPhoneSign: setSign,
-    } = useAccountDetails();
-
-    const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
-
-    const handlePhoneChange = (i: number, val: string) => {
-        const v = val.replace(/\D/g, "").slice(-1);
-        const updated = [...phone];
-        updated[i] = v;
-        setPhone(updated);
-        if (v && i < phone.length - 1) setTimeout(() => document.getElementById(`phone-digit-${i + 1}`)?.focus(), 10);
-    };
-
-    const handlePhoneKeyDown = (i: number, e: React.KeyboardEvent) => {
-        if (e.key === "Backspace" && !phone[i] && i > 0) {
-            setTimeout(() => document.getElementById(`phone-digit-${i - 1}`)?.focus(), 10);
-        }
-    };
-
-    const filteredCountries = COUNTRIES.filter(c =>
-        c.name.toLowerCase().startsWith(countrySearch.toLowerCase()) ||
-        c.code.includes(countrySearch)
-    );
-
-    const codeNumbers = country.code.replace(/\D/g, "").split("");
+        setShowSearch,
+        phone,
+        sign, setSign,
+        phoneOtp,
+        phoneOtpSent,
+        focusedIdx, setFocusedIdx,
+        focusedOtpIdx, setFocusedOtpIdx,
+        errorMsg,
+        filteredCountries,
+        codeNumbers,
+        handlePhoneChange,
+        handlePhoneKeyDown,
+        handleOtpChange,
+        handleOtpKeyDown,
+        sendPhoneOtp,
+    } = usePhoneForm();
 
     return (
-        <div className="flex flex-col gap-[5px] h-[360px]">
+        <div className="flex flex-col gap-[5px] items-center w-full">
             <SvgText
                 text={`${firstName}, Add your Phone Number`}
                 weight="600" height={16} className="text-[#aaaaaa] mt-[15px] mb-[10px]"
             />
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 w-full md:w-fit md:self-center">
                 {/* Country Code Block */}
-                <div className="bg-[#f1f1f1] rounded-[20px] px-5 flex self-start justify-between w-fit gap-4 items-center h-[72px]">
-                    <SvgText text="Country Code" height={14} className="text-[#aaaaaa] shrink-0" />
-                    <div className="flex items-center gap-2">
-                        {/* +/- toggle */}
+                <div className="bg-[#f1f1f1] rounded-[15px] md:rounded-[20px] px-4 md:px-5 flex justify-between w-full md:w-fit md:self-center gap-2 md:gap-4 items-center h-[60px] md:h-[72px]">
+                    <div className="hidden md:block shrink-0">
+                        <SvgText text="Country Code" height={14} className="text-[#aaaaaa]" />
+                    </div>
+                    <div className="block md:hidden shrink-0">
+                        <SvgText text="Country Code" height={14} className="text-[#aaaaaa]" />
+                    </div>
+                    <div className="flex items-center gap-2 md:gap-2">
                         <button
                             onClick={() => setSign(sign === "+" ? "-" : "+")}
-                            className="w-10 h-10 rounded-full bg-white flex items-center justify-center cursor-pointer transition-colors shrink-0 hover:bg-[#e0e0e0]"
+                            className="w-[36px] h-[36px] md:w-10 md:h-10 rounded-full bg-white flex items-center justify-center cursor-pointer transition-colors shrink-0 hover:bg-[#e0e0e0]"
                         >
-                            <SvgText text={sign} weight="600" height={20} className="text-[#0000f4]" />
+                            <SvgText text={sign} weight="600" height={18} className="text-[#0000f4]" />
                         </button>
-
-                        {/* Rest of the country code digits */}
                         {[0, 1, 2].map(i => {
                             const digit = codeNumbers[i];
                             return (
-                                <div
-                                    key={`cc-${i}`}
-                                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0"
-                                >
-                                    {digit ? <SvgText text={digit} weight="600" height={18} className="text-[#1e1e1e]" /> : null}
+                                <div key={`cc-${i}`} className="w-[36px] h-[36px] md:w-10 md:h-10 rounded-full bg-white flex items-center justify-center shrink-0">
+                                    {digit ? (
+                                        <SvgText text={digit} weight="600" height={16} className="text-[#1e1e1e]" />
+                                    ) : (
+                                        <DisableCircle />
+                                    )}
                                 </div>
                             );
                         })}
                     </div>
                 </div>
 
-                {/* Phone Number Block */}
-                <div className="bg-[#f1f1f1] rounded-[20px] px-5 flex justify-between w-fit items-center h-[72px]">
-                    {/* <SvgText text="Phone Number" height={16} className="text-[#aaaaaa] shrink-0" /> */}
-                    <div className="flex items-center gap-2">
+                {/* Phone Number Block — full-width on mobile, compact on desktop */}
+                <div className="bg-[#f1f1f1] rounded-[15px] md:rounded-[20px] px-3 py-3 md:px-5 md:py-0 w-[calc(100%+84px)] -mx-[42px] md:mx-0 md:w-fit md:h-[72px] flex items-center">
+                    <div className="flex justify-between md:justify-start md:gap-2 w-full md:w-fit items-center">
                         {phone.map((digit, i) => (
                             <div
                                 key={`phone-${i}`}
                                 onClick={() => document.getElementById(`phone-digit-${i}`)?.focus()}
-                                className={`w-10 h-10 rounded-full bg-white flex shrink-0 transition-all cursor-text ${focusedIdx === i ? "ring-2 ring-[#0000f4]" : ""}`}
+                                className={`w-[30px] h-[30px] md:w-10 md:h-10 rounded-full bg-white flex shrink-0 transition-all cursor-text items-center justify-center ${focusedIdx === i ? "ring-2 ring-[#0000f4]" : ""}`}
                             >
                                 <SvgInput
                                     id={`phone-digit-${i}`}
@@ -91,7 +83,7 @@ export default function PhonePage() {
                                     onKeyDown={e => handlePhoneKeyDown(i, e)}
                                     onFocus={() => setFocusedIdx(i)}
                                     onBlur={() => setFocusedIdx(current => current === i ? null : current)}
-                                    height={18}
+                                    height={16}
                                     weight="600"
                                     align="center"
                                     className="text-[#1e1e1e] w-full"
@@ -102,67 +94,111 @@ export default function PhonePage() {
                 </div>
             </div>
 
-            {/* Search Country toggle and Name */}
-            <div className="flex items-center  gap-2 self-start ">
-                <button onClick={() => setShowSearch(s => !s)} className="cursor-pointer outline-none mt-[10px] focus:outline-none focus:ring-0">
-                    <SvgText text="Search Country" weight="600" height={14} className="text-[#0000f4]" />
-                </button>
-                {!showSearch && (
-                    <SvgText text={` - ${country.name}`} weight="600" height={14} className="text-[#aaaaaa] mt-[5px] " />
-                )}
-            </div>
+            {/* OTP section — shown after Twilio sends SMS */}
+            <AnimatePresence>
+                {phoneOtpSent && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                        animate={{ opacity: 1, height: "auto", marginTop: 10 }}
+                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                        className="flex flex-col gap-3 overflow-hidden mt-1"
+                    >
+                        <SvgText text="Check your Phone for OTP" weight="600" height={16} className="text-[#aaaaaa] self-start pl-3 mt-2" />
 
-            {/* Country search panel (organic flex anchoring) */}
-            <div className="w-full">
-                <AnimatePresence>
-                    {showSearch && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -4 }}
-                            transition={SPRING}
-                            className="flex flex-col gap-3 pr-4"
-                        >
-                            <div className="bg-[#f1f1f1] flex flex-row rounded-full px-6 py-4 items-center gap-2 w-[200px]">
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
-                                    <circle cx="6" cy="6" r="5" stroke="#aaaaaa" strokeWidth="1.3" />
-                                    <path d="M10 10l2.5 2.5" stroke="#aaaaaa" strokeWidth="1.3" strokeLinecap="round" />
-                                </svg>
-                                <div className="flex-1 w-full flex">
-                                    <SvgInput
-                                        id="country-search-input"
-                                        value={countrySearch}
-                                        onChange={setCountrySearch}
-                                        placeholder="Search country..."
-                                        weight="600"
-                                        height={14}
-                                        className="text-[#1e1e1e] w-full outline-none focus:outline-none"
-                                    />
-                                </div>
+                        <div className="bg-[#f1f1f1] rounded-[20px] h-[72px] px-1 md:px-5 flex items-center justify-between w-[calc(100%+32px)] -mx-4 md:mx-0 md:w-[360px] gap-2 md:gap-4">
+                            <div className="pl-2 shrink-0">
+                                <SvgText text="OTP" weight="500" height={14} className="text-[#aaaaaa]" />
                             </div>
-                            <div className="flex gap-2 flex-wrap items-center">
-                                {countrySearch.length > 0 && filteredCountries.slice(0, 5).map(c => (
-                                    <button
-                                        key={c.code}
-                                        onClick={() => {
-                                            setCountry(c);
-                                            setShowSearch(false);
-                                            setCountrySearch("");
-                                        }}
-                                        className="cursor-pointer hover:bg-[#0000f4] hover:text-white transition-colors bg-[#f1f1f1] px-4 py-[10px] rounded-full group flex items-center justify-center outline-none focus:outline-none focus:ring-0"
+                            <div className="flex w-full justify-between md:justify-start md:gap-2">
+                                {phoneOtp.map((digit, i) => (
+                                    <div
+                                        key={`phone-otp-${i}`}
+                                        onClick={() => document.getElementById(`phone-otp-digit-${i}`)?.focus()}
+                                        className={`w-[36px] h-[36px] md:w-10 md:h-10 rounded-full bg-white flex shrink-0 items-center justify-center transition-all cursor-text ${focusedOtpIdx === i ? "ring-2 ring-[#0000f4]" : ""}`}
                                     >
-                                        <SvgText
-                                            text={`${c.code} ${c.name}`}
-                                            weight="600" height={14}
-                                            className="text-[#0000f4] group-hover:text-white transition-colors"
+                                        <SvgInput
+                                            id={`phone-otp-digit-${i}`}
+                                            value={digit}
+                                            onChange={val => handleOtpChange(i, val)}
+                                            onKeyDown={e => handleOtpKeyDown(i, e)}
+                                            onFocus={() => setFocusedOtpIdx(i)}
+                                            onBlur={() => setFocusedOtpIdx(current => current === i ? null : current)}
+                                            height={18}
+                                            weight="600"
+                                            align="center"
+                                            className="text-[#1e1e1e] w-full"
                                         />
-                                    </button>
+                                    </div>
                                 ))}
                             </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => void sendPhoneOtp()}
+                            className="cursor-pointer focus:outline-none shrink-0 self-center"
+                        >
+                            <SvgText text="Resend" weight="600" height={14} className="text-[#0000f4]" />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Always-visible error */}
+            {errorMsg && (
+                <SvgText text={errorMsg} weight="500" height={12} className="text-[#e11d48] pl-3 mt-1" />
+            )}
+
+            {/* Country search — hidden while OTP is in progress */}
+            <AnimatePresence>
+                {!phoneOtpSent && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                        animate={{ opacity: 1, height: "auto", marginTop: 10 }}
+                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                        className="flex flex-col gap-4 self-center items-center overflow-hidden"
+                    >
+                        <div className="bg-[#f1f1f1] rounded-full py-3 flex items-center justify-center w-[150px]">
+                            <SvgInput
+                                id="country-search-input"
+                                value={countrySearch}
+                                onChange={v => { setCountrySearch(v); setShowSearch(v.length > 0); }}
+                                placeholder="Search Country"
+                                align="center"
+                                weight="600"
+                                height={14}
+                                className="text-[#0000f4] w-full outline-none focus:outline-none self-center"
+                            />
+                        </div>
+
+                        <AnimatePresence>
+                            {countrySearch.length > 0 && filteredCountries.length > 0 && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -4 }}
+                                    transition={SPRING}
+                                    className="flex flex-wrap items-center"
+                                >
+                                    {filteredCountries.slice(0, 5).map(c => (
+                                        <button
+                                            key={c.code}
+                                            onClick={() => { setCountry(c); setCountrySearch(""); setShowSearch(false); }}
+                                            className="cursor-pointer hover:bg-[#0000f4] transition-colors px-5 py-[10px] rounded-full group flex items-center justify-center outline-none focus:outline-none focus:ring-0"
+                                        >
+                                            <SvgText
+                                                text={`${c.code} ${c.name}`}
+                                                weight="600" height={14}
+                                                className="text-[#0000f4] group-hover:text-white transition-colors"
+                                            />
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

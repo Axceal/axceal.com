@@ -1,11 +1,7 @@
 "use client";
 import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from "react";
 import fustatData from "./fustat-data.json";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-type FontWeight = keyof typeof fustatData;
-type GlyphMap = Record<string, { path: string; width: number }>;
-type KernMap = Record<string, number>;
+import { type FontWeight, type GlyphMap, type KernMap, BASE, BLINK_MS, buildGlyphs } from "./svgInputHelpers";
 
 export interface SvgInputProps {
     value: string;
@@ -19,8 +15,9 @@ export interface SvgInputProps {
     className?: string;
     id?: string;
     required?: boolean;
+    readOnly?: boolean;
     autoComplete?: string;
-    align?: "left" | "center";
+    align?: "left" | "center" | "right";
     /** Slot to the right of the text area, e.g. a Send OTP button */
     rightSlot?: React.ReactNode;
     /** Called when the hidden input gains focus */
@@ -28,44 +25,6 @@ export interface SvgInputProps {
     /** Called when the hidden input loses focus */
     onBlur?: () => void;
     onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-// The Fustat glyph coordinate grid height — same BASE used by SvgText.tsx
-const BASE = 24;
-const BLINK_MS = 530;
-
-// ─── Glyph helper ────────────────────────────────────────────────────────────
-function buildGlyphs(
-    text: string,
-    glyphs: GlyphMap,
-    kern: KernMap
-): { paths: { d: string; x: number }[]; xPositions: number[]; totalWidth: number } {
-    let x = 0;
-    const paths: { d: string; x: number }[] = [];
-    // xPositions[i] = left edge of character i in font-units.
-    // xPositions[text.length] = right edge of the last character.
-    const xPositions: number[] = [0];
-
-    for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const next = text[i + 1];
-        const g = glyphs[char];
-
-        if (!g) {
-            const sw = glyphs[" "]?.width ?? 6;
-            x += sw;
-            xPositions.push(x);
-            continue;
-        }
-
-        paths.push({ d: g.path, x });
-        const k = next ? (kern[char + next] ?? 0) : 0;
-        x += g.width + k;
-        xPositions.push(x);
-    }
-
-    return { paths, xPositions, totalWidth: x };
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -79,6 +38,7 @@ export function SvgInput({
     className = "",
     id,
     required,
+    readOnly,
     autoComplete,
     align = "left",
     rightSlot,
@@ -89,6 +49,7 @@ export function SvgInput({
     const inputRef = useRef<HTMLInputElement>(null);
     const clipRef = useRef<HTMLDivElement>(null);
     const [focused, setFocused] = useState(false);
+    const [clipWidth, setClipWidth] = useState(200);
     const [cursorIdx, setCursorIdx] = useState(0);
     const [blink, setBlink] = useState(true);
     // How many font-units to shift the SVG leftward to keep the cursor visible.
@@ -96,8 +57,19 @@ export function SvgInput({
     // Distinguishes click-focus from tab-focus so we don't misposition the cursor.
     const isMouseFocusRef = useRef(false);
 
+    // ── Clip width — tracked via ResizeObserver so render path reads state not ref
+    useLayoutEffect(() => {
+        const el = clipRef.current;
+        if (!el) return;
+        setClipWidth(el.offsetWidth);
+        const ro = new ResizeObserver(() => setClipWidth(el.offsetWidth));
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+
     // ── Blink ─────────────────────────────────────────────────────────────────
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (!focused) { setBlink(true); return; }
         setBlink(true);
         const timer = setInterval(() => setBlink(b => !b), BLINK_MS);
@@ -146,7 +118,7 @@ export function SvgInput({
         if (clipWidthFU <= 0) return; // Wait for real layout
 
         // Cap padding to at most half the visible width, preventing over-correction bounce loops
-        const padFU = Math.min(4 / scale, clipWidthFU / 2); 
+        const padFU = Math.min(4 / scale, clipWidthFU / 2);
 
         if (cursorXFU - scrollUnits > clipWidthFU - padFU) {
             setScrollUnits(cursorXFU - clipWidthFU + padFU);
@@ -157,6 +129,7 @@ export function SvgInput({
 
     // Reset scroll when cleared
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (value.length === 0) { setCursorIdx(0); setScrollUnits(0); }
     }, [value.length]);
 
@@ -192,10 +165,18 @@ export function SvgInput({
     }
     // Effective viewBox that accounts for horizontal scrolling
     const viewLeft = scrollUnits;
-    const clipWidthFU = (clipRef.current?.offsetWidth ?? 200) / scale;
+    const clipWidthFU = clipWidth / scale;
     const viewWidth = clipWidthFU > 0 ? clipWidthFU : contentWidth;
 
-    const alignOffset = align === "center" ? Math.max(0, (viewWidth - (type === "password" && !hasBullet ? value.length * BULLET_SPACING_FU : totalWidth)) / 2) : 0;
+    const textWidthFU = type === "password" && !hasBullet ? value.length * BULLET_SPACING_FU : totalWidth;
+    const alignOffset =
+        align === "center" ? Math.max(0, (viewWidth - textWidthFU) / 2) :
+            align === "right" ? Math.max(0, viewWidth - textWidthFU) :
+                0;
+    const phAlignOffset =
+        align === "center" ? Math.max(0, (viewWidth - phWidth) / 2) :
+            align === "right" ? Math.max(0, viewWidth - phWidth) :
+                0;
 
     // ── Click-to-position: map click X to the closest glyph boundary ────────
     const handleContainerClick = (e: React.MouseEvent) => {
@@ -229,7 +210,7 @@ export function SvgInput({
     // ─── Render ───────────────────────────────────────────────────────────────
     return (
         <div
-            className={`relative flex items-center overflow-hidden cursor-text select-none ${className}`}
+            className={`relative flex items-center cursor-text select-none ${className}`}
             onClick={handleContainerClick}
         >
             {/* Hidden real <input> — all keyboard / IME / clipboard events go here */}
@@ -244,6 +225,7 @@ export function SvgInput({
                 inputMode={type === "email" ? "email" : undefined}
                 value={value}
                 required={required}
+                readOnly={readOnly}
                 autoComplete={autoComplete ?? "off"}
                 onChange={e => {
                     const newVal = e.target.value;
@@ -275,27 +257,29 @@ export function SvgInput({
                 tabIndex={0}
             />
 
-            {/* SVG visual layer — clips horizontally */}
+            {/* SVG visual layer — clips horizontally, allows descenders below */}
             <div
                 ref={clipRef}
-                className="relative flex-1 overflow-hidden pointer-events-none"
-                style={{ height: `${height}px` }}
+                className="relative flex-1 pointer-events-none"
+                style={{ height: `${height}px`, clipPath: `inset(0 0 -30px 0)` }}
             >
                 {/* ── Placeholder SVG (shown when empty) ── */}
                 {value.length === 0 && placeholder && (
                     <svg
-                        viewBox={`0 0 ${Math.max(phWidth, 1)} ${BASE}`}
+                        viewBox={`0 0 ${Math.max(viewWidth, 1)} ${BASE}`}
                         height={height}
-                        width={Math.max(phWidth, 1) * scale}
+                        width={Math.max(viewWidth, 1) * scale}
                         preserveAspectRatio="xMinYMid meet"
                         className="fill-current opacity-40"
                         aria-hidden="true"
                         style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}
                     >
-                        {phPaths.map((g, i) => (
-                            <path key={i} d={g.d} transform={`translate(${g.x},0)`} />
-                        ))}
-                        {/* Cursor at position 0 when focused and empty */}
+                        <g transform={phAlignOffset > 0 ? `translate(${phAlignOffset},0)` : undefined}>
+                            {phPaths.map((g, i) => (
+                                <path key={i} d={g.d} transform={`translate(${g.x},0)`} />
+                            ))}
+                        </g>
+                        {/* Cursor when focused and empty — sits at the typing insertion point */}
                         {focused && blink && (
                             <line
                                 x1={alignOffset} y1={1} x2={alignOffset} y2={BASE - 1}

@@ -22,6 +22,9 @@ export const users = pgTable("users", {
   email: citext("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+  passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
+  phone: text("phone").unique(),
+  phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()

@@ -37,6 +37,7 @@ export async function listAddresses(userId: string): Promise<AddressResponse[]> 
   const rows = await db.query.addresses.findMany({
     where: and(eq(addresses.userId, userId), isNull(addresses.deletedAt)),
     orderBy: [desc(addresses.createdAt)],
+    limit: 100,
   });
   return rows.map(rowToResponse);
 }

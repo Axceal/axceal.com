@@ -1,8 +1,8 @@
 "use client";
 import { motion } from "framer-motion";
 import { SvgText } from "../../../components/SvgText";
-import { useAccountDetails } from "../_context";
-import { SPRING } from "../_constants";
+import { useAccountDetails } from "../context";
+import { SPRING } from "../constants";
 
 export default function GenderPage() {
     const { firstName, gender, setGender } = useAccountDetails();
@@ -13,7 +13,7 @@ export default function GenderPage() {
                 text={`${firstName}, Select your gender`}
                 weight="600" height={16} className="text-[#aaaaaa] self-center mt-[15px]"
             />
-            <div className="flex flex-col gap-3 w-[200px] self-center">
+            <div className="flex flex-col gap-3 w-full max-w-[200px] self-center">
                 {["Female", "Male", "Keep it Private"].map(g => {
                     const active = gender === g;
                     return (

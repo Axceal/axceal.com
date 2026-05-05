@@ -1,9 +1,9 @@
 "use client";
 import { SvgText } from "../../../components/SvgText";
 import { SvgInput } from "../../../components/SvgInput";
-import { useAccountDetails } from "../_context";
-import { MONTHS_ABBR, MONTHS_FULL, SPRING } from "../_constants";
-import { daysInMonth, ordinal } from "../_helpers";
+import { useAccountDetails } from "../context";
+import { MONTHS_ABBR, MONTHS_FULL, SPRING } from "../constants";
+import { daysInMonth, ordinal } from "../helpers";
 
 const getDayCols = (dayCount: number) => {
     const colSizes: number[] = [];
@@ -57,6 +57,14 @@ export default function BirthdayPage() {
 
     const dayCount = daysInMonth(selMonth, yearNum);
 
+    const ageError = (() => {
+        if (selDay === null || yearSuffix.length !== suffixLen) return null;
+        const birth = new Date(yearNum, selMonth, selDay);
+        const cutoff = new Date();
+        cutoff.setFullYear(cutoff.getFullYear() - 13);
+        return birth > cutoff ? "You must be at least 13 years old." : null;
+    })();
+
     const handleMonthChange = (m: number) => {
         setSelMonth(m);
         if (selDay !== null && selDay > daysInMonth(m, yearNum)) setSelDay(null);
@@ -69,10 +77,10 @@ export default function BirthdayPage() {
                 weight="600" height={16} className="text-[#aaaaaa] mt-[15px]"
             />
 
-            <div className="flex gap-3 items-start">
+            <div className="flex gap-2 md:gap-3 items-start flex-wrap justify-between w-full">
 
                 {/* Left Col: Day + Year */}
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 shrink-0">
 
                     {/* Day block */}
                     <div className="bg-[#f1f1f1] rounded-[24px] p-4 flex gap-3 w-fit h-fit">
@@ -81,16 +89,16 @@ export default function BirthdayPage() {
                             {getDayCols(dayCount).map((col, cIdx) => (
                                 <div key={cIdx} className="flex flex-col gap-[5px] justify-end">
                                     {col.map((d, i) => {
-                                        if (d === null) return <div key={`empty-${cIdx}-${i}`} className="w-[30px] h-[30px] shrink-0" />;
+                                        if (d === null) return <div key={`empty-${cIdx}-${i}`} className="w-[26px] h-[26px] md:w-[30px] md:h-[30px] shrink-0" />;
                                         const selected = selDay === d;
                                         return (
                                             <button
                                                 key={d}
                                                 onClick={() => setSelDay(d)}
-                                                className={`w-[30px] h-[30px] rounded-full flex items-center justify-center transition-colors shrink-0 ${selected ? "bg-[#0000f4] text-white" : "text-[#1e1e1e] hover:bg-white"
+                                                className={`w-[26px] h-[26px] md:w-[30px] md:h-[30px] rounded-full flex items-center justify-center transition-colors shrink-0 ${selected ? "bg-[#0000f4] text-white" : "text-[#1e1e1e] hover:bg-white"
                                                     }`}
                                             >
-                                                <SvgText text={d.toString()} weight="600" height={18} />
+                                                <SvgText text={d.toString()} weight="600" height={16} />
                                             </button>
                                         );
                                     })}
@@ -154,7 +162,7 @@ export default function BirthdayPage() {
                                 <button
                                     key={m}
                                     onClick={() => handleMonthChange(i)}
-                                    className={`w-[46px] h-[46px] rounded-full flex items-center justify-center transition-colors shrink-0 ${active ? "bg-[#0000f4] text-white" : "bg-[#f1f1f1] text-[#1e1e1e] hover:bg-[#e1e1e1]"
+                                    className={`w-[42px] h-[42px] md:w-[46px] md:h-[46px] rounded-full flex items-center justify-center transition-colors shrink-0 ${active ? "bg-[#0000f4] text-white" : "bg-[#f1f1f1] text-[#1e1e1e] hover:bg-[#e1e1e1]"
                                         }`}
                                 >
                                     <SvgText text={m} weight="600" height={14} />
@@ -170,7 +178,7 @@ export default function BirthdayPage() {
                                 <button
                                     key={m}
                                     onClick={() => handleMonthChange(actualIndex)}
-                                    className={`w-[46px] h-[46px] rounded-full flex items-center justify-center transition-colors shrink-0 ${active ? "bg-[#0000f4] text-white" : "bg-[#f1f1f1] text-[#1e1e1e] hover:bg-[#e1e1e1]"
+                                    className={`w-[42px] h-[42px] md:w-[46px] md:h-[46px] rounded-full flex items-center justify-center transition-colors shrink-0 ${active ? "bg-[#0000f4] text-white" : "bg-[#f1f1f1] text-[#1e1e1e] hover:bg-[#e1e1e1]"
                                         }`}
                                 >
                                     <SvgText text={m} weight="600" height={14} />
@@ -181,6 +189,10 @@ export default function BirthdayPage() {
                 </div>
 
             </div>
+
+            {ageError && (
+                <SvgText text={ageError} weight="600" height={14} className="text-[#ff0000]" />
+            )}
         </div>
     );
 }

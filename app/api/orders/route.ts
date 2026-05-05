@@ -6,6 +6,7 @@ import {
   OrderListResponse,
 } from "@/lib/contracts/order";
 import { createOrder, listOrders } from "@/lib/services/order";
+import { rateLimit } from "@/lib/http/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,10 @@ export const POST = withHandler({
   output: OrderResponse,
   handler: async ({ input }) => {
     const session = await requireSession();
+    await rateLimit(`orders:create:${session.userId}`, {
+      limit: 20,
+      windowSec: 3600,
+    });
     return createOrder(session.userId, input);
   },
 });

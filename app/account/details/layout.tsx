@@ -2,11 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import { AccountDetailsProvider, useAccountDetails } from "./_context";
+import { AccountDetailsProvider, useAccountDetails } from "./context";
+import { apiFetch } from "@/lib/http/client";
 import { SvgText } from "../../components/SvgText";
-import { SPRING, STEP_SEGMENTS, STEP_ROUTES, MONTHS_FULL } from "./_constants";
-import { ordinal } from "./_helpers";
+import { SPRING, STEP_SEGMENTS, STEP_ROUTES, MONTHS_FULL } from "./constants";
+import { ordinal } from "./helpers";
 
 const SLIDE_VARIANTS = {
     initial: (dir: number) => ({ x: dir * 60, opacity: 0 }),
@@ -29,6 +29,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         selDay, selMonth, yearPrefix, yearSuffix,
         gender,
         country, phone, phoneSign,
+        phoneOtpSent, setPhoneOtpSent,
+        phoneOtp,
+        onSendPhoneOtp, onVerifyPhoneOtp,
     } = useAccountDetails();
 
     const [submitting, setSubmitting] = useState(false);
@@ -53,11 +56,21 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             ? `${ordinal(selDay)} ${MONTHS_FULL[selMonth]} ${year}`
             : null;
 
+    const isBirthdayValid = (() => {
+        if (selDay === null || yearSuffix.length !== suffixLen) return false;
+        const birth = new Date(parseInt(yearPrefix + yearSuffix), selMonth, selDay);
+        const cutoff = new Date();
+        cutoff.setFullYear(cutoff.getFullYear() - 13);
+        return birth <= cutoff;
+    })();
+
     const canNext = Boolean([
-        firstName.trim() && lastName.trim(),
-        selDay !== null && yearSuffix.length === suffixLen,
+        firstName.trim().length >= 2 && lastName.trim().length >= 2,
+        isBirthdayValid,
         gender,
-        phone.every(d => d !== ""),
+        phoneOtpSent
+            ? phoneOtp.every(d => d !== "")   // OTP entry: all 6 digits filled
+            : phone.every(d => d !== ""),      // Phone entry: all digits filled
     ][stepIndex]) && !submitting;
 
     // ── Sidebar (completed steps above current) ───────────────────────────────
@@ -100,13 +113,60 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
     const handleNext = async () => {
         if (!canNext || submitting) return;
+
+        // Step 3 — "Send": trigger OTP via phone page callback
+        if (stepIndex === 3 && !phoneOtpSent) {
+            setSubmitting(true);
+            setErrorMsg(null);
+            try {
+                const sent = await onSendPhoneOtp.current?.();
+                if (sent) setPhoneOtpSent(true);
+            } catch {
+                setErrorMsg("Could not send OTP. Please try again.");
+            } finally {
+                setSubmitting(false);
+            }
+            return;
+        }
+
+        // Step 3 — "Proceed": verify OTP, save phone, redirect
+        if (stepIndex === 3 && phoneOtpSent) {
+            setSubmitting(true);
+            setErrorMsg(null);
+            try {
+                const verified = await onVerifyPhoneOtp.current?.();
+                if (!verified) return;
+                const patch = buildStepPatch();
+                if (!patch) return;
+                const res = await apiFetch("/api/account/profile", {
+                    method: "PUT",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify(patch),
+                });
+                const body = await res.json().catch(() => null);
+                if (!res.ok || !body?.ok) {
+                    setErrorMsg(body?.error?.message ?? "Could not save. Please try again.");
+                    return;
+                }
+                const from = sessionStorage.getItem("signupFrom") ?? "";
+                sessionStorage.removeItem("signupFrom");
+                router.push(from === "order" ? "/order/units" : "/");
+            } catch {
+                setErrorMsg("Network error. Please try again.");
+            } finally {
+                setSubmitting(false);
+            }
+            return;
+        }
+
+        // Steps 0–2: save per step
         const patch = buildStepPatch();
         if (!patch) return;
 
         setSubmitting(true);
         setErrorMsg(null);
         try {
-            const res = await fetch("/api/account/profile", {
+            const res = await apiFetch("/api/account/profile", {
                 method: "PUT",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify(patch),
@@ -123,11 +183,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             setSubmitting(false);
         }
 
-        if (stepIndex < 3) {
-            router.push(STEP_ROUTES[stepIndex + 1]);
-        } else {
-            router.push("/");
-        }
+        router.push(STEP_ROUTES[stepIndex + 1]);
     };
 
     return (
@@ -135,7 +191,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <div className="flex gap-20 items-start">
 
                 {/* ── Left sidebar ── */}
-                <div className="absolute left-[10%] top-[30%] gap-5 w-[100px] p-2">
+                <div className="absolute left-[10%] top-[30%] gap-1 w-[100px] p-2 hidden lg:flex flex-col">
                     {sidebarItems.map(item => (
                         <motion.button
                             key={item.text}
@@ -157,7 +213,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 </div>
 
                 {/* ── Main content ── */}
-                <div className="flex flex-col items-center gap-2" style={{ width: 400 }}>
+                <div className="flex flex-col items-center gap-2 w-full max-w-[400px] px-4 sm:px-0">
                     <SvgText text="Account Details" weight="600" height={20} className="text-[#1e1e1e] mt-[10px]" />
 
                     {/* Animated step content */}
@@ -187,7 +243,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
                     {/* Bottom actions */}
                     <div className="flex flex-col items-center gap-4 w-full">
-                        {stepIndex === 3 && (
+                        {stepIndex === 3 && phoneOtpSent && (
                             <SvgText text="Clicking on proceed confirms your agreement with Axceal&apos;s Terms and conditions" weight="600" height={12} />
                         )}
 
@@ -201,20 +257,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                         >
                             <motion.div animate={{ color: canNext ? "#ffffff" : "#aaaaaa" }} transition={SPRING} className="flex items-center justify-center text-center">
                                 <SvgText
-                                    text={submitting ? "Saving..." : stepIndex === 3 ? "Proceed" : "Next"}
+                                    text={submitting ? "Saving..." : stepIndex === 3 ? (phoneOtpSent ? "Proceed" : "Send") : "Next"}
                                     weight="600" height={16}
                                 />
                             </motion.div>
                         </motion.button>
 
-                        <SvgText text="or" weight="600" height={14} className="text-[#1e1e1e]" />
-
-                        <Link
-                            href="/login"
-                            className="w-fit bg-[#f1f1f1] rounded-full px-10 py-4.5 flex items-center justify-center hover:bg-[#0000f4] transition-colors group"
-                        >
-                            <SvgText text="Login" weight="600" height={16} className="text-[#0000f4] group-hover:text-white" />
-                        </Link>
                     </div>
                 </div>
 

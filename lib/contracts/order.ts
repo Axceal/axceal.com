@@ -17,8 +17,16 @@ export const OrderResponse = z.object({
   createdAt: z.string().datetime(),
 });
 
+export const OrderDetailResponse = OrderResponse.extend({
+  razorpayPaymentId: z.string().nullable(),
+  email: z.string(),
+  billingAddressSnapshot: AddressSchema,
+  shippingAddressSnapshot: AddressSchema.nullable(),
+});
+
 export const OrderListResponse = z.array(OrderResponse);
 
 export type CreateOrderRequest = z.infer<typeof CreateOrderRequest>;
 export type OrderResponse = z.infer<typeof OrderResponse>;
+export type OrderDetailResponse = z.infer<typeof OrderDetailResponse>;
 export type OrderListResponse = z.infer<typeof OrderListResponse>;

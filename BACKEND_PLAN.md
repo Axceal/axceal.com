@@ -820,8 +820,9 @@ Getting raw body in a Next.js Route Handler: `const body = await req.text()` bef
 - Mock Razorpay client — don't hit their API in unit tests.
 
 ### Done criteria
-- [ ] Test-mode end-to-end payment completes and flips order to `paid`.
-- [ ] Webhook receives events in a local tunnel (ngrok) and updates `payment_events`.
+- [x] Test suite green. *(15 files / 58 tests — added verify-signature ×6, webhook-route ×5, payment-route ×4; see D7.* entries.)*
+- [x] Test-mode end-to-end payment completes and flips order to `paid`. *(verified 2026-04-22 via Razorpay UPI test VPA after card path hit an international-card block — the card flow is environmental, not a code issue; order flipped to `paid` and `/order/confirmation` rendered cleanly.)*
+- [x] Webhook receives events in a local tunnel (ngrok) and updates `payment_events`. *(verified 2026-04-22 — Razorpay dashboard showed 200 delivery to `/api/payments/webhook`, D7.1 closed, D0.2 fully resolved.)*
 
 ### Common mistakes
 - Parsing JSON before reading raw body for webhook signature → signature always fails.
@@ -867,9 +868,9 @@ NextAuth handles its own CSRF for auth routes. For our JSON API routes, same-ori
 Add `@sentry/nextjs` only if team wants it. Env-gated so dev doesn't send events.
 
 ### Done criteria
-- [ ] Attempting 11 OTP sends in an hour returns 429.
-- [ ] Hitting `/api/orders` from another origin is rejected.
-- [ ] `curl -D - https://axceal.com` shows HSTS / nosniff / CSP headers.
+- [x] Attempting 11 OTP sends in an hour returns 429. *(rate-limit path covered by `tests/auth/rate-limit.test.ts`; order-create + payment-initiate each now gated at 20/hr/user. Dev-mode bypass lives in [lib/http/rate-limit.ts](lib/http/rate-limit.ts) per D8.1.)*
+- [x] Hitting `/api/orders` from another origin is rejected. *(double-submit CSRF shipped — cross-origin callers can't read the `axceal_csrf` cookie, so header comparison fails → 403. See D8.3.)*
+- [ ] `curl -D - https://axceal.com` shows HSTS / nosniff / CSP headers. *(headers wired in [next.config.ts](next.config.ts); HSTS + CSP are production-only to avoid breaking HMR. Verify post-deploy in Phase 9 smoke test.)*
 
 ---
 
@@ -914,6 +915,44 @@ GitHub Action on merge to `main`:
 
 ---
 
+## 11.5 Pre-deployment frontend wiring (completed 2026-04-28)
+
+Completed before Phase 9 deployment:
+
+### Orders page
+- `app/account/orders/page.tsx` — wired to existing `GET /api/orders`. Shows loading/error states, formats price in INR, color-codes status.
+
+### Forgot password (`POST /api/auth/reset-password`)
+- New endpoint: `{ email, otpToken, password }` — consumes single-use OTP token (from `verify-otp`), hashes new password, updates `users.passwordHash + passwordChangedAt`, invalidates all sessions via Redis key `pw:changed:<userId>`.
+- Frontend: `handleSubmit` now calls `verify-otp` then `reset-password`, redirects to `/login?reset=1` on success.
+
+### Change password (`POST /api/account/change-password`)
+- New endpoint: session-gated. `{ otp, password }` — verifies scoped change-pw OTP (separate Redis key `otp:change-pw:<email>`), hashes password, invalidates sessions.
+- New helper endpoint `POST /api/account/send-otp` — session-based OTP send (no email in body; gets email from session). Scoped to change-password flow.
+- Frontend: auto-sends OTP on mount, Resend button calls same endpoint, Save wired to `apiFetch("/api/account/change-password")`.
+
+### Session invalidation on password change
+- `users.passwordChangedAt` column added (migration `drizzle/0001_crazy_lily_hollister.sql`).
+- On reset or change: `redis.set("pw:changed:<userId>", Date.now(), { ex: 30d })`.
+- JWT callback in `lib/auth/index.ts` checks this key on every session access; strips `uid` from token if token was issued before the change → `requireSession()` throws 401.
+
+### Firebase phone verification (`POST /api/account/phone/verify`)
+- New columns: `users.phone` (unique), `users.phoneVerifiedAt` (same migration).
+- Backend: verifies Firebase ID token via Admin SDK, checks `phone_number` claim matches submitted phone, persists to `users`.
+- Frontend: phone page dynamically imports Firebase Web SDK, uses invisible reCAPTCHA, calls `signInWithPhoneNumber` on "Send", `confirmationResult.confirm()` on "Proceed".
+- OTP box expanded from 4 → 6 digits (Firebase default).
+- Layout wired: "Send" calls `onSendPhoneOtp` callback; "Proceed" calls `onVerifyPhoneOtp` callback; `canNext` for step 3 checks 6-digit OTP completion when `phoneOtpSent`.
+- Packages: `firebase@12.12.1`, `firebase-admin@13.8.0`.
+- Env vars needed: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`.
+
+### Done criteria
+- [x] `bun run build` green.
+- [x] All five new API routes visible in build output.
+- [ ] Manual browser verification (pending).
+- [ ] Firebase env vars set + phone OTP tested end-to-end.
+
+---
+
 ## 12. Multi-session handoff rules
 
 When resuming this plan in a new session:
@@ -941,3 +980,256 @@ When resuming this plan in a new session:
 - Razorpay amount unit: **paise (integer)**.
 - All timestamps: `timestamptz`.
 - All IDs: `uuid v4`.
+
+---
+
+## 14. Post-launch backlog (data gaps surfaced by frontend redesigns)
+
+Items deferred from the original plan. Each needs a schema/contract/handler update before the corresponding UI can drop its placeholder state.
+
+### 14.1 Order Placed page — extended order details
+
+**Source.** Redesigned `/order/confirmation` page (2026-04-24) needs a "See Details" panel showing richer order data than `/api/orders/[id]` currently exposes. Frontend currently renders blank placeholders for every missing field.
+
+**Required additions to `GET /api/orders/[id]` response:**
+
+| Field | Source | Notes |
+|---|---|---|
+| `orderNumber` | new DB column `orders.order_number` | **Human-readable, 1:1 with `orders.id` (UUID).** Format: `XXX-XXX-XXX` (uppercase alphanumeric, ~9 chars shown as `#XXX-XXX-XXX`). Generated server-side at order creation; must be unique (DB unique index); safe to share with the user for support queries. Do NOT derive from UUID bytes (UUID must remain the only internal reference). |
+| `paymentMethod` | from Razorpay payment capture response (`method`: `upi` / `card` / `netbanking` / `wallet`) | Persist on `orders` or new `payments` row when webhook fires. Render as human label (UPI / Card / Net Banking / Wallet). |
+| `transactionId` | Razorpay `payment_id` (e.g., `pay_xxxxx`) | Persist alongside `paymentMethod`. Safe to expose. |
+| `fulfillmentStatus` | new DB column `orders.fulfillment_status` | Enum: `pending` / `packed` / `in_transit` / `delivered` / `cancelled`. Distinct from payment status. Defaults to `pending`; transitions driven by a future admin/fulfillment flow. Render in UI as `In-Transit`, etc. |
+| `email` | `users.email` (join) | User's auth email. |
+| `billingAddress` | existing addresses table, denormalized snapshot onto `orders` at placement time | Snapshot prevents later address edits from rewriting historical orders. Three lines max per current address contract. |
+| `shippingAddress` | same snapshot pattern | Same as above. |
+| `payerPhone` | **new** — capture during billing-shipping step, persist snapshot onto order | Phone of the person paying (defaults to account holder's phone unless user overrides). |
+| `receiverPhone` | **new** — capture during billing-shipping step, persist snapshot onto order | Phone of the person receiving delivery (may differ from payer). |
+
+**Migration work:**
+1. Add `orders.order_number` (text, not null, unique) with a collision-safe generator (e.g., `nanoid` over `[0-9A-Z]` excluding `0/O/1/I`) — retry on duplicate.
+2. Add `orders.payment_method` (text, nullable — set on webhook/verify).
+3. Add `orders.transaction_id` (text, nullable — set on webhook/verify).
+4. Add `orders.fulfillment_status` (enum or text with check constraint, default `'pending'`).
+5. Add `orders.billing_address_snapshot` + `orders.shipping_address_snapshot` (jsonb) — freeze address at order creation.
+6. Add `orders.payer_phone` + `orders.receiver_phone` (text) — capture/persist at checkout.
+
+**Contract / schema work:**
+- Extend `lib/contracts/order.ts` `OrderView` to include the new fields (all optional for backward compatibility on older orders without snapshots).
+- Extend `lib/contracts/address.ts` billing-shipping input to accept `payerPhone` + `receiverPhone`.
+- Update `lib/services/order.ts` to snapshot addresses + phones at creation, and to generate `order_number`.
+- Update `lib/services/payment.ts` (or webhook handler) to persist `paymentMethod` + `transactionId` on capture.
+
+**Frontend cutover:**
+- Once `/api/orders/[id]` returns the above, drop the blank-placeholder branch in `DetailRow` and render the real values.
+- `fulfillmentStatus` rendering: human-label mapping (`in_transit` → "In-Transit", etc.).
+
+**Security note.** `orderNumber` must be uniformly random enough to resist enumeration (don't expose a simple counter). Access is still gated on session ownership — IDOR check in the GET handler remains the primary defense.
+
+### 14.2 Forgot Password — reset endpoint
+
+**Source.** `/forgot-password` page (2026-04-24) is wired end-to-end on the frontend (email → Send OTP → OTP → new password → re-enter). Submit currently stubs with "Password reset is not available yet." because no backend endpoint exists.
+
+**Required endpoint:** `POST /api/auth/reset-password`
+
+**Request contract (Zod):**
+```ts
+ResetPasswordInput = z.object({
+  email: z.string().email(),
+  otpToken: z.string().min(1),   // issued by /api/auth/verify-otp
+  password: z.string().min(8).max(128),
+});
+```
+
+**Response:** standard `{ ok: true, data: {} }` envelope. No payload needed on success.
+
+**Server flow:**
+1. Validate input via `withHandler` + Zod.
+2. Rate-limit by `(ip, email)` — same budget as `/api/auth/register` or tighter. This endpoint is a high-value target; don't let an attacker grind OTPs.
+3. Verify `otpToken` (same single-use consumption semantics as `/api/auth/register`). Reject if expired, already consumed, or scope-mismatched.
+4. Look up user by `email`. **Uniform response time / message** whether or not the account exists — do not leak user enumeration via either error text or timing. If the user doesn't exist, still consume the OTP token, spend an equivalent bcrypt cost, and return generic success.
+5. If the user exists: re-hash the new password with bcrypt (cost 12), update `users.passwordHash`, bump `users.passwordChangedAt` (new column if not present).
+6. **Invalidate all existing sessions for this user.** With JWT strategy this means bumping a per-user `tokenVersion` (or `passwordChangedAt`) that the JWT callback checks — any existing token issued before the bump must be rejected. This is required so a leaked/stolen password can't keep a session alive after the legitimate owner resets it.
+7. (Optional, recommended) Send a confirmation email: "Your Axceal password was reset at <time> from <ip>. If this wasn't you, contact support." Gives the real owner a signal if an attacker used a stolen OTP channel.
+
+**Frontend cutover:**
+- Frontend currently calls `/api/auth/verify-otp` (already exists) to get `otpToken`, then will POST to `/api/auth/reset-password` with `{email, otpToken, password}`.
+- On success: redirect to `/login?reset=1` with a one-line "Password updated — log in to continue" info banner.
+- On error: render `error.message` from the response envelope.
+- Drop the current hard-coded "Password reset is not available yet." stub in [app/forgot-password/page.tsx](app/forgot-password/page.tsx).
+
+**Schema work:**
+- Add `users.passwordChangedAt` (timestamptz, default `now()`, not null) — or `users.tokenVersion` (integer, default 0).
+- Update NextAuth JWT callback ([lib/auth/config.ts](lib/auth/config.ts)) to persist the user's `passwordChangedAt` / `tokenVersion` on token issuance and reject session tokens older than the stored value.
+
+**Security note.** This endpoint is the only path a user has to regain access without the current password. Every one of the above steps matters; skipping any weakens the account recovery flow. Specifically: OTP single-use, session invalidation on reset, uniform error response for missing users, and rate limits scoped to both IP and email.
+
+### 14.3 Phone OTP verification — Firebase Phone Auth
+
+**Source.** `/account/details/phone` page (2026-04-24) now renders an OTP box with a Resend link below the Search Country panel. Both the Resend button and the OTP digit entry are **stubs** on the frontend — there is no phone-OTP backend endpoint and no SMS provider wired. Resend currently shows "Phone OTP verification is not available yet."
+
+**Decision (locked).** Phone OTP verification will be implemented via **Firebase Phone Authentication** (not Razorpay/Twilio/Resend). Firebase Phone Auth handles SMS delivery, OTP generation, rate limiting, abuse detection (reCAPTCHA / App Check), and internationalization in one SDK — dropping that infra cost from our stack is worth the added Firebase dependency.
+
+**Integration path (client-first model).**
+1. Client loads Firebase Web SDK (`firebase/app`, `firebase/auth`) only on the phone verification page — not bundled globally.
+2. User enters phone + country code; client calls `signInWithPhoneNumber(auth, e164Phone, recaptchaVerifier)`. Firebase returns a `ConfirmationResult`.
+3. User enters the 6-digit OTP (note: Firebase defaults to 6 digits, not 4 — the frontend OTP box must expand from 4 to 6 cells when this lands, or Firebase must be configured to accept 4 if possible; default to 6 to match Firebase convention).
+4. Client calls `confirmationResult.confirm(code)`. On success, Firebase returns a `firebaseIdToken`.
+5. Client POSTs `firebaseIdToken` + the phone E.164 string to our own new endpoint `POST /api/account/phone/verify` (see below).
+
+**Required backend endpoint:** `POST /api/account/phone/verify`
+
+**Request contract (Zod):**
+```ts
+VerifyPhoneInput = z.object({
+  firebaseIdToken: z.string().min(1),
+  phone: z.string().regex(/^[+\-]\d{8,16}$/),  // E.164-ish, matching our existing phone contract
+});
+```
+
+**Server flow:**
+1. Gate behind an authenticated session (this is a profile action; the user must be logged in).
+2. Verify the `firebaseIdToken` using Firebase Admin SDK's `auth().verifyIdToken()`. On failure, 401.
+3. Extract `phone_number` claim from the decoded token.
+4. **Require the claim to match the submitted `phone` exactly** (after E.164 normalization). Reject on mismatch — don't trust either side alone.
+5. Rate-limit by `(userId, ip)` — cap at ~5 verification attempts per hour. Phone number churn is low; abusive submissions are a signal.
+6. Persist `users.phone` + `users.phoneVerifiedAt` (new column, timestamptz).
+7. Return `{ ok: true, data: { verified: true } }`.
+
+**Schema work:**
+- Add `users.phone` (text, nullable until verification lands), `users.phoneVerifiedAt` (timestamptz, nullable).
+- Unique index on `users.phone` (nullable) — one account per phone.
+
+**Env vars to add:**
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL` (service account email)
+- `FIREBASE_PRIVATE_KEY` (service account private key, newline-escaped)
+- Optionally: `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` — **client-exposed, public by design** (Firebase config is not a secret; access control is enforced server-side by Admin SDK verification).
+
+**Security notes.**
+1. **Never trust the client's claim of "OTP verified" on its own.** Always round-trip the `firebaseIdToken` through our own endpoint and verify it server-side with the Admin SDK. The client SDK alone is not a trust boundary — a hostile client can fake the success response.
+2. **Phone claim must match.** Firebase will happily issue an ID token for phone `+15551234567`; if our client submits `+15559999999` as the claimed phone alongside that token, the server must reject. Verify the decoded token's `phone_number` claim equals the submitted phone.
+3. **Do not log the OTP.** Firebase's client SDK handles it entirely in-memory; ensure nothing in our own code writes it to logs, sessionStorage, or analytics.
+4. **App Check / reCAPTCHA.** Enable Firebase App Check on the Auth endpoint to blunt automated abuse. Without this, Firebase Phone Auth is rate-limited but still susceptible to budget drain via SMS fees.
+5. **Cost control.** Firebase charges per verification SMS. Set a daily cap in Firebase Console + monitor via Axiom.
+
+**Frontend cutover (when backend lands):**
+- Replace the stubbed `handleResendOtp` in [app/account/details/phone/page.tsx](app/account/details/phone/page.tsx) with a real Firebase `signInWithPhoneNumber` call.
+- Expand the OTP box from 4 cells to 6 (or keep 4 if we override Firebase to 4-digit — unlikely).
+- On successful `confirmationResult.confirm(code)`, POST `/api/account/phone/verify` and advance the account-details flow.
+- Show inline error states: invalid OTP (6 digits wrong), expired code, rate-limit hit.
+
+### 14.4 Resend links on all OTP boxes
+
+**State of the fleet (2026-04-24).**
+- [app/forgot-password/page.tsx](app/forgot-password/page.tsx) — Resend present (calls `/api/auth/send-otp`).
+- [app/create-account/page.tsx](app/create-account/page.tsx) — Resend added inside the OTP box header (calls `/api/auth/send-otp`, same handler as the row-level "Send OTP" button).
+- [app/account/details/phone/page.tsx](app/account/details/phone/page.tsx) — Resend present **but stubbed** (no backend wiring; see §14.3).
+
+All three sites are now visually consistent: OTP box has the "OTP" label top-left, "Resend" link top-right, 4 × circular digit inputs below (phone page will grow to 6 when Firebase lands). No further Resend sites pending.
+
+### 14.5 Login — real 2FA session gating
+
+**Source.** `/login` page (2026-04-24) now renders a two-stage flow: password verification ("Verify") → email OTP verification ("Login"). The UI enforces this, but the **backend does not** — this is a known security gap.
+
+**Current (stub) behavior.**
+1. User enters email + password, clicks "Verify".
+2. Frontend calls NextAuth `signIn("credentials", ...)` — **this creates the session cookie immediately on successful password check.**
+3. Frontend suppresses the redirect, hides "Forgot Password", reveals the OTP box, auto-calls `/api/auth/send-otp`, and changes the button label to "Login".
+4. User enters OTP, clicks "Login".
+5. Frontend calls `/api/auth/verify-otp` → on success, `router.push(callbackUrl)`. On failure, stays on the page with an error.
+
+**The gap.** Between steps 2 and 5, the user is already authenticated at the session-cookie layer. An attacker who has valid password but not OTP access can:
+- Close the browser after step 2 and still have a session cookie. NextAuth will let them into `/account` directly.
+- Copy the session cookie to another device.
+- Simply navigate to `/account` manually before entering OTP.
+
+None of these leave evidence in the frontend. The "Login" button gating is frontend-only; the middleware currently accepts any valid NextAuth session.
+
+**Required backend flow (real 2FA):**
+
+1. **`POST /api/auth/verify-password`** (new endpoint).
+   - Input: `{ email, password }` (Zod).
+   - Server verifies the password hash against `users.passwordHash`.
+   - On success: **does NOT create a NextAuth session.** Instead, issues a short-lived (≤5 min) `pendingMfaToken` (JWT or Redis key) scoped to this user and bound to a single IP + user-agent fingerprint.
+   - On failure: generic "Invalid credentials" + uniform timing (bcrypt always runs, even for missing users, to resist enumeration).
+   - Rate-limit by `(ip, email)` — tighter than register since this is the brute-force target.
+   - Return `{ ok: true, data: { pendingMfaToken } }`.
+
+2. **Modify `/api/auth/send-otp`** (existing) to accept a `pendingMfaToken` and scope the OTP to the login flow. Alternatively, add a `scope: "login"` field on the OTP record so a password-reset OTP can't be used to complete login and vice versa.
+
+3. **Modify the NextAuth credentials provider** ([lib/auth/config.ts](lib/auth/config.ts)) to require both `password` AND `otp` in a single `authorize()` call, OR replace it with a custom provider that takes `{ pendingMfaToken, otp }` as input and verifies both before returning the user.
+   - Cleanest: custom provider `credentials-with-otp`.
+   - The existing `credentials` provider stays only for internal/admin flows if ever needed, otherwise remove it.
+
+4. **Middleware gate.** Nothing to change if NextAuth is the only session authority — the session simply won't exist until step 3 succeeds.
+
+**Frontend cutover (when backend lands):**
+- First click "Verify" → POST `/api/auth/verify-password` → receive `pendingMfaToken` → POST `/api/auth/send-otp` with the token → transition to OTP stage. No session cookie yet.
+- Second click "Login" → `signIn("credentials-with-otp", { pendingMfaToken, otp })` → session created → `router.push(callbackUrl)`.
+- Drop the current pattern of calling `signIn("credentials")` in the Verify step.
+
+**Schema / env work.**
+- Optional: `pending_mfa_tokens` table (or Redis keys with TTL) — `{ token_hash, user_id, ip, user_agent_hash, created_at }`.
+- Existing `users.passwordHash` + `users.mfaEnabledAt` (new nullable column) to record when 2FA was first completed — useful for audit + disabling users who haven't finished onboarding.
+
+**Security notes.**
+1. **`pendingMfaToken` must be single-use.** Consuming it at step 3 (OTP verify) invalidates it; attempting to reuse returns 401.
+2. **Bind the token to IP + UA.** Reduces attack surface if the token is leaked mid-flow.
+3. **Keep OTP TTL short** (≤5 min). Longer windows let attackers take over an abandoned session.
+4. **Audit log every Verify + every Login attempt** — both success and failure. Correlate on `pendingMfaToken` so a single brute-force attempt doesn't look like 10 unrelated hits.
+5. **Do not reuse OTP scope.** A password-reset OTP must not complete a login, and vice versa. Either use separate endpoints or carry a `scope` claim on the OTP record.
+
+### 14.6 Edit Details — address wiring + phone country code
+
+**Source.** `/account` Edit Details tab ([app/account/page.tsx](app/account/page.tsx)) now wires six pencil-edit fields (First Name, Last Name, Billing Address, Shipping Address, Birthday, Phone Number) plus a main "Save" button. The main Save only persists a subset to `/api/account/profile` — the rest is held in local state with no backend path.
+
+**What the main Save currently sends to `PUT /api/account/profile`:**
+- `firstName`, `lastName` — always sent if non-empty.
+- `birthday` — sent only if it already looks like `YYYY-MM-DD`. The pill accepts free-text so most inputs (e.g., "22nd August 2020") won't pass this regex and are dropped silently. **Gap:** frontend needs a date picker (or the pill needs a date-specific variant).
+
+**What is held locally and not persisted:**
+
+| Field | Why it's not wired | Required plumbing |
+|---|---|---|
+| `billingAddress` | `/api/account/profile` doesn't accept addresses. Addresses are owned by `/api/addresses` + `/api/addresses/[id]` as separate records, with potentially many-per-user. This page models exactly one billing + one shipping address, which the current addresses contract doesn't express. | Either: (a) add a `primary: true` flag on addresses and mark the user's chosen one as billing-primary / shipping-primary; OR (b) add `users.billingAddressId` + `users.shippingAddressId` pointer columns. On main Save, either POST a new address (if none exists) or PATCH the referenced one. Each billing/shipping update may therefore be one or two HTTP calls — not a single `PUT /api/account/profile` call. |
+| `shippingAddress` | Same as above. | Same. |
+| `phone` | `ProfileSchema` requires `phone` + `phoneCountryCode` + `phoneSign` together. The Edit Details pill only collects raw digits — no country code picker, no sign toggle. Sending `phone` alone would fail Zod validation on the backend. | Either: (a) skip inline phone editing here and route the user to `/account/details/phone` (the multi-step flow already collects all three); OR (b) make the phone pill a compact variant of that flow (country selector + sign toggle + digit entry). |
+| `birthday` (non-ISO) | Pill accepts free-text; only ISO-formatted entries survive the regex check in `handleMainSave`. | Add a calendar/date picker to the pill when the active field is `birthday`. |
+
+**Frontend cutover (when each gap lands):**
+- Billing/shipping: once `/api/addresses` supports "primary" semantics or the user table holds pointer columns, extend `handleMainSave` to PATCH those addresses in parallel with the profile PUT. Surface a single success/fail message that covers all calls.
+- Phone: swap the pill for a mini version of the phone-verification flow (country code picker + sign toggle + digit row). OTP verification for the new phone is covered by §14.3 (Firebase Phone Auth) — do not skip it on edit.
+- Birthday: replace the text pill with a calendar/picker variant when `activeEditField === "birthday"`.
+
+**Security notes.**
+1. All six edits are already session-gated (`requireSession()` inside the profile handler). Same pattern must apply to any new address PATCH handler.
+2. Rate-limit the edit endpoints — a user hammering profile updates in a loop is a DoS signal. Upstash budget: 30 per minute per user is comfortable.
+3. Do not log the new values themselves (names, addresses, phone, birthday all qualify as PII). The logger redact list in [lib/logger.ts](lib/logger.ts) already covers `password`/`otp`/etc.; extend it with `firstName`, `lastName`, `phone`, `billingAddress`, `shippingAddress`, `birthday` when wiring these handlers.
+
+### 14.7 Change Password — OTP-gated password update endpoint
+
+**Source.** `/account/change-password` page ([app/account/change-password/page.tsx](app/account/change-password/page.tsx)) collects an email OTP + new password + confirmation. The UI is complete but the Save handler is a stub (`TODO: wire to /api/account/change-password`).
+
+**Required backend work:**
+
+1. **`POST /api/account/change-password`** — session-gated. Accepts `{ otp: string, password: string }`. Steps:
+   - Verify active session → get `userId` + `email`.
+   - Verify OTP: look up the most recent unexpired `email_otps` record for this user scoped to `"change-password"`. Mark consumed on success.
+   - Validate new password against the same `PasswordSchema` used at registration.
+   - Hash with bcrypt (same cost factor as registration).
+   - `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`.
+   - Return `{ ok: true }`.
+
+2. **`/api/auth/send-otp` scope extension** — the existing endpoint must accept `action: "change-password"` (alongside `"login"`, `"reset"`) and record a `scope` on the OTP row so a change-password OTP cannot be reused for login or reset flows.
+
+**Frontend cutover (when backend lands):**
+- In `handleSave`, POST `{ otp, password }` to `/api/account/change-password`.
+- On success: clear form + show "Password updated." info message.
+- On 4xx: surface `body.error.message` in the message state.
+
+**Security notes.**
+1. Session-gate the endpoint — unauthenticated calls must return 401.
+2. OTP scope must be `"change-password"` — reject any OTP with a different scope.
+3. Single-use OTP — mark consumed before responding.
+4. Rate-limit: 5 attempts per 15 minutes per user (Upstash).
+5. Audit log: record password-change events with `userId` + timestamp (no hash values).

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { POST as registerPOST } from "@/app/api/auth/register/route";
@@ -6,6 +6,7 @@ import { issueOtpToken } from "@/lib/auth/otp";
 import { hashPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db/client";
 import { users, userProfiles } from "@/lib/db/schema";
+import { redis } from "@/lib/redis";
 
 function testEmail() {
   return `test-${randomUUID()}@example.com`;
@@ -26,7 +27,12 @@ async function readJson<T = unknown>(res: Response): Promise<T> {
 describe("POST /api/auth/register", () => {
   const createdEmails: string[] = [];
 
+  beforeEach(async () => {
+    await redis.del("register:ip:unknown");
+  });
+
   afterEach(async () => {
+    await redis.del("register:ip:unknown");
     for (const email of createdEmails.splice(0)) {
       await db.delete(users).where(eq(users.email, email));
     }
