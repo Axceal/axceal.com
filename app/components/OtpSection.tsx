@@ -16,7 +16,7 @@ interface OtpSectionProps {
     sendingOtp: boolean;
     email: string;
     handleSendOtp: () => void;
-    message: { kind: "info" | "error"; text: string } | null;
+    message: { kind: "info" | "error"; text: string; field?: string | null } | null;
     layoutId: string;
     otpIdPrefix: string;
     otpKeyPrefix: string;

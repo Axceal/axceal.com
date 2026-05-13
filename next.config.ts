@@ -1,10 +1,15 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 const isProd = process.env.NODE_ENV === "production";
 
 const cspProd = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com",
+  "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.razorpay.com",
   "font-src 'self' data:",
@@ -33,7 +38,10 @@ const prodOnlyHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["10.94.20.146"],
+  allowedDevOrigins: [],
+  turbopack: {
+    root: __dirname,
+  },
   async headers() {
     return [
       {
@@ -44,4 +52,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

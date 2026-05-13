@@ -16,7 +16,7 @@ interface AnimatedPasswordFieldProps {
     onFocus: () => void;
     onBlur: () => void;
     layoutId: string;
-    message: { kind: "info" | "error"; text: string } | null;
+    message: { kind: "info" | "error"; text: string; field?: string | null } | null;
 }
 
 export function AnimatedPasswordField({

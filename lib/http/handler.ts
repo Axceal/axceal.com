@@ -21,9 +21,16 @@ export function withHandler<I, O>(config: Config<I, O>) {
     try {
       let input = undefined as unknown as I;
       if (config.input) {
+        // Reject early when client truthfully advertises an oversize body.
         const sizeErr = assertBodySize(req, MAX_JSON_BYTES);
         if (sizeErr) return sizeErr;
-        const raw = await readJson(req);
+        // Defence-in-depth: even if content-length is absent or lying, this
+        // bounded read aborts as soon as we exceed MAX_JSON_BYTES on the wire,
+        // so an attacker cannot blow memory by streaming a huge body.
+        const raw = await readJsonBounded(req, MAX_JSON_BYTES);
+        if (raw === BODY_TOO_LARGE) {
+          return fail(ErrorCode.VALIDATION_FAILED, "Request body too large", 413);
+        }
         const parsed = config.input.safeParse(raw);
         if (!parsed.success) {
           return fail(
@@ -73,9 +80,38 @@ function assertBodySize(req: Request, max: number): Response | null {
   return null;
 }
 
-async function readJson(req: Request): Promise<unknown> {
+const BODY_TOO_LARGE = Symbol("BODY_TOO_LARGE");
+
+async function readJsonBounded(
+  req: Request,
+  max: number,
+): Promise<unknown | typeof BODY_TOO_LARGE> {
+  if (!req.body) return undefined;
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
   try {
-    return await req.json();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > max) {
+        await reader.cancel().catch(() => {});
+        return BODY_TOO_LARGE;
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return undefined;
+  }
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) {
+    merged.set(c, offset);
+    offset += c.byteLength;
+  }
+  try {
+    return JSON.parse(new TextDecoder().decode(merged));
   } catch {
     return undefined;
   }

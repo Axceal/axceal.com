@@ -57,5 +57,5 @@ export async function softDeleteAddress(
   await db
     .update(addresses)
     .set({ deletedAt: new Date() })
-    .where(eq(addresses.id, id));
+    .where(and(eq(addresses.id, id), eq(addresses.userId, userId)));
 }

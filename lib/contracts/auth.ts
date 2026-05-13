@@ -1,13 +1,26 @@
 import { z } from "zod";
-import { Email, Otp4, Password, UUID } from "@/lib/contracts/common";
+import { Email, LoginPassword, Otp4, Password, UUID } from "@/lib/contracts/common";
 
-export const VerifyPasswordRequest = z.object({ email: Email, password: Password });
+// Login uses LoginPassword (length-only) so existing credentials with any
+// composition are still accepted. Register/reset/change use the stricter
+// Password schema so new passwords meet complexity requirements server-side.
+export const VerifyPasswordRequest = z.object({ email: Email, password: LoginPassword });
 export const VerifyPasswordResponse = z.object({ pendingMfaToken: UUID });
 
 export const LoginOtpRequest = z.object({ pendingMfaToken: UUID });
 export const LoginOtpResponse = z.object({ sent: z.literal(true) });
 
-export const SendOtpRequest = z.object({ email: Email });
+// Flow scopes the request so the route handler does the right thing per
+// caller intent without leaking which side of the existence check ran.
+//   - "register":  send if user does NOT exist (no-op if exists)
+//   - "reset-pw":  send if user DOES exist (no-op if not)
+// Both branches run through `constantTimeOtpSend` so wall-clock latency is
+// identical regardless of which path was taken — closes the email-enumeration
+// timing oracle (F10.1).
+export const SendOtpRequest = z.object({
+  email: Email,
+  flow: z.enum(["register", "reset-pw"]),
+});
 export const SendOtpResponse = z.object({ sent: z.literal(true) });
 
 export const VerifyOtpRequest = z.object({ email: Email, otp: Otp4 });
@@ -27,8 +40,11 @@ export const ResetPasswordRequest = z.object({
 });
 export const ResetPasswordResponse = z.object({ success: z.literal(true) });
 
+export const VerifyChangePasswordOtpRequest = z.object({ otp: Otp4 });
+export const VerifyChangePasswordOtpResponse = z.object({ otpToken: z.string() });
+
 export const ChangePasswordRequest = z.object({
-  otp: Otp4,
+  otpToken: z.string().min(1),
   password: Password,
 });
 export const ChangePasswordResponse = z.object({ success: z.literal(true) });
@@ -56,6 +72,8 @@ export type RegisterRequest = z.infer<typeof RegisterRequest>;
 export type RegisterResponse = z.infer<typeof RegisterResponse>;
 export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequest>;
 export type ResetPasswordResponse = z.infer<typeof ResetPasswordResponse>;
+export type VerifyChangePasswordOtpRequest = z.infer<typeof VerifyChangePasswordOtpRequest>;
+export type VerifyChangePasswordOtpResponse = z.infer<typeof VerifyChangePasswordOtpResponse>;
 export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequest>;
 export type ChangePasswordResponse = z.infer<typeof ChangePasswordResponse>;
 export type SendPhoneRequest = z.infer<typeof SendPhoneRequest>;

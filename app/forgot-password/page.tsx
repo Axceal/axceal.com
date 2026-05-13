@@ -7,6 +7,7 @@ import { OtpSection } from "../components/OtpSection";
 import { AnimatedPasswordField } from "../components/AnimatedPasswordField";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForgotPasswordForm } from "./hooks/useForgotPasswordForm";
+import { Squircle } from "@/app/components/Squircle";
 
 const LAYOUT_ID = "forgot-password-indicator";
 
@@ -36,7 +37,7 @@ export default function ForgotPasswordPage() {
         hasUpper,
         hasDigit,
         hasAnyConstraint,
-        otpComplete,
+        otpVerified,
         passwordValid,
     } = useForgotPasswordForm();
 
@@ -53,12 +54,14 @@ export default function ForgotPasswordPage() {
                     <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e]" />
                 </Link>
 
-                <div
-                    className="w-full bg-[#0000f4] rounded-[16px] px-10 py-5 flex justify-center"
+                <Squircle
+                    smoothing={60}
+                    borderRadius={15}
+                    className="w-full bg-[#0000f4] px-10 py-5 flex justify-center"
                     aria-hidden
                 >
                     <SvgText text="Forgot Password" weight="600" height={14} className="text-white" />
-                </div>
+                </Squircle>
 
                 <div className="w-full flex flex-col items-start text-left gap-[4px] mt-1">
                     <SvgText
@@ -70,37 +73,42 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 {/* Email + Send OTP */}
-                <div className="w-full relative">
-                    {activeField === "email" && (
-                        <motion.div
-                            layoutId={LAYOUT_ID}
-                            className={`absolute -top-[2.5px] left-1/2 -translate-x-1/2 w-[40px] h-[2.5px] rounded-full pointer-events-none z-10 ${message?.kind === "error" ? "bg-[#e11d48]" : "bg-[#0000f4]"}`}
-                            transition={{ type: "spring", stiffness: 280, damping: 28 }}
+                <div className="w-full flex flex-col gap-2">
+                    <div className="w-full relative">
+                        {activeField === "email" && (
+                            <motion.div
+                                layoutId={LAYOUT_ID}
+                                className={`absolute -top-[2.5px] left-1/2 -translate-x-1/2 w-[40px] h-[2.5px] rounded-full pointer-events-none z-10 ${message?.kind === "error" ? "bg-[#ff0000]" : "bg-[#0000f4]"}`}
+                                transition={{ type: "spring", stiffness: 280, damping: 28 }}
+                            />
+                        )}
+                        <SvgInput
+                            id="fp-email"
+                            type="email"
+                            placeholder="Email"
+                            value={email}
+                            onChange={setEmail}
+                            weight="600"
+                            height={14}
+                            className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1 transition-all"
+                            onFocus={() => handleFocus("email")}
+                            onBlur={handleBlur}
+                            rightSlot={
+                                <button
+                                    type="button"
+                                    id="fp-send-otp-btn"
+                                    onClick={handleSendOtp}
+                                    disabled={sendingOtp}
+                                    className="bg-[#aaaaaa] text-white font-semibold rounded-full px-5 py-3 cursor-pointer hover:bg-[#0000f4] transition-colors shrink-0 flex items-center disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#aaaaaa]"
+                                >
+                                    <SvgText text={sendingOtp ? "Sending..." : "Send"} weight="600" height={14} className="text-white h-full" />
+                                </button>
+                            }
                         />
+                    </div>
+                    {message?.field === "email" && (
+                        <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center" />
                     )}
-                    <SvgInput
-                        id="fp-email"
-                        type="email"
-                        placeholder="Email"
-                        value={email}
-                        onChange={setEmail}
-                        weight="600"
-                        height={14}
-                        className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1.5 py-1.5 transition-all"
-                        onFocus={() => handleFocus("email")}
-                        onBlur={handleBlur}
-                        rightSlot={
-                            <button
-                                type="button"
-                                id="fp-send-otp-btn"
-                                onClick={handleSendOtp}
-                                disabled={sendingOtp || !email}
-                                className="bg-[#aaaaaa] text-white font-semibold rounded-full px-5 py-3 cursor-pointer hover:bg-[#0000f4] transition-colors shrink-0 flex items-center disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#aaaaaa]"
-                            >
-                                <SvgText text={sendingOtp ? "Sending..." : "Send"} weight="600" height={14} className="text-white h-full" />
-                            </button>
-                        }
-                    />
                 </div>
 
                 <OtpSection
@@ -120,9 +128,12 @@ export default function ForgotPasswordPage() {
                     otpIdPrefix="fp-otp-digit"
                     otpKeyPrefix="fp-otp"
                 />
+                {message?.field === "otp" && (
+                    <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center -mt-3" />
+                )}
 
                 <AnimatedPasswordField
-                    show={otpComplete}
+                    show={otpVerified}
                     id="fp-password"
                     placeholder="New Password"
                     value={password}
@@ -136,10 +147,13 @@ export default function ForgotPasswordPage() {
                     layoutId={LAYOUT_ID}
                     message={message}
                 />
+                {otpVerified && message?.field === "password" && (
+                    <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center -mt-3" />
+                )}
 
                 {/* Password constraints */}
                 <AnimatePresence initial={false}>
-                    {otpComplete && activeField === "password" && hasAnyConstraint && (
+                    {otpVerified && activeField === "password" && hasAnyConstraint && (
                         <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
@@ -171,14 +185,18 @@ export default function ForgotPasswordPage() {
                     layoutId={LAYOUT_ID}
                     message={message}
                 />
+                {passwordValid && message?.field === "repassword" && (
+                    <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center" />
+                )}
 
+                {/* General (network/server) errors only */}
                 <div className="h-[40px] flex items-center justify-center text-center">
-                    {message && (
+                    {message && !message.field && (
                         <SvgText
                             text={message.text}
                             weight="600"
                             height={12}
-                            className={message.kind === "error" ? "text-[#e11d48]" : "text-[#0000f4]"}
+                            className={message.kind === "error" ? "text-[#ff0000]" : "text-[#0000f4]"}
                         />
                     )}
                 </div>

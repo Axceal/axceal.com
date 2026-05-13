@@ -16,7 +16,7 @@ export function Stepper({
     const router = useRouter();
 
     return (
-        <div className={`hidden md:flex flex-wrap justify-center items-center gap-y-4 gap-x-2 sm:gap-6 ${className}`}>
+        <div className={`flex bg-[#f1f1f1] py-4 px-8 sm:px-10 rounded-full justify-center items-center gap-x-4 sm:gap-6 ${className}`}>
             {steps.map((step, i) => {
                 const disabled = step.state === "upcoming";
                 const onClick = () => {
@@ -27,16 +27,16 @@ export function Stepper({
                     }
                 };
                 return (
-                    <div key={step.label} className="flex items-center gap-2 sm:gap-6">
+                    <div key={step.label} className="flex items-center gap-4 sm:gap-8">
                         <button
                             type="button"
                             onClick={onClick}
                             disabled={disabled}
                             aria-disabled={disabled}
                             aria-current={step.state === "current" ? "step" : undefined}
-                            className={`focus:outline-none focus-visible:outline-none ${disabled
-                                    ? "cursor-not-allowed"
-                                    : "cursor-pointer"
+                            className={`focus:outline-none flex items-center focus-visible:outline-none ${disabled
+                                ? "cursor-not-allowed"
+                                : "cursor-pointer"
                                 }`}
                         >
                             <SvgText
@@ -44,15 +44,15 @@ export function Stepper({
                                 weight="600"
                                 height={16}
                                 className={
-                                    disabled ? "text-[#1e1e1e]" : "text-[#0000f4]"
+                                    disabled ? "text-[#aaaaaa]" : "text-[#0000f4]"
                                 }
                             />
                         </button>
                         {i < steps.length - 1 && (
                             <span
-                                className={`block h-[2px] w-[15px] sm:w-[30px] rounded-full ${steps[i + 1].state === "upcoming"
-                                        ? "bg-[#1e1e1e]"
-                                        : "bg-[#0000f4]"
+                                className={`block w-[8px] aspect-square rounded-full ${steps[i + 1].state === "upcoming"
+                                    ? "bg-[#aaaaaa]"
+                                    : "bg-[#0000f4]"
                                     }`}
                                 aria-hidden
                             />

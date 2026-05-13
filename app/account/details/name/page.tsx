@@ -13,7 +13,7 @@ export default function NamePage() {
                 <SvgInput
                     placeholder="First Name"
                     value={firstName}
-                    onChange={v => setFirstName(v.replace(/[^A-Za-z\-']/g, "").slice(0, 18))}
+                    onChange={v => { const c = v.replace(/[^A-Za-z\-']/g, "").slice(0, 18); setFirstName(c.charAt(0).toUpperCase() + c.slice(1)); }}
                     align="center"
                     weight="600"
                     height={16}
@@ -23,7 +23,7 @@ export default function NamePage() {
                     placeholder="Last Name"
                     value={lastName}
                     align="center"
-                    onChange={v => setLastName(v.replace(/[^A-Za-z\-']/g, "").slice(0, 18))}
+                    onChange={v => { const c = v.replace(/[^A-Za-z\-']/g, "").slice(0, 18); setLastName(c.charAt(0).toUpperCase() + c.slice(1)); }}
                     weight="600"
                     height={16}
                     className="flex-1 bg-[#f1f1f1] text-[#1e1e1e] rounded-full py-5"

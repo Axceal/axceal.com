@@ -12,6 +12,7 @@ export const POST = withHandler({
   handler: async ({ input }) => {
     const session = await requireSession();
     await rateLimit(`phone-send:${session.userId}`, { limit: 5, windowSec: 3600 });
+    await rateLimit(`phone-send:num:${input.phone}`, { limit: 3, windowSec: 3600 });
     await sendPhoneOtp(input.phone);
     return { sent: true as const };
   },

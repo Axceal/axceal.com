@@ -14,6 +14,7 @@ export const GET = withHandler({
   output: OrderListResponse,
   handler: async () => {
     const session = await requireSession();
+    await rateLimit(`orders:list:${session.userId}`, { limit: 60, windowSec: 60 });
     return listOrders(session.userId);
   },
 });

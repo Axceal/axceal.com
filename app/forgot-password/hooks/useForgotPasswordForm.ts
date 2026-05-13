@@ -2,6 +2,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
 type ActiveField = "email" | "otp" | "password" | "repassword";
+type Message = { kind: "info" | "error"; text: string; field?: ActiveField | null };
 
 export function useForgotPasswordForm() {
     const [email, setEmail] = useState("");
@@ -17,33 +18,38 @@ export function useForgotPasswordForm() {
 
     const [sendingOtp, setSendingOtp] = useState(false);
     const [otpSent, setOtpSent] = useState(false);
+    const [verifyingOtp, setVerifyingOtp] = useState(false);
+    const [otpVerified, setOtpVerified] = useState(false);
+    const [otpToken, setOtpToken] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [message, setMessage] = useState<{ kind: "info" | "error"; text: string } | null>(null);
-
-    const emailWrapRef = useRef<HTMLDivElement>(null);
-    const otpWrapRef = useRef<HTMLDivElement>(null);
-    const passwordWrapRef = useRef<HTMLDivElement>(null);
-    const repasswordWrapRef = useRef<HTMLDivElement>(null);
+    const [message, setMessage] = useState<Message | null>(null);
 
     const [, forceUpdate] = useState(0);
     useEffect(() => { forceUpdate(n => n + 1); }, []);
 
     const handleSendOtp = async () => {
-        if (!email || sendingOtp) return;
+        if (sendingOtp) return;
+        if (!email.trim()) {
+            setActiveField("email");
+            setMessage({ kind: "error", text: "Enter your email.", field: "email" });
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            setActiveField("email");
+            setMessage({ kind: "error", text: "Invalid email", field: "email" });
+            return;
+        }
         setSendingOtp(true);
         setMessage(null);
         try {
             const res = await fetch("/api/auth/send-otp", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email, flow: "reset-pw" }),
             });
             const body = await res.json();
             if (!res.ok || !body?.ok) {
-                setMessage({
-                    kind: "error",
-                    text: body?.error?.message ?? "Could not send OTP. Please try again.",
-                });
+                setMessage({ kind: "error", text: body?.error?.message ?? "Could not send OTP. Please try again.", field: "email" });
                 return;
             }
             setOtpSent(true);
@@ -55,13 +61,43 @@ export function useForgotPasswordForm() {
         }
     };
 
+    const verifyOtp = useCallback(async (code: string) => {
+        setVerifyingOtp(true);
+        setMessage(null);
+        try {
+            const res = await fetch("/api/auth/verify-otp", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ email, otp: code }),
+            });
+            const body = await res.json().catch(() => null);
+            if (!res.ok || !body?.ok) {
+                setMessage({ kind: "error", text: body?.error?.message ?? "Invalid OTP", field: "otp" });
+                return;
+            }
+            setOtpToken(body.data.otpToken);
+            setOtpVerified(true);
+        } catch {
+            setMessage({ kind: "error", text: "Network error verifying OTP.", field: "otp" });
+        } finally {
+            setVerifyingOtp(false);
+        }
+    }, [email]);
+
     const handleOtpChange = (index: number, value: string) => {
         const v = value.replace(/\D/g, "").slice(-1);
         const updated = [...otp];
         updated[index] = v;
         setOtp(updated);
+        if (otpVerified) {
+            setOtpVerified(false);
+            setOtpToken(null);
+        }
         if (v && index < 3) {
             setTimeout(() => document.getElementById(`fp-otp-digit-${index + 1}`)?.focus(), 10);
+        }
+        if (updated.join("").length === 4) {
+            void verifyOtp(updated.join(""));
         }
     };
 
@@ -71,46 +107,42 @@ export function useForgotPasswordForm() {
         }
     };
 
-    const otpCode = otp.join("");
     const isLengthValid = password.length >= 8 && password.length <= 64;
     const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
     const hasUpper = /[A-Z]/.test(password);
     const hasDigit = /[0-9]/.test(password);
     const hasAnyConstraint = !isLengthValid || !hasSpecialChar || !hasUpper || !hasDigit;
-    const otpComplete = otpCode.length === 4;
     const passwordValid = isLengthValid && hasSpecialChar && hasUpper && hasDigit;
-    const formValid =
-        !!email &&
-        otpCode.length === 4 &&
-        password.length >= 8 &&
-        password === rePassword;
+    const formValid = !!email && otpVerified && passwordValid && password === rePassword;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (submitting) return;
 
-        if (!email) return setMessage({ kind: "error", text: "Enter your email." });
-        if (otpCode.length !== 4) return setMessage({ kind: "error", text: "Enter the 4-digit OTP." });
-        if (password.length < 8) return setMessage({ kind: "error", text: "Password must be at least 8 characters." });
-        if (password !== rePassword) return setMessage({ kind: "error", text: "Passwords do not match." });
+        if (!email.trim()) {
+            setActiveField("email");
+            return setMessage({ kind: "error", text: "Enter your email.", field: "email" });
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            setActiveField("email");
+            return setMessage({ kind: "error", text: "Invalid email", field: "email" });
+        }
+        if (!otpVerified || !otpToken) {
+            setActiveField("otp");
+            return setMessage({ kind: "error", text: "Please verify your OTP first.", field: "otp" });
+        }
+        if (!isLengthValid || !hasSpecialChar || !hasUpper || !hasDigit) {
+            setActiveField("password");
+            return setMessage({ kind: "error", text: "Password does not meet requirements.", field: "password" });
+        }
+        if (password !== rePassword) {
+            setActiveField("repassword");
+            return setMessage({ kind: "error", text: "Passwords do not match.", field: "repassword" });
+        }
 
         setSubmitting(true);
         setMessage(null);
         try {
-            // Step 1: exchange raw OTP for a single-use token
-            const verifyRes = await fetch("/api/auth/verify-otp", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ email, otp: otpCode }),
-            });
-            const verifyBody = await verifyRes.json().catch(() => null);
-            if (!verifyRes.ok || !verifyBody?.ok) {
-                setMessage({ kind: "error", text: verifyBody?.error?.message ?? "Incorrect OTP." });
-                return;
-            }
-            const { otpToken } = verifyBody.data as { otpToken: string };
-
-            // Step 2: reset password with the token
             const resetRes = await fetch("/api/auth/reset-password", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
@@ -122,7 +154,6 @@ export function useForgotPasswordForm() {
                 return;
             }
 
-            // Redirect to login with success banner
             window.location.href = "/login?reset=1";
         } catch {
             setMessage({ kind: "error", text: "Network error. Please try again." });
@@ -145,26 +176,22 @@ export function useForgotPasswordForm() {
         showRePassword, setShowRePassword,
         sendingOtp,
         otpSent,
+        verifyingOtp,
         submitting,
         message,
-        emailWrapRef,
-        otpWrapRef,
-        passwordWrapRef,
-        repasswordWrapRef,
         handleSendOtp,
         handleOtpChange,
         handleOtpKeyDown,
         handleSubmit,
         handleFocus,
         handleBlur,
-        otpCode,
         formValid,
         isLengthValid,
         hasSpecialChar,
         hasUpper,
         hasDigit,
         hasAnyConstraint,
-        otpComplete,
+        otpVerified,
         passwordValid,
     };
 }

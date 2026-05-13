@@ -68,13 +68,73 @@ export default function PhonePage() {
                 </div>
 
                 {/* Phone Number Block — full-width on mobile, compact on desktop */}
-                <div className="bg-[#f1f1f1] rounded-[15px] md:rounded-[20px] px-3 py-3 md:px-5 md:py-0 w-[calc(100%+84px)] -mx-[42px] md:mx-0 md:w-fit md:h-[72px] flex items-center">
-                    <div className="flex justify-between md:justify-start md:gap-2 w-full md:w-fit items-center">
+                <div className="bg-[#f1f1f1] rounded-[20px] md:rounded-[20px] px-4 py-4 md:px-5 md:py-0 w-full md:w-fit md:h-[72px] flex items-center">
+                    {/* Mobile: two rows — flex-1 on each cell keeps spacing identical across rows */}
+                    <div className="flex flex-col gap-3 w-full md:hidden">
+                        <div className="flex w-full items-center">
+                            {phone.slice(0, Math.ceil(phone.length / 2)).map((digit, i) => (
+                                <div key={`phone-${i}`} className="flex-1 flex items-center justify-center">
+                                    <div
+                                        onClick={() => document.getElementById(`phone-digit-${i}`)?.focus()}
+                                        className={`w-[40px] h-[40px] rounded-full bg-white flex shrink-0 transition-all cursor-text items-center justify-center ${focusedIdx === i ? "ring-2 ring-[#0000f4]" : ""}`}
+                                    >
+                                        <SvgInput
+                                            id={`phone-digit-${i}`}
+                                            value={digit}
+                                            onChange={val => handlePhoneChange(i, val)}
+                                            onKeyDown={e => handlePhoneKeyDown(i, e)}
+                                            onFocus={() => setFocusedIdx(i)}
+                                            onBlur={() => setFocusedIdx(current => current === i ? null : current)}
+                                            height={16}
+                                            weight="600"
+                                            align="center"
+                                            className="text-[#1e1e1e] w-full"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <span
+                            className="block w-[10px] self-center aspect-square rounded-full bg-[#aaaaaa] "
+                            aria-hidden
+                        />
+                        <div className="flex w-full items-center">
+                            {phone.length % 2 === 1 && <div className="flex-[0.5]" />}
+                            {phone.slice(Math.ceil(phone.length / 2)).map((digit, i) => {
+                                const idx = Math.ceil(phone.length / 2) + i;
+                                return (
+                                    <div key={`phone-${idx}`} className="flex-1 flex items-center justify-center">
+                                        <div
+                                            onClick={() => document.getElementById(`phone-digit-${idx}`)?.focus()}
+                                            className={`w-[40px] h-[40px] rounded-full bg-white flex shrink-0 transition-all cursor-text items-center justify-center ${focusedIdx === idx ? "ring-2 ring-[#0000f4]" : ""}`}
+                                        >
+                                            <SvgInput
+                                                id={`phone-digit-${idx}`}
+                                                value={digit}
+                                                onChange={val => handlePhoneChange(idx, val)}
+                                                onKeyDown={e => handlePhoneKeyDown(idx, e)}
+                                                onFocus={() => setFocusedIdx(idx)}
+                                                onBlur={() => setFocusedIdx(current => current === idx ? null : current)}
+                                                height={16}
+                                                weight="600"
+                                                align="center"
+                                                className="text-[#1e1e1e] w-full"
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {phone.length % 2 === 1 && <div className="flex-[0.5]" />}
+                        </div>
+                    </div>
+
+                    {/* Desktop: single row */}
+                    <div className="hidden md:flex justify-start gap-2 w-fit items-center">
                         {phone.map((digit, i) => (
                             <div
                                 key={`phone-${i}`}
                                 onClick={() => document.getElementById(`phone-digit-${i}`)?.focus()}
-                                className={`w-[30px] h-[30px] md:w-10 md:h-10 rounded-full bg-white flex shrink-0 transition-all cursor-text items-center justify-center ${focusedIdx === i ? "ring-2 ring-[#0000f4]" : ""}`}
+                                className={`w-10 h-10 rounded-full bg-white flex shrink-0 transition-all cursor-text items-center justify-center ${focusedIdx === i ? "ring-2 ring-[#0000f4]" : ""}`}
                             >
                                 <SvgInput
                                     id={`phone-digit-${i}`}
@@ -184,7 +244,7 @@ export default function PhonePage() {
                                         <button
                                             key={c.code}
                                             onClick={() => { setCountry(c); setCountrySearch(""); setShowSearch(false); }}
-                                            className="cursor-pointer hover:bg-[#0000f4] transition-colors px-5 py-[10px] rounded-full group flex items-center justify-center outline-none focus:outline-none focus:ring-0"
+                                            className="cursor-pointer hover:bg-[#0000f4] transition-colors px-3 py-[10px] rounded-full group flex items-center justify-center outline-none focus:outline-none focus:ring-0"
                                         >
                                             <SvgText
                                                 text={`${c.code} ${c.name}`}

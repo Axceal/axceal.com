@@ -40,7 +40,7 @@ describe("services/profile", () => {
     expect(profile.phoneSign).toBe("+");
   });
 
-  it("PUT -> GET roundtrip across all fields", async () => {
+  it("PUT -> GET roundtrip across allowed fields", async () => {
     const { userId } = await createTestUser();
     createdUserIds.push(userId);
 
@@ -49,9 +49,6 @@ describe("services/profile", () => {
       lastName: "Lovelace",
       birthday: "1815-12-10",
       gender: "female",
-      phoneCountryCode: "44",
-      phone: "5551234567",
-      phoneSign: "-",
     });
 
     const profile = await getProfile(userId);
@@ -59,9 +56,11 @@ describe("services/profile", () => {
     expect(profile.lastName).toBe("Lovelace");
     expect(profile.birthday).toBe("1815-12-10");
     expect(profile.gender).toBe("female");
-    expect(profile.phoneCountryCode).toBe("44");
-    expect(profile.phone).toBe("5551234567");
-    expect(profile.phoneSign).toBe("-");
+    // Phone fields are not writable through updateProfile (F8.3) — must go
+    // through /api/account/phone/send + /verify so users.phone stays the
+    // single source of truth for verification status.
+    expect(profile.phone).toBeNull();
+    expect(profile.phoneCountryCode).toBeNull();
   });
 
   it("partial updates preserve previously-written fields", async () => {

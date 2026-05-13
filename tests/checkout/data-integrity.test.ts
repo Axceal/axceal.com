@@ -178,7 +178,7 @@ describe("J.3 — profile update invariants", () => {
 describe("J.5 — OTP token single-use cleanup", () => {
   it("otp:verify-token key is deleted from Redis after successful register", async () => {
     const email = `test-${randomUUID()}@example.com`;
-    const token = await issueOtpToken(email);
+    const token = await issueOtpToken(email, "email-verify");
     const tokenKey = `otp:verify-token:${token}`;
 
     // Token exists before register
@@ -187,7 +187,7 @@ describe("J.5 — OTP token single-use cleanup", () => {
 
     // Simulate what register route does: consumeOtpToken deletes the key
     const { consumeOtpToken } = await import("@/lib/auth/otp");
-    const recovered = await consumeOtpToken(token);
+    const recovered = await consumeOtpToken(token, "email-verify");
     expect(recovered).toBe(email);
 
     // Token is gone — no reuse possible

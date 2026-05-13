@@ -6,25 +6,37 @@ const OTP_TTL_SEC = 10 * 60;
 const TOKEN_TTL_SEC = 10 * 60;
 const MAX_ATTEMPTS = 5;
 
-type OtpRecord = { code: string; attempts: number };
-type TokenRecord = { email: string };
+// OTP record no longer stores attempts — attempt counting is done with a
+// separate atomic INCR key to prevent concurrent requests from bypassing
+// MAX_ATTEMPTS by reading stale attempt counts simultaneously.
+type OtpRecord = { code: string };
+// Flow scopes the token so a token issued for one flow cannot be replayed
+// in another. `email-verify` is shared between registration and
+// password-reset (both unauthenticated, both prove email ownership).
+// `change-pw` is the auth-gated change-password flow.
+export type TokenFlow = "email-verify" | "change-pw";
+type TokenRecord = { email: string; flow: TokenFlow };
 
-const otpKey = (email: string) => `otp:${email}`;
-const tokenKey = (token: string) => `otp:verify-token:${token}`;
+const otpKey          = (email: string) => `otp:${email}`;
+const otpAttemptsKey  = (email: string) => `otp:attempts:${email}`;
+const tokenKey        = (token: string) => `otp:verify-token:${token}`;
 
 export function generateOtp(): string {
   return randomInt(0, 10000).toString().padStart(4, "0");
 }
 
 export async function storeOtp(email: string, code: string): Promise<void> {
-  const record: OtpRecord = { code, attempts: 0 };
+  const record: OtpRecord = { code };
   await redis.set(otpKey(email), record, { ex: OTP_TTL_SEC });
+  // Reset attempts so a re-issued OTP starts from zero.
+  await redis.del(otpAttemptsKey(email));
 }
 
 export async function verifyOtp(email: string, code: string): Promise<void> {
-  const key = otpKey(email);
-  const record = (await redis.get<OtpRecord>(key)) ?? null;
+  const key  = otpKey(email);
+  const aKey = otpAttemptsKey(email);
 
+  const record = (await redis.get<OtpRecord>(key)) ?? null;
   if (!record) {
     throw new AppError(
       ErrorCode.OTP_EXPIRED,
@@ -33,7 +45,12 @@ export async function verifyOtp(email: string, code: string): Promise<void> {
     );
   }
 
-  if (record.attempts >= MAX_ATTEMPTS) {
+  // Atomic increment — concurrent wrong attempts each get a distinct count,
+  // preventing race conditions that would allow more than MAX_ATTEMPTS tries.
+  const attempts = await redis.incr(aKey);
+  if (attempts === 1) await redis.expire(aKey, OTP_TTL_SEC);
+
+  if (attempts > MAX_ATTEMPTS) {
     await redis.del(key);
     throw new AppError(
       ErrorCode.INVALID_OTP,
@@ -43,35 +60,36 @@ export async function verifyOtp(email: string, code: string): Promise<void> {
   }
 
   if (record.code !== code) {
-    const next: OtpRecord = { code: record.code, attempts: record.attempts + 1 };
-    const ttl = await redis.ttl(key);
-    await redis.set(key, next, { ex: ttl > 0 ? ttl : OTP_TTL_SEC });
     throw new AppError(ErrorCode.INVALID_OTP, "Incorrect OTP.", 400);
   }
 
-  // Correct — consume the OTP so it can't be reused.
+  // Correct — consume both keys so OTP cannot be reused.
   await redis.del(key);
+  await redis.del(aKey);
 }
 
-export async function issueOtpToken(email: string): Promise<string> {
+export async function issueOtpToken(email: string, flow: TokenFlow): Promise<string> {
   const token = randomUUID();
-  const record: TokenRecord = { email };
+  const record: TokenRecord = { email, flow };
   await redis.set(tokenKey(token), record, { ex: TOKEN_TTL_SEC });
   return token;
 }
 
 // Login-scoped OTPs — separate keys prevent cross-flow reuse with registration OTPs
-const loginOtpKey = (email: string) => `otp:login:${email}`;
+const loginOtpKey         = (email: string) => `otp:login:${email}`;
+const loginOtpAttemptsKey = (email: string) => `otp:login:attempts:${email}`;
 
 export async function storeLoginOtp(email: string, code: string): Promise<void> {
-  const record: OtpRecord = { code, attempts: 0 };
+  const record: OtpRecord = { code };
   await redis.set(loginOtpKey(email), record, { ex: OTP_TTL_SEC });
+  await redis.del(loginOtpAttemptsKey(email));
 }
 
 export async function verifyLoginOtp(email: string, code: string): Promise<void> {
-  const key = loginOtpKey(email);
-  const record = (await redis.get<OtpRecord>(key)) ?? null;
+  const key  = loginOtpKey(email);
+  const aKey = loginOtpAttemptsKey(email);
 
+  const record = (await redis.get<OtpRecord>(key)) ?? null;
   if (!record) {
     throw new AppError(
       ErrorCode.OTP_EXPIRED,
@@ -80,7 +98,10 @@ export async function verifyLoginOtp(email: string, code: string): Promise<void>
     );
   }
 
-  if (record.attempts >= MAX_ATTEMPTS) {
+  const attempts = await redis.incr(aKey);
+  if (attempts === 1) await redis.expire(aKey, OTP_TTL_SEC);
+
+  if (attempts > MAX_ATTEMPTS) {
     await redis.del(key);
     throw new AppError(
       ErrorCode.INVALID_OTP,
@@ -90,27 +111,28 @@ export async function verifyLoginOtp(email: string, code: string): Promise<void>
   }
 
   if (record.code !== code) {
-    const next: OtpRecord = { code: record.code, attempts: record.attempts + 1 };
-    const ttl = await redis.ttl(key);
-    await redis.set(key, next, { ex: ttl > 0 ? ttl : OTP_TTL_SEC });
     throw new AppError(ErrorCode.INVALID_OTP, "Incorrect OTP.", 400);
   }
 
   await redis.del(key);
+  await redis.del(aKey);
 }
 
 // Change-password scoped OTPs — separate keys prevent cross-flow reuse
-const changePwOtpKey = (email: string) => `otp:change-pw:${email}`;
+const changePwOtpKey         = (email: string) => `otp:change-pw:${email}`;
+const changePwOtpAttemptsKey = (email: string) => `otp:change-pw:attempts:${email}`;
 
 export async function storeChangePasswordOtp(email: string, code: string): Promise<void> {
-  const record: OtpRecord = { code, attempts: 0 };
+  const record: OtpRecord = { code };
   await redis.set(changePwOtpKey(email), record, { ex: OTP_TTL_SEC });
+  await redis.del(changePwOtpAttemptsKey(email));
 }
 
 export async function verifyChangePasswordOtp(email: string, code: string): Promise<void> {
-  const key = changePwOtpKey(email);
-  const record = (await redis.get<OtpRecord>(key)) ?? null;
+  const key  = changePwOtpKey(email);
+  const aKey = changePwOtpAttemptsKey(email);
 
+  const record = (await redis.get<OtpRecord>(key)) ?? null;
   if (!record) {
     throw new AppError(
       ErrorCode.OTP_EXPIRED,
@@ -119,7 +141,10 @@ export async function verifyChangePasswordOtp(email: string, code: string): Prom
     );
   }
 
-  if (record.attempts >= MAX_ATTEMPTS) {
+  const attempts = await redis.incr(aKey);
+  if (attempts === 1) await redis.expire(aKey, OTP_TTL_SEC);
+
+  if (attempts > MAX_ATTEMPTS) {
     await redis.del(key);
     throw new AppError(
       ErrorCode.INVALID_OTP,
@@ -129,16 +154,14 @@ export async function verifyChangePasswordOtp(email: string, code: string): Prom
   }
 
   if (record.code !== code) {
-    const next: OtpRecord = { code: record.code, attempts: record.attempts + 1 };
-    const ttl = await redis.ttl(key);
-    await redis.set(key, next, { ex: ttl > 0 ? ttl : OTP_TTL_SEC });
     throw new AppError(ErrorCode.INVALID_OTP, "Incorrect OTP.", 400);
   }
 
   await redis.del(key);
+  await redis.del(aKey);
 }
 
-export async function consumeOtpToken(token: string): Promise<string> {
+export async function consumeOtpToken(token: string, expectedFlow: TokenFlow): Promise<string> {
   const key = tokenKey(token);
   const record = (await redis.get<TokenRecord>(key)) ?? null;
   if (!record) {
@@ -148,6 +171,15 @@ export async function consumeOtpToken(token: string): Promise<string> {
       400,
     );
   }
+  // Always delete the key — even on flow mismatch — so a misrouted token is
+  // burned in a single use and cannot be retried against the correct flow.
   await redis.del(key);
+  if (record.flow !== expectedFlow) {
+    throw new AppError(
+      ErrorCode.INVALID_OTP,
+      "Invalid verification token.",
+      400,
+    );
+  }
   return record.email;
 }

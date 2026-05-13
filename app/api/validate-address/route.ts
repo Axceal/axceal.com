@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withHandler } from "@/lib/http/handler";
 import { rateLimit } from "@/lib/http/rate-limit";
 import { getClientIp } from "@/lib/http/request";
+import { requireSession } from "@/lib/auth/session";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 
@@ -39,7 +40,10 @@ export const POST = withHandler({
   input: ValidateAddressRequest,
   output: ValidateAddressResponse,
   handler: async ({ input, req }) => {
+    // Auth-gate to stop unauthenticated quota abuse on the paid Google API.
+    const session = await requireSession();
     const ip = getClientIp(req);
+    await rateLimit(`validate-address:user:${session.userId}`, { limit: 30, windowSec: 3600 });
     await rateLimit(`validate-address:ip:${ip}`, { limit: 30, windowSec: 3600 });
 
     const apiKey = env.GOOGLE_ADDRESS_VALIDATION_API_KEY;

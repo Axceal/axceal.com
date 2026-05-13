@@ -16,6 +16,8 @@ export function indicatorPos(el: HTMLDivElement | null): { top: number; left: nu
     };
 }
 
+export type FieldErrorMap = Partial<Record<"first" | "last" | "address" | "country" | "state" | "zip" | "phone", string>>;
+
 export interface AddressFormState {
     first: string; setFirst: (v: string) => void;
     last: string; setLast: (v: string) => void;
@@ -31,6 +33,8 @@ export interface AddressFormState {
     countryFocused: boolean; setCountryFocused: (v: boolean) => void;
     stateFocused: boolean; setStateFocused: (v: boolean) => void;
     zipError: string | null; setZipError: (v: string | null) => void;
+    fieldErrors: FieldErrorMap;
+    clearFieldError: (field: keyof FieldErrorMap) => void;
     firstRef: React.RefObject<HTMLDivElement | null>;
     lastRef: React.RefObject<HTMLDivElement | null>;
     addressRef: React.RefObject<HTMLDivElement | null>;
@@ -80,6 +84,8 @@ export function useBillingShippingForm() {
     const [correctedFields, setCorrectedFields] = useState<Set<string>>(new Set());
     const [billingZipError, setBillingZipError] = useState<string | null>(null);
     const [shippingZipError, setShippingZipError] = useState<string | null>(null);
+    const [billingFieldErrors, setBillingFieldErrors] = useState<FieldErrorMap>({});
+    const [shippingFieldErrors, setShippingFieldErrors] = useState<FieldErrorMap>({});
     const [showShipping, setShowShipping] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -153,6 +159,31 @@ export function useBillingShippingForm() {
         return Math.floor(raw);
     })();
 
+    const clearBillingFieldError = useCallback((field: keyof FieldErrorMap) => {
+        setBillingFieldErrors(e => { const n = { ...e }; delete n[field]; return n; });
+    }, []);
+    const clearShippingFieldError = useCallback((field: keyof FieldErrorMap) => {
+        setShippingFieldErrors(e => { const n = { ...e }; delete n[field]; return n; });
+    }, []);
+
+    function validateFields(
+        addr: ReturnType<typeof buildAddress>,
+        countryCode: string,
+        side: "billing" | "shipping",
+    ): FieldErrorMap {
+        const to = `${side}`;
+        const e: FieldErrorMap = {};
+        if (!addr.firstName) e.first = `Add first name to ${to}`;
+        if (!addr.lastName) e.last = `Add last name to ${to}`;
+        if (!addr.line1) e.address = `Add home address to ${to}`;
+        if (!addr.country) e.country = `Add country to ${to}`;
+        else if (!countryCode) e.country = `Select a country from the list.`;
+        if (!addr.state) e.state = `Add state to ${to}`;
+        if (!addr.zip) e.zip = `Add zip / pincode to ${to}`;
+        if ((addr.phone?.length ?? 0) < 7) e.phone = `Add valid phone number to ${to}`;
+        return e;
+    }
+
     function extractDigits(s: string): string {
         return s.replace(/\D/g, "");
     }
@@ -177,9 +208,14 @@ export function useBillingShippingForm() {
         setErrorMsg(null);
 
         const billing = buildAddress("billing");
-        // "Same as Billing" → copy billing into shipping client-side so the
-        // server always receives both addresses (user decision 2026-04-21).
         const shipping = showShipping ? buildAddress("shipping") : billing;
+
+        // Client-side validation before hitting any API
+        const bErrors = validateFields(billing, billingCountryCode, "billing");
+        const sErrors = showShipping ? validateFields(shipping, shippingCountryCode, "shipping") : {};
+        setBillingFieldErrors(bErrors);
+        setShippingFieldErrors(sErrors);
+        if (Object.keys(bErrors).length > 0 || Object.keys(sErrors).length > 0) return;
 
         setSubmitting(true);
         try {
@@ -279,6 +315,7 @@ export function useBillingShippingForm() {
         countryFocused: billingCountryFocused, setCountryFocused: setBillingCountryFocused,
         stateFocused: billingStateFocused, setStateFocused: setBillingStateFocused,
         zipError: billingZipError, setZipError: setBillingZipError,
+        fieldErrors: billingFieldErrors, clearFieldError: clearBillingFieldError,
         firstRef: bFirstRef, lastRef: bLastRef, addressRef: bAddressRef,
         countryRef: bCountryRef, stateRef: bStateRef, zipRef: bZipRef, phoneRef: bPhoneRef,
         activeField: activeBilling,
@@ -304,6 +341,7 @@ export function useBillingShippingForm() {
         countryFocused: shippingCountryFocused, setCountryFocused: setShippingCountryFocused,
         stateFocused: shippingStateFocused, setStateFocused: setShippingStateFocused,
         zipError: shippingZipError, setZipError: setShippingZipError,
+        fieldErrors: shippingFieldErrors, clearFieldError: clearShippingFieldError,
         firstRef: sFirstRef, lastRef: sLastRef, addressRef: sAddressRef,
         countryRef: sCountryRef, stateRef: sStateRef, zipRef: sZipRef, phoneRef: sPhoneRef,
         activeField: activeShipping,

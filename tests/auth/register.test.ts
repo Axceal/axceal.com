@@ -52,7 +52,7 @@ describe("POST /api/auth/register", () => {
   it("rejects when token email does not match submitted email", async () => {
     const tokenEmail = testEmail();
     const otherEmail = testEmail();
-    const otpToken = await issueOtpToken(tokenEmail);
+    const otpToken = await issueOtpToken(tokenEmail, "email-verify");
 
     const res = await registerPOST(
       postJson({ email: otherEmail, password: "password123", otpToken }),
@@ -70,7 +70,7 @@ describe("POST /api/auth/register", () => {
     const passwordHash = await hashPassword("password123");
     await db.insert(users).values({ email, passwordHash });
 
-    const otpToken = await issueOtpToken(email);
+    const otpToken = await issueOtpToken(email, "email-verify");
     const res = await registerPOST(
       postJson({ email, password: "password123", otpToken }),
     );
@@ -82,7 +82,7 @@ describe("POST /api/auth/register", () => {
   it("happy path: creates user + empty profile, returns userId, hash is bcrypt", async () => {
     const email = testEmail();
     createdEmails.push(email);
-    const otpToken = await issueOtpToken(email);
+    const otpToken = await issueOtpToken(email, "email-verify");
 
     const res = await registerPOST(
       postJson({ email, password: "password123", otpToken }),

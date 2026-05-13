@@ -35,13 +35,13 @@ describe("POST /api/auth/send-otp", () => {
     for (const k of otpKeys.splice(0)) await redis.del(k);
   });
 
-  it("new email → 200, OTP stored in Redis, email sent once", async () => {
+  it("register flow + new email → 200, OTP stored, email sent", async () => {
     const ip = uniqueIp();
     const email = `test-${randomUUID()}@example.com`;
     rlKeys.push(`otp:send-rate:${email}`, `otp:send-rate-ip:${ip}`);
     otpKeys.push(`otp:${email}`);
 
-    const res = await POST(postReq({ email }, ip));
+    const res = await POST(postReq({ email, flow: "register" }, ip));
     expect(res.status).toBe(200);
     const body = await readJson<OkBody>(res);
     expect(body.data.sent).toBe(true);
@@ -55,19 +55,50 @@ describe("POST /api/auth/send-otp", () => {
     );
   });
 
-  it("existing user email → 200 silent no-op, email NOT sent (anti-enumeration)", async () => {
+  it("register flow + existing email → 200 silent no-op (anti-enumeration)", async () => {
     const ip = uniqueIp();
     const user = await createTestUser();
     cleanups.push(() => user.cleanup());
     rlKeys.push(`otp:send-rate:${user.email}`, `otp:send-rate-ip:${ip}`);
 
-    const res = await POST(postReq({ email: user.email }, ip));
+    const res = await POST(postReq({ email: user.email, flow: "register" }, ip));
     expect(res.status).toBe(200);
     const body = await readJson<OkBody>(res);
     expect(body.data.sent).toBe(true);
 
-    // No OTP stored, no email sent
     const stored = await redis.get(`otp:${user.email}`);
+    expect(stored).toBeNull();
+    expect(emailProviderMock.sendOtp).not.toHaveBeenCalled();
+  });
+
+  it("reset-pw flow + existing email → 200, OTP sent (forgot-password)", async () => {
+    const ip = uniqueIp();
+    const user = await createTestUser();
+    cleanups.push(() => user.cleanup());
+    rlKeys.push(`otp:send-rate:${user.email}`, `otp:send-rate-ip:${ip}`);
+    otpKeys.push(`otp:${user.email}`);
+
+    const res = await POST(postReq({ email: user.email, flow: "reset-pw" }, ip));
+    expect(res.status).toBe(200);
+    const body = await readJson<OkBody>(res);
+    expect(body.data.sent).toBe(true);
+
+    const stored = await redis.get(`otp:${user.email}`);
+    expect(stored).toBeTruthy();
+    expect(emailProviderMock.sendOtp).toHaveBeenCalledOnce();
+  });
+
+  it("reset-pw flow + non-existing email → 200 silent no-op (anti-enumeration)", async () => {
+    const ip = uniqueIp();
+    const email = `test-${randomUUID()}@example.com`;
+    rlKeys.push(`otp:send-rate:${email}`, `otp:send-rate-ip:${ip}`);
+
+    const res = await POST(postReq({ email, flow: "reset-pw" }, ip));
+    expect(res.status).toBe(200);
+    const body = await readJson<OkBody>(res);
+    expect(body.data.sent).toBe(true);
+
+    const stored = await redis.get(`otp:${email}`);
     expect(stored).toBeNull();
     expect(emailProviderMock.sendOtp).not.toHaveBeenCalled();
   });
@@ -78,7 +109,7 @@ describe("POST /api/auth/send-otp", () => {
     rlKeys.push(`otp:send-rate:${email}`, `otp:send-rate-ip:${ip}`);
     otpKeys.push(`otp:${email}`);
 
-    await POST(postReq({ email }, ip));
+    await POST(postReq({ email, flow: "register" }, ip));
 
     const ttl = await redis.ttl(`otp:${email}`);
     expect(ttl).toBeGreaterThan(0);
@@ -86,28 +117,33 @@ describe("POST /api/auth/send-otp", () => {
   });
 
   it("invalid email format → 400 VALIDATION_FAILED", async () => {
-    const res = await POST(postReq({ email: "not-an-email" }));
+    const res = await POST(postReq({ email: "not-an-email", flow: "register" }));
     expect(res.status).toBe(400);
     const body = await readJson<ErrBody>(res);
     expect(body.error.code).toBe("VALIDATION_FAILED");
   });
 
   it("missing email → 400 VALIDATION_FAILED", async () => {
-    const res = await POST(postReq({}));
+    const res = await POST(postReq({ flow: "register" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("missing flow → 400 VALIDATION_FAILED", async () => {
+    const res = await POST(postReq({ email: `test-${randomUUID()}@example.com` }));
     expect(res.status).toBe(400);
   });
 
   // G.7 — Email schema boundary values
   it("email > 254 chars → 400 VALIDATION_FAILED", async () => {
     const oversized = "a".repeat(250) + "@x.com";
-    const res = await POST(postReq({ email: oversized }));
+    const res = await POST(postReq({ email: oversized, flow: "register" }));
     expect(res.status).toBe(400);
     const body = await readJson<ErrBody>(res);
     expect(body.error.code).toBe("VALIDATION_FAILED");
   });
 
   it("empty string email → 400 VALIDATION_FAILED", async () => {
-    const res = await POST(postReq({ email: "" }));
+    const res = await POST(postReq({ email: "", flow: "register" }));
     expect(res.status).toBe(400);
     const body = await readJson<ErrBody>(res);
     expect(body.error.code).toBe("VALIDATION_FAILED");
@@ -119,10 +155,9 @@ describe("POST /api/auth/send-otp", () => {
     const rlKey = `otp:send-rate:${email}`;
     rlKeys.push(rlKey, `otp:send-rate-ip:${ip}`);
 
-    // Pre-seed to limit (5)
     await redis.set(rlKey, 5, { ex: 3600 });
 
-    const res = await POST(postReq({ email }, ip));
+    const res = await POST(postReq({ email, flow: "register" }, ip));
     expect(res.status).toBe(429);
     const body = await readJson<ErrBody>(res);
     expect(body.error.code).toBe("RATE_LIMITED");

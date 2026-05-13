@@ -1,13 +1,15 @@
 "use client";
+import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SvgText } from "../components/SvgText";
 import { AxcealLogo } from "../components/icons/AxcealLogo";
 
-export default function AuthChoicePage() {
+function AuthChoiceContent() {
     const searchParams = useSearchParams();
     const from = searchParams.get("from");
-    const suffix = from ? `?from=${from}` : "";
+    // Encode so `&`/`=`/etc inside `from` cannot pollute downstream query params.
+    const suffix = from ? `?from=${encodeURIComponent(from)}` : "";
 
     return (
         <main className="flex-1 flex flex-col items-center justify-center -mt-10">
@@ -35,7 +37,10 @@ export default function AuthChoicePage() {
                             <SvgText text="Login" weight="600" height={16} className="text-white" />
                         </Link>
                     </div>
-
+                    <span
+                        className="block w-[10px] self-center aspect-square rounded-full bg-[#aaaaaa] -mt-[5px] -mb-[5px]"
+                        aria-hidden
+                    />
                     {/* Create Choice */}
                     <div className="w-[340px] bg-[#f1f1f1] rounded-full pl-8 pr-1 py-1 flex items-center justify-between group">
                         <SvgText
@@ -62,5 +67,13 @@ export default function AuthChoicePage() {
                 </div>
             </div>
         </main>
+    );
+}
+
+export default function AuthChoicePage() {
+    return (
+        <Suspense>
+            <AuthChoiceContent />
+        </Suspense>
     );
 }

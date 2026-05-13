@@ -11,12 +11,18 @@ import {
 const { auth } = NextAuth(authConfig);
 
 const PROTECTED_PAGE = [/^\/account(\/|$)/, /^\/order(\/|$)/];
+
+// Mirror of the client-side flag — lets developers bypass the server-side
+// redirect without changing code. Set NEXT_PUBLIC_DEV_SKIP_AUTH_GATES=true
+// in .env.local. Has no effect in production (flag is simply absent).
+const DEV_SKIP_GATES = process.env.NEXT_PUBLIC_DEV_SKIP_AUTH_GATES === "true";
 const PROTECTED_API = [
   /^\/api\/account(\/|$)/,
   /^\/api\/orders(\/|$)/,
   /^\/api\/addresses(\/|$)/,
   /^\/api\/payments\/initiate(\/|$)/,
   /^\/api\/payments\/verify(\/|$)/,
+  /^\/api\/validate-address(\/|$)/,
 ];
 
 const CSRF_EXEMPT = [
@@ -83,11 +89,16 @@ export default auth((req) => {
     );
   }
 
-  const loginUrl = new URL("/login", req.url);
-  loginUrl.searchParams.set("callbackUrl", path + req.nextUrl.search);
-  return ensureCsrfCookie(req, NextResponse.redirect(loginUrl));
+  // Dev flag: let unauthenticated users through for local testing.
+  if (DEV_SKIP_GATES) {
+    return ensureCsrfCookie(req, NextResponse.next());
+  }
+
+  const authUrl = new URL("/auth", req.url);
+  authUrl.searchParams.set("from", path + req.nextUrl.search);
+  return ensureCsrfCookie(req, NextResponse.redirect(authUrl));
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|assests/).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|assets/).*)"],
 };

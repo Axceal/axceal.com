@@ -28,7 +28,7 @@ export const POST = withHandler({
     // Consume token — single-use, expires after verify-otp TTL
     let tokenEmail: string;
     try {
-      tokenEmail = await consumeOtpToken(otpToken);
+      tokenEmail = await consumeOtpToken(otpToken, "email-verify");
     } catch {
       throw new AppError(ErrorCode.INVALID_OTP, "Invalid or expired verification token.", 400);
     }

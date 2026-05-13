@@ -11,6 +11,7 @@ import {
     formatOrderRef,
     formatPhone,
 } from "../utils/formatters";
+import { AeroIcon } from "../../../components/icons/AeroIcon";
 import type { OrderListResponse } from "@/lib/contracts/order";
 import type { Address } from "@/lib/contracts/address";
 
@@ -120,7 +121,7 @@ export function OrderCard({ order, orderNumber }: { order: Order; orderNumber: n
                             />
                         </div>
                         <div className="bg-[#f1f1f1] rounded-[20px] h-[320px] lg:h-auto lg:flex-1 flex items-center justify-center">
-                            <img src="/assests/aero svg.svg" alt="Aero" className="w-[200px]" />
+                            <AeroIcon alt="Aero" className="w-[200px]" />
                         </div>
                     </div>
 

@@ -38,7 +38,7 @@ describe("POST /api/auth/reset-password", () => {
     const ip = uniqueIp();
     const user = await createTestUser();
     cleanups.push(() => user.cleanup());
-    const otpToken = await issueOtpToken(user.email);
+    const otpToken = await issueOtpToken(user.email, "email-verify");
     rlKeys.push(`reset-pw:email:${user.email}`, `reset-pw:ip:${ip}`);
     redisKeys.push(`pw:changed:${user.id}`);
 
@@ -56,7 +56,7 @@ describe("POST /api/auth/reset-password", () => {
     const ip = uniqueIp();
     const user = await createTestUser();
     cleanups.push(() => user.cleanup());
-    const otpToken = await issueOtpToken(user.email);
+    const otpToken = await issueOtpToken(user.email, "email-verify");
     rlKeys.push(`reset-pw:email:${user.email}`, `reset-pw:ip:${ip}`);
     redisKeys.push(`pw:changed:${user.id}`);
 
@@ -71,7 +71,7 @@ describe("POST /api/auth/reset-password", () => {
     const ip = uniqueIp();
     const user = await createTestUser();
     cleanups.push(() => user.cleanup());
-    const otpToken = await issueOtpToken(user.email);
+    const otpToken = await issueOtpToken(user.email, "email-verify");
     rlKeys.push(`reset-pw:email:${user.email}`, `reset-pw:ip:${ip}`);
     redisKeys.push(`pw:changed:${user.id}`);
 
@@ -98,7 +98,7 @@ describe("POST /api/auth/reset-password", () => {
     const ip = uniqueIp();
     const tokenEmail = `test-${randomUUID()}@example.com`;
     const requestEmail = `test-${randomUUID()}@example.com`;
-    const otpToken = await issueOtpToken(tokenEmail);
+    const otpToken = await issueOtpToken(tokenEmail, "email-verify");
     rlKeys.push(`reset-pw:email:${requestEmail}`, `reset-pw:ip:${ip}`);
 
     const res = await POST(postReq({ email: requestEmail, otpToken, password: "NewPassword456!" }, ip));
@@ -142,7 +142,7 @@ describe("POST /api/auth/reset-password", () => {
   it("nonexistent user email with valid token still returns 200 (uniform timing)", async () => {
     const ip = uniqueIp();
     const email = `test-${randomUUID()}@example.com`;
-    const otpToken = await issueOtpToken(email);
+    const otpToken = await issueOtpToken(email, "email-verify");
     rlKeys.push(`reset-pw:email:${email}`, `reset-pw:ip:${ip}`);
 
     const res = await POST(postReq({ email, otpToken, password: "NewPassword456!" }, ip));

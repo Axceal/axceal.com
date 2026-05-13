@@ -38,7 +38,7 @@ function LoginPageInner() {
         <main className="flex-1 flex items-center justify-center">
             <form
                 onSubmit={handleSubmit}
-                className="relative flex flex-col items-center gap-6 w-[min(100vw-2rem,300px)]"
+                className="relative flex flex-col items-center gap-6 w-[min(100vw-2rem,320px)]"
             >
                 <SvgText
                     text="Log into Axceal Account"
@@ -55,7 +55,7 @@ function LoginPageInner() {
                     }}
                 />
 
-                <div ref={emailWrapRef} className="w-full">
+                <div ref={emailWrapRef} className="w-full flex flex-col gap-2">
                     <SvgInput
                         id="login-email"
                         type="email"
@@ -70,9 +70,12 @@ function LoginPageInner() {
                         onFocus={() => handleFocus("email")}
                         onBlur={handleBlur}
                     />
+                    {message?.field === "email" && (
+                        <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center mt-2" />
+                    )}
                 </div>
 
-                <div ref={passwordWrapRef} className="w-full">
+                <div ref={passwordWrapRef} className="w-full flex flex-col gap-2">
                     <SvgInput
                         id="login-password"
                         type={showPassword ? "text" : "password"}
@@ -93,10 +96,13 @@ function LoginPageInner() {
                             />
                         }
                     />
+                    {message?.field === "password" && (
+                        <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center" />
+                    )}
                 </div>
 
-                <div className="flex items-center justify-center text-center empty:hidden min-h-[24px]">
-                    {message && (
+                <div className="flex items-center justify-center text-center empty:hidden min-h-[16px]">
+                    {message && !message.field && (
                         <SvgText
                             text={message.text}
                             weight="500"
@@ -217,15 +223,6 @@ function LoginPageInner() {
                     />
                 </button>
 
-                {/* <SvgText text="or" weight="600" height={16} className="text-[#1e1e1e]" />
-
-                <Link
-                    href="/create-account"
-                    id="go-to-create-account"
-                    className="w-fit bg-[#f1f1f1] rounded-full px-8 py-4.5 cursor-pointer hover:bg-[#0000f4] transition-colors flex justify-center group"
-                >
-                    <SvgText text="Create Axceal Account" weight="600" height={16} className="text-[#0000f4] group-hover:text-white" />
-                </Link> */}
             </form>
         </main>
     );

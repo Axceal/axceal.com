@@ -3,6 +3,7 @@ import { softDeleteAddress } from "@/lib/services/address";
 import { ok, fail } from "@/lib/http/response";
 import { AppError, ErrorCode } from "@/lib/http/errors";
 import { logger } from "@/lib/logger";
+import { rateLimit } from "@/lib/http/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,7 @@ export async function DELETE(
 ) {
   try {
     const session = await requireSession();
+    await rateLimit(`addresses:delete:${session.userId}`, { limit: 30, windowSec: 3600 });
     const { id } = await ctx.params;
     if (!UUID_RE.test(id)) {
       return fail(ErrorCode.VALIDATION_FAILED, "Invalid address id", 400);

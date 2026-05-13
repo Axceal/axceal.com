@@ -11,11 +11,26 @@ import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
 import { logger } from "@/lib/logger";
 
+// Approximate the p50 send latency of the real email provider so the
+// "no-op" branch sleeps long enough to mask which side of the existence
+// check ran. Tune from production telemetry.
+const SEND_LATENCY_TARGET_MS = 350;
+
+async function constantTime<T>(target: number, work: () => Promise<T>): Promise<T> {
+  const start = Date.now();
+  const result = await work();
+  const elapsed = Date.now() - start;
+  if (elapsed < target) {
+    await new Promise((r) => setTimeout(r, target - elapsed));
+  }
+  return result;
+}
+
 export const POST = withHandler({
   input: SendOtpRequest,
   output: SendOtpResponse,
   handler: async ({ input, req }) => {
-    const { email } = input;
+    const { email, flow } = input;
     const ip = getClientIp(req);
 
     await rateLimit(`otp:send-rate:${email}`, { limit: 5, windowSec: 3600 });
@@ -26,15 +41,26 @@ export const POST = withHandler({
       columns: { id: true },
     });
 
-    // No-op for existing users (prevents spamming accounts + avoids enumeration).
-    // Response shape is identical to the "sent" path.
-    if (!existing) {
+    // shouldSend = "send the OTP for this combination of flow + existence".
+    //   register flow: send only when no account exists (avoid spamming).
+    //   reset-pw flow: send only when an account exists (nothing to reset otherwise).
+    // The opposite branch is the "silent no-op" path. Both branches go through
+    // constantTime so response latency is uniform regardless of which ran.
+    const shouldSend =
+      (flow === "register" && !existing) ||
+      (flow === "reset-pw" && !!existing);
+
+    await constantTime(SEND_LATENCY_TARGET_MS, async () => {
+      if (!shouldSend) return;
       const code = generateOtp();
       await storeOtp(email, code);
       await emailProvider.sendOtp(email, code);
-    }
+    });
 
-    logger.info({ emailExists: !!existing, ip }, "otp send requested");
+    logger.info(
+      { flow, emailExists: !!existing, sent: shouldSend, ip },
+      "otp send requested",
+    );
     return { sent: true as const };
   },
 });

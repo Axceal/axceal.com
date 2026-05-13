@@ -23,6 +23,7 @@ describe("auth/otp", () => {
 
   afterEach(async () => {
     await redis.del(`otp:${email}`);
+    await redis.del(`otp:attempts:${email}`);
   });
 
   it("generateOtp produces a 4-digit string", () => {
@@ -47,8 +48,9 @@ describe("auth/otp", () => {
     await storeOtp(email, "1234");
 
     await expect(verifyOtp(email, "0000")).rejects.toThrow(/Incorrect OTP/);
-    const rec = await redis.get<{ code: string; attempts: number }>(`otp:${email}`);
-    expect(rec?.attempts).toBe(1);
+    // Attempt count is now tracked in a separate atomic key, not inside the OTP record.
+    const attemptCount = await redis.get<number>(`otp:attempts:${email}`);
+    expect(attemptCount).toBe(1);
   });
 
   it("6th attempt is rejected with max-attempts error and deletes the OTP", async () => {
@@ -65,13 +67,21 @@ describe("auth/otp", () => {
   });
 
   it("issueOtpToken returns a UUID and consumeOtpToken returns the email once", async () => {
-    const token = await issueOtpToken(email);
+    const token = await issueOtpToken(email, "email-verify");
     expect(token).toMatch(/^[0-9a-f-]{36}$/i);
 
-    const recovered = await consumeOtpToken(token);
+    const recovered = await consumeOtpToken(token, "email-verify");
     expect(recovered).toBe(email);
 
     // Single-use — second consume fails.
-    await expect(consumeOtpToken(token)).rejects.toThrow();
+    await expect(consumeOtpToken(token, "email-verify")).rejects.toThrow();
+  });
+
+  it("rejects token consumed under wrong flow and burns it", async () => {
+    const token = await issueOtpToken(email, "email-verify");
+    // Wrong flow → throws and deletes the key (single-use even on mismatch).
+    await expect(consumeOtpToken(token, "change-pw")).rejects.toThrow();
+    // Even the correct flow now fails because the key was burned.
+    await expect(consumeOtpToken(token, "email-verify")).rejects.toThrow();
   });
 });

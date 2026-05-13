@@ -19,6 +19,10 @@ export default function AccountReadyPage() {
             router.replace("/auth");
             return;
         }
+        // sessionStorage is only available client-side, so reading on mount
+        // and then setting state is the standard pattern. The single setState
+        // here cannot cascade — deps `[router]` are stable for the page's life.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setPending(JSON.parse(raw) as Pending);
     }, [router]);
 
@@ -82,7 +86,10 @@ export default function AccountReadyPage() {
                         >
                             <SvgText text="Skip" weight="600" height={14} className="text-white" />
                         </button>
-                        <div className="w-8 h-[2.5px] bg-[#aaaaaa] rounded-full" />
+                        <span
+                            className="block w-[10px] aspect-square rounded-full bg-[#aaaaaa]"
+                            aria-hidden
+                        />
                         <button
                             type="button"
                             onClick={handleAddDetails}

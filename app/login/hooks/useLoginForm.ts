@@ -12,7 +12,8 @@ export function useLoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const raw = searchParams.get("callbackUrl") ?? "/";
-    const callbackUrl = raw.startsWith("/") ? raw : "/";
+    // startsWith("/") alone allows protocol-relative URLs like //evil.com.
+    const callbackUrl = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
     const justRegistered = searchParams.get("registered") === "1";
 
     const [email, setEmail] = useState("");
@@ -27,7 +28,7 @@ export function useLoginForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [sendingOtp, setSendingOtp] = useState(false);
-    const [message, setMessage] = useState<{ kind: "info" | "error"; text: string } | null>(
+    const [message, setMessage] = useState<{ kind: "info" | "error"; text: string; field?: "email" | "password" | null } | null>(
         justRegistered ? { kind: "info", text: "Account created. Log in to continue." } : null,
     );
 
@@ -63,10 +64,28 @@ export function useLoginForm() {
 
     const handleVerify = async () => {
         if (submitting) return;
-        if (!email || !password) {
-            setMessage({ kind: "error", text: "Enter email and password." });
+
+        if (!email.trim()) {
+            setActiveField("email");
+            setMessage({ kind: "error", text: "Enter your email.", field: "email" });
             return;
         }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            setActiveField("email");
+            setMessage({ kind: "error", text: "Invalid email.", field: "email" });
+            return;
+        }
+        if (!password) {
+            setActiveField("password");
+            setMessage({ kind: "error", text: "Enter your password.", field: "password" });
+            return;
+        }
+        if (password.length < 8) {
+            setActiveField("password");
+            setMessage({ kind: "error", text: "Password must be at least 8 characters.", field: "password" });
+            return;
+        }
+
         setSubmitting(true);
         setMessage(null);
         try {

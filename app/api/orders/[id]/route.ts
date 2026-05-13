@@ -2,6 +2,7 @@ import { requireSession } from "@/lib/auth/session";
 import { getOrder } from "@/lib/services/order";
 import { ok, fail } from "@/lib/http/response";
 import { AppError, ErrorCode } from "@/lib/http/errors";
+import { rateLimit } from "@/lib/http/rate-limit";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -15,6 +16,7 @@ export async function GET(
 ) {
   try {
     const session = await requireSession();
+    await rateLimit(`orders:get:${session.userId}`, { limit: 60, windowSec: 60 });
     const { id } = await ctx.params;
     if (!UUID_RE.test(id)) {
       return fail(ErrorCode.VALIDATION_FAILED, "Invalid order id", 400);

@@ -11,6 +11,7 @@ import {
   index,
   check,
   customType,
+  unique,
 } from "drizzle-orm/pg-core";
 
 const citext = customType<{ data: string }>({
@@ -111,7 +112,11 @@ export const orders = pgTable(
     razorpayOrderId: text("razorpay_order_id").unique(),
     razorpayPaymentId: text("razorpay_payment_id"),
     razorpaySignature: text("razorpay_signature"),
-    idempotencyKey: text("idempotency_key").unique(),
+    // No column-level unique — collisions across users (UUIDs are unguessable
+    // but possible) would have caused the second user's checkout to 500. The
+    // composite constraint below scopes idempotency per user, which matches
+    // the lookup semantics in `findByIdempotencyKey`.
+    idempotencyKey: text("idempotency_key"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
@@ -125,6 +130,7 @@ export const orders = pgTable(
       sql`${t.status} in ('pending','paid','failed','cancelled')`,
     ),
     index("orders_user_id_created_at_idx").on(t.userId, sql`${t.createdAt} desc`),
+    unique("orders_user_idempotency_unique").on(t.userId, t.idempotencyKey),
   ],
 );
 

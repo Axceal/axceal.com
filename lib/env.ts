@@ -4,7 +4,7 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().url(),
   UPSTASH_REDIS_REST_URL: z.string().url(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
-  NEXTAUTH_SECRET: z.string().min(32),
+  NEXTAUTH_SECRET: z.string().trim().min(32),
   NEXTAUTH_URL: z.string().url(),
 
   RESEND_API_KEY: z.string().min(1),
@@ -24,7 +24,13 @@ const EnvSchema = z.object({
 
   GOOGLE_ADDRESS_VALIDATION_API_KEY: z.string().optional().transform(v => v || undefined),
 
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  // No default — must be set explicitly. Defaulting to "development" was
+  // dangerous: rate-limit, getClientIp, emailProvider, and CSRF cookie
+  // `secure` flag all silently degrade to dev behaviour when NODE_ENV is
+  // "development". A missing env in production would have let unauth'd
+  // requests bypass every per-IP rate limit and printed OTPs to stdout
+  // instead of emailing them. Fail-closed is safer than fail-open.
+  NODE_ENV: z.enum(["development", "test", "production"]),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

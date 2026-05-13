@@ -10,7 +10,14 @@ export const ProfileSchema = z.object({
   phone: PhoneDigits.nullable(),
   phoneSign: z.enum(["+", "-"]).default("+"),
 });
-export const UpdateProfileRequest = ProfileSchema.partial();
+
+// Phone fields are deliberately excluded — they must go through the
+// /api/account/phone/send + /verify OTP flow so the verified `users.phone`
+// stays consistent with the profile copy. Allowing PUT here would let an
+// authenticated user set any phone without verification.
+export const UpdateProfileRequest = ProfileSchema
+  .omit({ phone: true, phoneCountryCode: true, phoneSign: true })
+  .partial();
 
 export type Profile = z.infer<typeof ProfileSchema>;
 export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequest>;

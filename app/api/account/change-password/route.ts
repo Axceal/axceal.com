@@ -5,7 +5,7 @@ import { withHandler } from "@/lib/http/handler";
 import { ChangePasswordRequest, ChangePasswordResponse } from "@/lib/contracts/auth";
 import { rateLimit } from "@/lib/http/rate-limit";
 import { requireSession } from "@/lib/auth/session";
-import { verifyChangePasswordOtp } from "@/lib/auth/otp";
+import { consumeOtpToken } from "@/lib/auth/otp";
 import { hashPassword } from "@/lib/auth/password";
 import { AppError, ErrorCode } from "@/lib/http/errors";
 import { db } from "@/lib/db/client";
@@ -29,7 +29,8 @@ export const POST = withHandler({
     });
     if (!user) throw new AppError(ErrorCode.NOT_FOUND, "User not found.", 404);
 
-    await verifyChangePasswordOtp(user.email, input.otp);
+    const tokenEmail = await consumeOtpToken(input.otpToken, "change-pw");
+    if (tokenEmail !== user.email) throw new AppError(ErrorCode.INVALID_OTP, "Invalid token.", 400);
 
     const hash = await hashPassword(input.password);
     const now = new Date();

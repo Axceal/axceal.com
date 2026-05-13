@@ -21,7 +21,7 @@ export const POST = withHandler({
     await rateLimit(`register:ip:${ip}`, { limit: 10, windowSec: 3600 });
     const { email, password, otpToken } = input;
 
-    const tokenEmail = await consumeOtpToken(otpToken);
+    const tokenEmail = await consumeOtpToken(otpToken, "email-verify");
     if (tokenEmail !== email) {
       throw new AppError(
         ErrorCode.INVALID_OTP,
@@ -37,7 +37,7 @@ export const POST = withHandler({
     if (existing) {
       throw new AppError(
         ErrorCode.EMAIL_EXISTS,
-        "An account with this email already exists.",
+        "Unable to complete registration.",
         409,
       );
     }
@@ -46,7 +46,7 @@ export const POST = withHandler({
 
     const [userRow] = await db
       .insert(users)
-      .values({ email, passwordHash })
+      .values({ email, passwordHash, emailVerifiedAt: new Date() })
       .returning({ id: users.id });
 
     if (!userRow) {

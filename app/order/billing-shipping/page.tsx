@@ -5,6 +5,7 @@ import { SvgText } from "../../components/SvgText";
 import { Stepper, type Step } from "../../components/Stepper";
 import { useBillingShippingForm } from "./hooks/useBillingShippingForm";
 import { AddressForm } from "./components/AddressForm";
+import { useAuthGate } from "@/app/hooks/useAuthGate";
 
 const SPRING = { type: "spring", stiffness: 280, damping: 28 } as const;
 
@@ -26,6 +27,7 @@ export default function BillingShippingPage() {
 }
 
 function BillingShippingPageInner() {
+    const gating = useAuthGate();
     const {
         billing,
         shipping,
@@ -38,11 +40,13 @@ function BillingShippingPageInner() {
         handleProceed,
     } = useBillingShippingForm();
 
+    if (gating) return null;
+
     return (
-        <main className="flex-1 flex flex-col items-center pt-8 pb-4">
+        <main className="flex-1 flex flex-col items-center pt-4 pb-4">
 
             {/* ── Progress stepper ── */}
-            <Stepper steps={STEPS} className="mb-14" />
+            <Stepper steps={STEPS} className="mb-10" />
 
             {/* ── Form area ── */}
             <div className="flex gap-10 md:gap-50 items-start flex-wrap justify-center w-full px-4">
@@ -53,7 +57,7 @@ function BillingShippingPageInner() {
                     correctedFields={correctedFields}
                     setCorrectedFields={setCorrectedFields}
                     title="Billing Address"
-                    nameLabel={showShipping ? "Payer's" : "Payer's Name"}
+                    nameLabel={showShipping ? "Payer's" : "Payer's "}
                     fieldPrefix="b"
                     footer={
                         <div className="flex items-center gap-2">
@@ -112,7 +116,7 @@ function BillingShippingPageInner() {
             {/* ── Proceed button ── */}
             <div className="flex flex-col items-center mt-14 gap-3">
                 {errorMsg && (
-                    <SvgText text={errorMsg} weight="600" height={12} className="text-[#c00000]" />
+                    <SvgText text={errorMsg} weight="600" height={12} className="text-[#ff0000]" />
                 )}
                 <button
                     onClick={handleProceed}

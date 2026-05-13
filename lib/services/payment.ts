@@ -123,7 +123,9 @@ export async function verifyPayment(
     );
   }
 
-  await db
+  // Guard status='pending' in WHERE to prevent a TOCTOU race where two
+  // concurrent verify requests both pass the signature check and double-write.
+  const updated = await db
     .update(orders)
     .set({
       status: "paid",
@@ -131,7 +133,13 @@ export async function verifyPayment(
       razorpayPaymentId: input.razorpayPaymentId,
       razorpaySignature: input.razorpaySignature,
     })
-    .where(eq(orders.id, order.id));
+    .where(and(eq(orders.id, order.id), eq(orders.status, "pending")))
+    .returning({ id: orders.id });
+
+  if (!updated.length) {
+    // Another concurrent request already transitioned the order — idempotent.
+    return { status: "paid" };
+  }
 
   return { status: "paid" };
 }

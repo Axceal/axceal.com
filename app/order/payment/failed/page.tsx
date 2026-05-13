@@ -1,9 +1,11 @@
 "use client";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuthGate } from "@/app/hooks/useAuthGate";
 import Script from "next/script";
 import { SvgText } from "../../../components/SvgText";
 import { apiFetch } from "@/lib/http/client";
+import { AeroIcon } from "../../../components/icons/AeroIcon";
 
 const RAZORPAY_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 
@@ -49,6 +51,7 @@ export default function PaymentFailedPage() {
 }
 
 function PaymentFailedPageInner() {
+    const gating = useAuthGate();
     const router = useRouter();
     const searchParams = useSearchParams();
     const orderId = searchParams.get("orderId");
@@ -141,8 +144,10 @@ function PaymentFailedPageInner() {
         if (!orderId) setErrorMsg("Missing order. Restart checkout.");
     }, [orderId]);
 
+    if (gating) return null;
+
     return (
-        <main className="flex-1 flex flex-col items-center pt-8 pb-4">
+        <main className="flex-1 flex flex-col items-center pt-4 pb-4">
             <Script
                 src={RAZORPAY_SCRIPT}
                 strategy="afterInteractive"
@@ -153,15 +158,15 @@ function PaymentFailedPageInner() {
             />
 
             {/* ── Stepper: Payment Failed — Retrying Payment ── */}
-            <div className="flex items-center gap-6 mb-10">
+            <div className="bg-[#f1f1f1] rounded-full py-4 px-8 flex items-center gap-6 mb-10">
                 <SvgText
                     text="Payment Failed"
                     weight="600"
                     height={16}
-                    className="text-[#f42400]"
+                    className="text-[#ff0000] flex items-center"
                 />
                 <span
-                    className="block h-[2px] w-[32px] bg-[#0000f4] rounded-full"
+                    className="block w-[8px] aspect-square rounded-full bg-[#0000f4]"
                     aria-hidden
                 />
                 <button
@@ -169,7 +174,7 @@ function PaymentFailedPageInner() {
                     onClick={() => {
                         if (typeof window !== "undefined") window.location.reload();
                     }}
-                    className="cursor-pointer focus:outline-none focus-visible:outline-none"
+                    className="cursor-pointer focus:outline-none focus-visible:outline-none flex items-center"
                     aria-label="Retry payment"
                 >
                     <SvgText
@@ -215,7 +220,7 @@ function PaymentFailedPageInner() {
                 <div className="flex flex-col gap-4 items-start">
                     <div className="relative w-[300px] h-[300px]">
                         <div className="bg-[#f1f1f1] rounded-[20px] w-full h-full flex items-center justify-center">
-                            <img src="/assests/aero svg.svg" alt="Aero x1" className="w-[200px]" />
+                            <AeroIcon alt="Aero x1" className="w-[200px]" />
                         </div>
                         {/* X 1 floats right of card on desktop */}
                         <div className="hidden sm:block absolute top-1/2 -translate-y-1/2 left-[calc(100%+32px)]">
@@ -236,17 +241,12 @@ function PaymentFailedPageInner() {
                 </div>
 
                 {/* Description */}
-                <div className="flex flex-col items-center gap-1 w-[680px] mt-[60px] text-center">
+                <div className="flex flex-col items-center gap-1 w-full mt-[20px] text-center">
                     <SvgText
-                        text="Clicking on Pay will take you to trusted payment gateway. Choose a payment method of your wish and proceed to pay."
+                        text={"Clicking on Pay will take you to trusted payment gateway.\nChoose a payment method of your wish and proceed to pay."}
                         weight="500"
                         height={12}
-                        className="text-[#1e1e1e]"
-                    />
-                    <SvgText
-                        text="Wait until you land back on Axceal's website after payment for order and transaction status."
-                        weight="500"
-                        height={12}
+                        align="center"
                         className="text-[#1e1e1e]"
                     />
                 </div>

@@ -41,9 +41,18 @@ export const logger = pino({
       "cookie",
       "token",
       "otpToken",
+      // pino redact matches exact property names, so camelCase variants
+      // need to be listed individually — `token` does not match `pendingMfaToken`.
+      "pendingMfaToken",
+      "signupSessionToken",
       "*.password",
+      "*.passwordHash",
       "*.otp",
+      "*.code",
       "*.token",
+      "*.otpToken",
+      "*.pendingMfaToken",
+      "*.signupSessionToken",
       "req.headers.authorization",
       "req.headers.cookie",
     ],

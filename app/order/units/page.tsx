@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { SvgText } from "../../components/SvgText";
 import { Stepper, type Step } from "../../components/Stepper";
+import { useAuthGate } from "@/app/hooks/useAuthGate";
+import { AeroIcon } from "../../components/icons/AeroIcon";
 
 const STEPS: Step[] = [
     { label: "Order", state: "current", href: "/order/units" },
@@ -17,6 +19,7 @@ const VISIBLE = 5;   // rows shown in the drum picker
 const ROW_H = 44;    // px per row
 
 export default function OrderUnitsPage() {
+    const gating = useAuthGate();
     const router = useRouter();
     const [quantity, setQuantity] = useState(1);
     const [dir, setDir] = useState(0);
@@ -36,11 +39,13 @@ export default function OrderUnitsPage() {
         else change(Math.max(quantity - 1, MIN_QTY));
     };
 
+    if (gating) return null;
+
     return (
-        <main className="flex-1 flex flex-col items-center pt-8 pb-8">
+        <main className="flex-1 flex flex-col items-center pt-4 pb-4">
 
             {/* ── Progress stepper ── */}
-            <Stepper steps={STEPS} className="mb-14" />
+            <Stepper steps={STEPS} className="mb-10" />
 
             {/* ── Content ── */}
             <div className="flex flex-col gap-4 items-center sm:items-start w-full sm:w-fit px-4 sm:px-0">
@@ -55,7 +60,7 @@ export default function OrderUnitsPage() {
                     style={{ touchAction: "none" }}
                 >
                     <div className="bg-[#f1f1f1] rounded-[20px] w-full h-full flex items-center justify-center">
-                        <img src="/assests/aero svg.svg" alt="Aero x1" className="w-[60%] sm:w-[200px]" />
+                        <AeroIcon alt="Aero x1" className="w-[60%] sm:w-[200px]" />
                     </div>
 
                     {/* Desktop drum picker: absolute, floats right of card */}

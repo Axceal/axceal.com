@@ -1,4 +1,5 @@
 "use client";
+import { Suspense } from "react";
 import { SvgText } from "../components/SvgText";
 import { SvgInput } from "../components/SvgInput";
 import { PasswordConstraints } from "../components/PasswordConstraints";
@@ -9,7 +10,7 @@ import { useCreateAccountForm } from "./hooks/useCreateAccountForm";
 
 const LAYOUT_ID = "create-account-indicator";
 
-export default function CreateAccountPage() {
+function CreateAccountForm() {
     const {
         email, setEmail,
         otp,
@@ -35,7 +36,7 @@ export default function CreateAccountPage() {
         hasUpper,
         hasDigit,
         hasAnyConstraint,
-        otpComplete,
+        otpVerified,
         passwordValid,
     } = useCreateAccountForm();
 
@@ -43,7 +44,7 @@ export default function CreateAccountPage() {
         <main className="flex-1 flex items-center justify-center">
             <form
                 onSubmit={handleSubmit}
-                className="relative flex flex-col items-center gap-5 w-[min(100vw-2rem,300px)]"
+                className="relative flex flex-col items-center gap-5 w-[min(100vw-2rem,320px)]"
             >
                 <SvgText
                     text="Creating Axceal Account"
@@ -53,37 +54,42 @@ export default function CreateAccountPage() {
                 />
 
                 {/* Email + Send OTP */}
-                <div className="w-full relative">
-                    {activeField === "email" && (
-                        <motion.div
-                            layoutId={LAYOUT_ID}
-                            className={`absolute -top-[2.5px] left-1/2 -translate-x-1/2 w-[40px] h-[2.5px] rounded-full pointer-events-none z-10 ${message?.kind === "error" ? "bg-[#e11d48]" : "bg-[#0000f4]"}`}
-                            transition={{ type: "spring", stiffness: 280, damping: 28 }}
+                <div className="w-full flex flex-col gap-2">
+                    <div className="w-full relative">
+                        {activeField === "email" && (
+                            <motion.div
+                                layoutId={LAYOUT_ID}
+                                className={`absolute -top-[2.5px] left-1/2 -translate-x-1/2 w-[40px] h-[2.5px] rounded-full pointer-events-none z-10 ${message?.kind === "error" ? "bg-[#e11d48]" : "bg-[#0000f4]"}`}
+                                transition={{ type: "spring", stiffness: 280, damping: 28 }}
+                            />
+                        )}
+                        <SvgInput
+                            id="create-account-email"
+                            type="email"
+                            placeholder="Email"
+                            value={email}
+                            onChange={setEmail}
+                            weight="600"
+                            height={16}
+                            className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1 transition-all"
+                            onFocus={() => handleFocus("email")}
+                            onBlur={handleBlur}
+                            rightSlot={
+                                <button
+                                    type="button"
+                                    id="send-otp-btn"
+                                    onClick={handleSendOtp}
+                                    disabled={sendingOtp}
+                                    className="bg-[#aaaaaa] text-white font-semibold rounded-full px-6 py-3.5 cursor-pointer hover:bg-[#0000f4] transition-colors shrink-0 flex items-center disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#aaaaaa]"
+                                >
+                                    <SvgText text={sendingOtp ? "Sending..." : "Send"} weight="600" height={14} className="text-white h-full" />
+                                </button>
+                            }
                         />
+                    </div>
+                    {message?.field === "email" && (
+                        <SvgText text={message.text} weight="500" height={14} className="text-[#e11d48] self-center" />
                     )}
-                    <SvgInput
-                        id="create-account-email"
-                        type="email"
-                        placeholder="Email"
-                        value={email}
-                        onChange={setEmail}
-                        weight="600"
-                        height={16}
-                        className="w-full  bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1 transition-all"
-                        onFocus={() => handleFocus("email")}
-                        onBlur={handleBlur}
-                        rightSlot={
-                            <button
-                                type="button"
-                                id="send-otp-btn"
-                                onClick={handleSendOtp}
-                                disabled={sendingOtp || !email}
-                                className="bg-[#aaaaaa]  text-white font-semibold rounded-full px-6 py-3.5 cursor-pointer hover:bg-[#0000f4] transition-colors shrink-0 flex items-center disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#aaaaaa]"
-                            >
-                                <SvgText text={sendingOtp ? "Sending..." : "Send"} weight="600" height={14} className="text-white h-full" />
-                            </button>
-                        }
-                    />
                 </div>
 
                 <OtpSection
@@ -102,12 +108,15 @@ export default function CreateAccountPage() {
                     layoutId={LAYOUT_ID}
                     otpIdPrefix="otp-digit"
                     otpKeyPrefix="otp"
-                    gapClass="gap-1 sm:gap-2"
+                    gapClass="gap-2 sm:gap-2"
                     otpWrapRef={otpWrapRef}
                 />
+                {message?.field === "otp" && (
+                    <SvgText text={message.text} weight="500" height={14} className="text-[#e11d48] self-center -mt-3" />
+                )}
 
                 <AnimatedPasswordField
-                    show={otpComplete}
+                    show={otpVerified}
                     id="create-account-password"
                     placeholder="Password"
                     value={password}
@@ -121,10 +130,13 @@ export default function CreateAccountPage() {
                     layoutId={LAYOUT_ID}
                     message={message}
                 />
+                {otpVerified && message?.field === "password" && (
+                    <SvgText text={message.text} weight="500" height={14} className="text-[#e11d48] self-center -mt-3" />
+                )}
 
                 {/* Password constraints */}
                 <AnimatePresence initial={false}>
-                    {otpComplete && activeField === "password" && hasAnyConstraint && (
+                    {otpVerified && activeField === "password" && hasAnyConstraint && (
                         <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
@@ -156,10 +168,13 @@ export default function CreateAccountPage() {
                     layoutId={LAYOUT_ID}
                     message={message}
                 />
+                {passwordValid && message?.field === "repassword" && (
+                    <SvgText text={message.text} weight="500" height={14} className="text-[#e11d48] self-center" />
+                )}
 
-                {/* Message / spacer (fixed height so layout stays stable) */}
+                {/* General (network/server) errors only */}
                 <div className="h-[40px] flex items-center justify-center text-center">
-                    {message && (
+                    {message && !message.field && (
                         <SvgText
                             text={message.text}
                             weight="600"
@@ -179,5 +194,13 @@ export default function CreateAccountPage() {
                 </button>
             </form>
         </main>
+    );
+}
+
+export default function CreateAccountPage() {
+    return (
+        <Suspense>
+            <CreateAccountForm />
+        </Suspense>
     );
 }

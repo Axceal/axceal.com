@@ -2,14 +2,14 @@ import type { Address } from "@/lib/contracts/address";
 
 export function formatDateOrdinal(iso: string): string {
     const d = new Date(iso);
-    const day = d.getDate();
+    const day = d.getUTCDate();
     const suffix = [11, 12, 13].includes(day % 100)
         ? "th"
         : day % 10 === 1 ? "st"
             : day % 10 === 2 ? "nd"
                 : day % 10 === 3 ? "rd"
                     : "th";
-    return `${day}${suffix} ${d.toLocaleDateString("en-IN", { month: "long" })} ${d.getFullYear()}`;
+    return `${day}${suffix} ${d.toLocaleDateString("en-IN", { month: "long", timeZone: "UTC" })} ${d.getUTCFullYear()}`;
 }
 
 export function formatPrice(paise: number): string {

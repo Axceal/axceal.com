@@ -16,7 +16,9 @@ export const POST = withHandler({
     await rateLimit(`otp:verify-rate-ip:${ip}`, { limit: 20, windowSec: 3600 });
 
     await verifyOtp(email, otp);
-    const otpToken = await issueOtpToken(email);
+    // Public unauth flow — token usable by registration + reset-password,
+    // not by the auth-gated change-password endpoint.
+    const otpToken = await issueOtpToken(email, "email-verify");
 
     return { otpToken };
   },

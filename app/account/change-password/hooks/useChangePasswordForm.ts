@@ -3,6 +3,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { apiFetch } from "@/lib/http/client";
 
 type ActiveField = "otp" | "password" | "repassword";
+type Message = { kind: "info" | "error"; text: string; field?: ActiveField | null };
 
 const GAP = 2.5;
 
@@ -15,8 +16,11 @@ export function useChangePasswordForm() {
     const [showRePassword, setShowRePassword] = useState(false);
     const [activeField, setActiveField] = useState<ActiveField>("otp");
     const [sendingOtp, setSendingOtp] = useState(false);
+    const [verifyingOtp, setVerifyingOtp] = useState(false);
+    const [otpVerified, setOtpVerified] = useState(false);
+    const [otpToken, setOtpToken] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [message, setMessage] = useState<{ kind: "info" | "error"; text: string } | null>(null);
+    const [message, setMessage] = useState<Message | null>(null);
 
     const otpWrapRef = useRef<HTMLDivElement>(null);
     const passwordWrapRef = useRef<HTMLDivElement>(null);
@@ -32,16 +36,15 @@ export function useChangePasswordForm() {
             const res = await apiFetch("/api/account/send-otp", { method: "POST" });
             const body = await res.json().catch(() => null);
             if (!res.ok || !body?.ok) {
-                setMessage({ kind: "error", text: body?.error?.message ?? "Could not send OTP." });
+                setMessage({ kind: "error", text: body?.error?.message ?? "Could not send OTP.", field: "otp" });
             }
         } catch {
-            setMessage({ kind: "error", text: "Network error." });
+            setMessage({ kind: "error", text: "Network error.", field: "otp" });
         } finally {
             setSendingOtp(false);
         }
     }, [sendingOtp]);
 
-    // Auto-send OTP on mount so the user sees "Check your Email for OTP" immediately
     const hasSentRef = useRef(false);
     useEffect(() => {
         if (hasSentRef.current) return;
@@ -50,11 +53,33 @@ export function useChangePasswordForm() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const verifyOtp = useCallback(async (code: string) => {
+        setVerifyingOtp(true);
+        setMessage(null);
+        try {
+            const res = await apiFetch("/api/account/verify-otp", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ otp: code }),
+            });
+            const body = await res.json().catch(() => null);
+            if (!res.ok || !body?.ok) {
+                setMessage({ kind: "error", text: body?.error?.message ?? "Invalid OTP.", field: "otp" });
+                return;
+            }
+            setOtpToken(body.data.otpToken);
+            setOtpVerified(true);
+        } catch {
+            setMessage({ kind: "error", text: "Network error verifying OTP.", field: "otp" });
+        } finally {
+            setVerifyingOtp(false);
+        }
+    }, []);
+
     const isLengthValid = password.length >= 8 && password.length <= 64;
     const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
     const hasUpper = /[A-Z]/.test(password);
     const hasDigit = /[0-9]/.test(password);
-    const otpComplete = otp.join("").length === 4;
     const passwordValid = isLengthValid && hasSpecialChar && hasUpper && hasDigit;
 
     const handleOtpChange = (index: number, value: string) => {
@@ -62,8 +87,15 @@ export function useChangePasswordForm() {
         const updated = [...otp];
         updated[index] = v;
         setOtp(updated);
+        if (otpVerified) {
+            setOtpVerified(false);
+            setOtpToken(null);
+        }
         if (v && index < 3) {
             setTimeout(() => document.getElementById(`change-pw-otp-digit-${index + 1}`)?.focus(), 10);
+        }
+        if (updated.join("").length === 4) {
+            void verifyOtp(updated.join(""));
         }
     };
 
@@ -75,21 +107,24 @@ export function useChangePasswordForm() {
 
     const handleSave = async () => {
         if (submitting) return;
-        const otpCode = otp.join("");
-        if (otpCode.length !== 4) {
-            setMessage({ kind: "error", text: "Enter the 4-digit OTP." });
+        if (!otpVerified || !otpToken) {
+            setActiveField("otp");
+            setMessage({ kind: "error", text: "Please verify your OTP first.", field: "otp" });
             return;
         }
         if (!password) {
-            setMessage({ kind: "error", text: "Enter new password." });
+            setActiveField("password");
+            setMessage({ kind: "error", text: "Enter new password.", field: "password" });
             return;
         }
         if (!isLengthValid || !hasSpecialChar || !hasUpper || !hasDigit) {
-            setMessage({ kind: "error", text: "Password does not meet requirements." });
+            setActiveField("password");
+            setMessage({ kind: "error", text: "Password does not meet requirements.", field: "password" });
             return;
         }
         if (password !== rePassword) {
-            setMessage({ kind: "error", text: "Passwords do not match." });
+            setActiveField("repassword");
+            setMessage({ kind: "error", text: "Passwords do not match.", field: "repassword" });
             return;
         }
         setSubmitting(true);
@@ -98,7 +133,7 @@ export function useChangePasswordForm() {
             const res = await apiFetch("/api/account/change-password", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify({ otp: otpCode, password }),
+                body: JSON.stringify({ otpToken, password }),
             });
             const body = await res.json().catch(() => null);
             if (!res.ok || !body?.ok) {
@@ -130,12 +165,13 @@ export function useChangePasswordForm() {
         showRePassword, setShowRePassword,
         activeField, setActiveField,
         sendingOtp,
+        verifyingOtp,
         submitting,
         message,
         otpWrapRef,
         passwordWrapRef,
         repasswordWrapRef,
-        otpComplete,
+        otpVerified,
         passwordValid,
         sendOtp,
         handleOtpChange,

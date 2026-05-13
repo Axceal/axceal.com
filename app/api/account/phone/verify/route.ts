@@ -11,6 +11,15 @@ import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
 import { logger } from "@/lib/logger";
 
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code: unknown }).code === "23505"
+  );
+}
+
 export const POST = withHandler({
   input: VerifyPhoneRequest,
   output: VerifyPhoneResponse,
@@ -24,10 +33,24 @@ export const POST = withHandler({
     }
 
     const now = new Date();
-    await db
-      .update(users)
-      .set({ phone: input.phone, phoneVerifiedAt: now, updatedAt: now })
-      .where(eq(users.id, session.userId));
+    try {
+      await db
+        .update(users)
+        .set({ phone: input.phone, phoneVerifiedAt: now, updatedAt: now })
+        .where(eq(users.id, session.userId));
+    } catch (err) {
+      // Postgres unique-violation = SQLSTATE 23505. The `users.phone` column
+      // is UNIQUE — a duplicate means another account already verified this
+      // number. Return a clear 409 instead of letting the raw 500 bubble up.
+      if (isUniqueViolation(err)) {
+        throw new AppError(
+          ErrorCode.CONFLICT,
+          "This phone number is already linked to another account.",
+          409,
+        );
+      }
+      throw err;
+    }
 
     logger.info({ userId: session.userId }, "phone verified");
     return { verified: true as const };

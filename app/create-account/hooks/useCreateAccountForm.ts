@@ -24,8 +24,11 @@ export function useCreateAccountForm() {
 
     const [sendingOtp, setSendingOtp] = useState(false);
     const [otpSent, setOtpSent] = useState(false);
+    const [verifyingOtp, setVerifyingOtp] = useState(false);
+    const [otpVerified, setOtpVerified] = useState(false);
+    const [otpToken, setOtpToken] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [message, setMessage] = useState<{ kind: "info" | "error"; text: string } | null>(null);
+    const [message, setMessage] = useState<{ kind: "info" | "error"; text: string; field?: "email" | "otp" | "password" | "repassword" | null } | null>(null);
 
     // Wrapper refs for each field group (indicator anchors to these)
     const emailWrapRef = useRef<HTMLDivElement>(null);
@@ -38,14 +41,24 @@ export function useCreateAccountForm() {
     useEffect(() => { forceUpdate(n => n + 1); }, []);
 
     const handleSendOtp = async () => {
-        if (!email || sendingOtp) return;
+        if (sendingOtp) return;
+        if (!email.trim()) {
+            setActiveField("email");
+            setMessage({ kind: "error", text: "Enter your email.", field: "email" });
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            setActiveField("email");
+            setMessage({ kind: "error", text: "Invalid email.", field: "email" });
+            return;
+        }
         setSendingOtp(true);
         setMessage(null);
         try {
             const res = await fetch("/api/auth/send-otp", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email, flow: "register" }),
             });
             const body = await res.json();
             if (!res.ok || !body?.ok) {
@@ -64,13 +77,43 @@ export function useCreateAccountForm() {
         }
     };
 
+    const verifyOtp = useCallback(async (code: string) => {
+        setVerifyingOtp(true);
+        setMessage(null);
+        try {
+            const res = await fetch("/api/auth/verify-otp", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ email, otp: code }),
+            });
+            const body = await res.json();
+            if (!res.ok || !body?.ok) {
+                setMessage({ kind: "error", text: body?.error?.message ?? "Invalid OTP.", field: "otp" });
+                return;
+            }
+            setOtpToken(body.data.otpToken);
+            setOtpVerified(true);
+        } catch {
+            setMessage({ kind: "error", text: "Network error verifying OTP.", field: "otp" });
+        } finally {
+            setVerifyingOtp(false);
+        }
+    }, [email]);
+
     const handleOtpChange = (index: number, value: string) => {
         const v = value.replace(/\D/g, "").slice(-1);
         const updated = [...otp];
         updated[index] = v;
         setOtp(updated);
+        if (otpVerified) {
+            setOtpVerified(false);
+            setOtpToken(null);
+        }
         if (v && index < 3) {
             setTimeout(() => document.getElementById(`otp-digit-${index + 1}`)?.focus(), 10);
+        }
+        if (updated.join("").length === 4) {
+            void verifyOtp(updated.join(""));
         }
     };
 
@@ -84,30 +127,30 @@ export function useCreateAccountForm() {
         e.preventDefault();
         if (submitting) return;
 
-        const otpCode = otp.join("");
-        if (!email) return setMessage({ kind: "error", text: "Enter your email." });
-        if (otpCode.length !== 4) return setMessage({ kind: "error", text: "Enter the 4-digit OTP." });
-        if (password.length < 8) return setMessage({ kind: "error", text: "Password must be at least 8 characters." });
-        if (password !== rePassword) return setMessage({ kind: "error", text: "Passwords do not match." });
+        if (!email.trim()) {
+            setActiveField("email");
+            return setMessage({ kind: "error", text: "Enter your email.", field: "email" });
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            setActiveField("email");
+            return setMessage({ kind: "error", text: "Invalid email.", field: "email" });
+        }
+        if (!otpVerified || !otpToken) {
+            setActiveField("otp");
+            return setMessage({ kind: "error", text: "Please verify your OTP first.", field: "otp" });
+        }
+        if (password.length < 8) {
+            setActiveField("password");
+            return setMessage({ kind: "error", text: "Password must be at least 8 characters.", field: "password" });
+        }
+        if (password !== rePassword) {
+            setActiveField("repassword");
+            return setMessage({ kind: "error", text: "Passwords do not match.", field: "repassword" });
+        }
 
         setSubmitting(true);
         setMessage(null);
         try {
-            const verifyRes = await fetch("/api/auth/verify-otp", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ email, otp: otpCode }),
-            });
-            const verifyBody = await verifyRes.json();
-            if (!verifyRes.ok || !verifyBody?.ok) {
-                setMessage({
-                    kind: "error",
-                    text: verifyBody?.error?.message ?? "OTP verification failed.",
-                });
-                return;
-            }
-            const otpToken: string = verifyBody.data.otpToken;
-
             const registerRes = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
@@ -139,13 +182,11 @@ export function useCreateAccountForm() {
         setFocusedOtpIdx(-1);
     }, []);
 
-    const otpCode = otp.join("");
     const isLengthValid = password.length >= 8 && password.length <= 64;
     const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
     const hasUpper = /[A-Z]/.test(password);
     const hasDigit = /[0-9]/.test(password);
     const hasAnyConstraint = !isLengthValid || !hasSpecialChar || !hasUpper || !hasDigit;
-    const otpComplete = otpCode.length === 4;
     const passwordValid = isLengthValid && hasSpecialChar && hasUpper && hasDigit;
 
     return {
@@ -171,13 +212,13 @@ export function useCreateAccountForm() {
         handleSubmit,
         handleFocus,
         handleBlur,
-        otpCode,
+        otpVerified,
+        verifyingOtp,
         isLengthValid,
         hasSpecialChar,
         hasUpper,
         hasDigit,
         hasAnyConstraint,
-        otpComplete,
         passwordValid,
     };
 }

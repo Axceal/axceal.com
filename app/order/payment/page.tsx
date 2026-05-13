@@ -1,10 +1,12 @@
 "use client";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuthGate } from "@/app/hooks/useAuthGate";
 import Script from "next/script";
 import { SvgText } from "../../components/SvgText";
 import { Stepper, type Step } from "../../components/Stepper";
 import { apiFetch } from "@/lib/http/client";
+import { AeroIcon } from "../../components/icons/AeroIcon";
 
 const STEPS: Step[] = [
     { label: "Order", state: "past", href: "/order/units" },
@@ -56,6 +58,7 @@ export default function PaymentPage() {
 }
 
 function PaymentPageInner() {
+    const gating = useAuthGate();
     const router = useRouter();
     const searchParams = useSearchParams();
     const orderId = searchParams.get("orderId");
@@ -148,8 +151,10 @@ function PaymentPageInner() {
         if (!orderId) setErrorMsg("Missing order. Restart checkout.");
     }, [orderId]);
 
+    if (gating) return null;
+
     return (
-        <main className="flex-1 flex flex-col items-center pt-8 pb-4">
+        <main className="flex-1 flex flex-col items-center pt-4 pb-4">
             <Script
                 src={RAZORPAY_SCRIPT}
                 strategy="afterInteractive"
@@ -160,14 +165,14 @@ function PaymentPageInner() {
             />
 
             {/* ── Progress stepper ── */}
-            <Stepper steps={STEPS} className="mb-14" />
+            <Stepper steps={STEPS} className="mb-10" />
 
             {/* ── Mobile layout (hidden sm+) ── */}
             <div className="flex sm:hidden flex-col gap-4 items-center w-full px-4">
                 <SvgText text="Payment" weight="600" height={18} className="text-[#1e1e1e]" />
 
                 <div className="bg-[#f1f1f1] rounded-[20px] w-[320px] h-[320px] flex items-center justify-center">
-                    <img src="/assests/aero svg.svg" alt="Aero x1" className="w-[60%]" />
+                    <AeroIcon alt="Aero x1" className="w-[60%]" />
                 </div>
 
                 <SvgText text="X  1" weight="600" height={18} className="text-[#1e1e1e]" />
@@ -178,7 +183,7 @@ function PaymentPageInner() {
                     <SvgText text="Inc. Taxes" weight="500" height={14} className="text-[#aaaaaa]" />
                 </div>
 
-                <div className="flex flex-col items-center gap-1 w-full mt-[40px] text-center">
+                <div className="flex flex-col items-center gap-1 w-full mt-[20px] text-center">
                     <SvgText
                         text="Clicking on Pay will take you to trusted payment gateway."
                         weight="500"
@@ -187,18 +192,6 @@ function PaymentPageInner() {
                     />
                     <SvgText
                         text="Choose a payment method of your wish and proceed to pay."
-                        weight="500"
-                        height={12}
-                        className="text-[#1e1e1e]"
-                    />
-                    <SvgText
-                        text="Wait until you land back on Axceal's website"
-                        weight="500"
-                        height={12}
-                        className="text-[#1e1e1e]"
-                    />
-                    <SvgText
-                        text="after payment for order and transaction status."
                         weight="500"
                         height={12}
                         className="text-[#1e1e1e]"
@@ -230,7 +223,7 @@ function PaymentPageInner() {
                     {/* Product card — X 1 floats right */}
                     <div className="relative w-[300px] h-[300px]">
                         <div className="bg-[#f1f1f1] rounded-[20px] w-full h-full flex items-center justify-center">
-                            <img src="/assests/aero svg.svg" alt="Aero x1" className="w-[200px]" />
+                            <AeroIcon alt="Aero x1" className="w-[200px]" />
                         </div>
                         <div className="absolute top-1/2 -translate-y-1/2 left-[calc(100%+32px)]">
                             <SvgText text="X  1" weight="600" height={18} className="text-[#1e1e1e]" />
@@ -246,7 +239,7 @@ function PaymentPageInner() {
                 </div>
 
                 {/* Description */}
-                <div className="flex flex-col items-center justify-between gap-1 w-[680px] mt-[60px] text-center">
+                <div className="flex flex-col items-center justify-between gap-1 w-[680px] mt-[20px] text-center">
                     <SvgText
                         text="Clicking on Pay will take you to trusted payment gateway. Choose a payment method of your wish and proceed to pay."
                         weight="500"
