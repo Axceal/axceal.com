@@ -1,10 +1,15 @@
 "use client";
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { sessionKeys, readSession, clearSession } from "@/lib/sessionKeys";
 
 type ActiveField = "email" | "otp" | "password" | "repassword";
 type Message = { kind: "info" | "error"; text: string; field?: ActiveField | null };
 
 export function useForgotPasswordForm() {
+    const searchParams = useSearchParams();
+    const prefilled = searchParams.get("prefilled") === "1";
+
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState(["", "", "", ""]);
     const [password, setPassword] = useState("");
@@ -23,9 +28,45 @@ export function useForgotPasswordForm() {
     const [otpToken, setOtpToken] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState<Message | null>(null);
+    const [recentlySent, setRecentlySent] = useState(false);
+    const recentlySentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const markRecentlySent = useCallback(() => {
+        setRecentlySent(true);
+        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
+        recentlySentTimer.current = setTimeout(() => setRecentlySent(false), 20000);
+    }, []);
+    useEffect(() => () => {
+        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
+    }, []);
 
     const [, forceUpdate] = useState(0);
     useEffect(() => { forceUpdate(n => n + 1); }, []);
+
+    // Handoff from create-account: when the user clicked "Forgot Password"
+    // after verifying OTP for an existing account, the create-account form
+    // stashes {email, otpToken} in sessionStorage and navigates here with
+    // ?prefilled=1. We hydrate, skip the email + OTP steps entirely, and
+    // jump straight to the new-password step. sessionStorage entry is read
+    // once and cleared so the token isn't replayable across reloads.
+    useEffect(() => {
+        if (!prefilled) return;
+        const parsed = readSession<{ email: string; otpToken: string }>(
+            sessionKeys.forgotPwPrefilled,
+            (v): v is { email: string; otpToken: string } =>
+                !!v
+                && typeof v === "object"
+                && typeof (v as { email?: unknown }).email === "string"
+                && typeof (v as { otpToken?: unknown }).otpToken === "string",
+        );
+        clearSession(sessionKeys.forgotPwPrefilled);
+        if (!parsed) return;
+        setEmail(parsed.email);
+        setOtpToken(parsed.otpToken);
+        setOtpVerified(true);
+        setOtpSent(true);
+        setActiveField("password");
+    }, [prefilled]);
 
     const handleSendOtp = async () => {
         if (sendingOtp) return;
@@ -49,11 +90,11 @@ export function useForgotPasswordForm() {
             });
             const body = await res.json();
             if (!res.ok || !body?.ok) {
-                setMessage({ kind: "error", text: body?.error?.message ?? "Could not send OTP. Please try again.", field: "email" });
+                setMessage({ kind: "error", text: body?.error?.message ?? "Could not send Code. Please try again.", field: "email" });
                 return;
             }
             setOtpSent(true);
-            setMessage({ kind: "info", text: "OTP sent. Check your inbox." });
+            markRecentlySent();
         } catch {
             setMessage({ kind: "error", text: "Network error. Please try again." });
         } finally {
@@ -72,13 +113,13 @@ export function useForgotPasswordForm() {
             });
             const body = await res.json().catch(() => null);
             if (!res.ok || !body?.ok) {
-                setMessage({ kind: "error", text: body?.error?.message ?? "Invalid OTP", field: "otp" });
+                setMessage({ kind: "error", text: body?.error?.message ?? "Invalid Code", field: "otp" });
                 return;
             }
             setOtpToken(body.data.otpToken);
             setOtpVerified(true);
         } catch {
-            setMessage({ kind: "error", text: "Network error verifying OTP.", field: "otp" });
+            setMessage({ kind: "error", text: "Network error verifying Code.", field: "otp" });
         } finally {
             setVerifyingOtp(false);
         }
@@ -96,9 +137,9 @@ export function useForgotPasswordForm() {
         if (v && index < 3) {
             setTimeout(() => document.getElementById(`fp-otp-digit-${index + 1}`)?.focus(), 10);
         }
-        if (updated.join("").length === 4) {
-            void verifyOtp(updated.join(""));
-        }
+        // Verification now driven by the bottom Proceed button rather than
+        // firing on the 4th digit — gives the user a chance to correct typos
+        // and matches the gated flow on /login.
     };
 
     const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
@@ -108,7 +149,7 @@ export function useForgotPasswordForm() {
     };
 
     const isLengthValid = password.length >= 8 && password.length <= 64;
-    const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
+    const hasSpecialChar = /[^\sa-zA-Z0-9]/.test(password);
     const hasUpper = /[A-Z]/.test(password);
     const hasDigit = /[0-9]/.test(password);
     const hasAnyConstraint = !isLengthValid || !hasSpecialChar || !hasUpper || !hasDigit;
@@ -117,7 +158,7 @@ export function useForgotPasswordForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (submitting) return;
+        if (submitting || verifyingOtp) return;
 
         if (!email.trim()) {
             setActiveField("email");
@@ -127,9 +168,20 @@ export function useForgotPasswordForm() {
             setActiveField("email");
             return setMessage({ kind: "error", text: "Invalid email", field: "email" });
         }
+        // Stage 1 (post-Send, pre-Verify): submit acts as the verify button.
+        // Prefilled mode skips OTP entirely (token already issued upstream).
+        if (!prefilled && otpSent && !otpVerified) {
+            const code = otp.join("");
+            if (code.length !== 4) {
+                setActiveField("otp");
+                return setMessage({ kind: "error", text: "Enter the 4-digit Code.", field: "otp" });
+            }
+            await verifyOtp(code);
+            return;
+        }
         if (!otpVerified || !otpToken) {
             setActiveField("otp");
-            return setMessage({ kind: "error", text: "Please verify your OTP first.", field: "otp" });
+            return setMessage({ kind: "error", text: "Please verify your Code first.", field: "otp" });
         }
         if (!isLengthValid || !hasSpecialChar || !hasUpper || !hasDigit) {
             setActiveField("password");
@@ -162,14 +214,29 @@ export function useForgotPasswordForm() {
         }
     };
 
-    const handleFocus = useCallback((field: ActiveField) => setActiveField(field), []);
-    const handleBlur = useCallback(() => { setFocusedOtpIdx(-1); }, []);
+    // Indicator visibility — don't reset activeField on blur (causes jumps),
+    // just track focus separately.
+    const [isFocused, setIsFocused] = useState(false);
+    const handleFocus = useCallback((field: ActiveField) => {
+        setActiveField(field);
+        setIsFocused(true);
+    }, []);
+    const handleBlur = useCallback(() => {
+        setIsFocused(false);
+        setFocusedOtpIdx(-1);
+    }, []);
+
+    // Strip whitespace at the input layer; backend Password / Email schemas
+    // also reject whitespace.
+    const setEmailNoSpace = useCallback((v: string) => setEmail(v.replace(/\s/g, "")), []);
+    const setPasswordNoSpace = useCallback((v: string) => setPassword(v.replace(/\s/g, "")), []);
+    const setRePasswordNoSpace = useCallback((v: string) => setRePassword(v.replace(/\s/g, "")), []);
 
     return {
-        email, setEmail,
+        email, setEmail: setEmailNoSpace,
         otp,
-        password, setPassword,
-        rePassword, setRePassword,
+        password, setPassword: setPasswordNoSpace,
+        rePassword, setRePassword: setRePasswordNoSpace,
         activeField,
         focusedOtpIdx, setFocusedOtpIdx,
         showPassword, setShowPassword,
@@ -193,5 +260,8 @@ export function useForgotPasswordForm() {
         hasAnyConstraint,
         otpVerified,
         passwordValid,
+        prefilled,
+        recentlySent,
+        isFocused,
     };
 }

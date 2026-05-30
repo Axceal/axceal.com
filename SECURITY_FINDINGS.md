@@ -809,4 +809,599 @@ Scope: 5 pages converted to React Server Components — `app/account/page.tsx`, 
 | F11.11 | low | Error boundary reset can loop on permanent failures | open |
 | F11.12 | low | Same loop pattern in `/order/error.tsx` for non-NOT_FOUND errors | open |
 
+---
+
+## §12 — Post-§11 fixes + loading-component refactor + deep auth/payment audit
+
+Three rounds of work captured here:
+
+1. **§11 remediation** — every F11.x finding (F11.1 → F11.12) was fixed in code. See "Status" column update at the bottom of this section.
+2. **Loading-component / Suspense refactor pass (S1 → S6)** — audit of the new `app/components/LoadingBar.tsx`, `PageLoading.tsx`, `ComponentLoading.tsx`, the four `loading.tsx` files for `/account`, `/account/orders`, `/account/view-details`, `/order/confirmation`, plus the `AccountShell` split into `UserCard` (async server component) + slim shell, and the home page de-`force-dynamic` perf change. All six findings fixed.
+3. **Deep audit pass as senior cybersec (S7 → S16)** — auth flows (verify-password, login-otp, send-otp, change-password, register, reset-password), payment flows (initiate, verify, webhook), CSRF, OTP, address service, IP trust, NextAuth JWT callback, headers, env validation. Ten findings, all fixed.
+
+### F11 remediation summary (all 12 fixed)
+
+- **F11.1** — `getDate/getMonth/getFullYear` → `getUTCDate/getUTCMonth/getUTCFullYear` + `timeZone: "UTC"` in `toLocaleDateString` across `AccountShell.tsx`, `useEditDetailsForm.ts`, `orders/utils/formatters.ts`. Hydration matches.
+- **F11.2** — `app/order/confirmation/page.tsx` now `await Promise.all([getSession(), searchParams])` and reconstructs `redirect(\`/auth?from=${encodeURIComponent(\`/order/confirmation?orderId=${id}\`)}\`)` so the orderId survives the redirect.
+- **F11.3** — `app/api/account/me/route.ts` and `tests/account/me-route.test.ts` deleted.
+- **F11.4** — `forceSignOut(redirectTo): Promise<never>` helper added to `lib/auth/session.ts`. Used in `UserCard` for the user-deleted-but-session-valid case → server-side signOut + redirect to `/auth`. No more error-boundary loop.
+- **F11.5** — `await rateLimit(\`page:<name>:${session.userId}\`, { limit: 120, windowSec: 60 })` added at the top of every protected RSC page (`account`, `account/orders`, `account/view-details`, `order/confirmation`).
+- **F11.6** — `app/account/layout.tsx` and `app/order/layout.tsx` created. Each calls `getSession() + redirect()` and exports `dynamic = "force-dynamic"`. Defense-in-depth above middleware. Auth.js v5 dedupes `auth()` per-request so the duplication is free.
+- **F11.7** — `ConfirmationView.tsx` now branches on a live `status` state initialised from `initial.status`. Pending state shows a `LoadingBar` + polls `/api/orders/:id` every 3 s until terminal status.
+- **F11.8** — `tests/http/cache-control.test.ts` created. Asserts `dynamic === "force-dynamic"` on all 4 protected pages, both protected layouts, and absence of `dynamic` on the home page.
+- **F11.9** — `let order` pattern replaced with `await getOrder(...).catch((err): never => { ... })`. No widening, no unreachable assignment.
+- **F11.10** — `app/page.tsx` no longer `force-dynamic`. Session check moved to `HomeClient` via `useSession()`. Home page becomes statically generated.
+- **F11.11 / F11.12** — `app/account/error.tsx` and `app/order/error.tsx` track retry count. After 2 failed `reset()` attempts, render "Sign out and try again" linking to `/api/auth/signout?callbackUrl=/auth` instead of looping.
+
+### S1 — UserCard prop trust / footgun IDOR (low)
+- **Status:** fixed
+- **What:** `UserCard.tsx` initially took `userId: string` as prop and queried `db.query.users.findFirst({where: eq(users.id, userId)})` without verifying the prop matched the session. Currently safe (only `page.tsx` called it with `session.userId`), but contract trusted any caller — future renderer passing arbitrary UUID would leak that user's email.
+- **Why this is new:** Loading refactor moved the DB query from `page.tsx` (where it was inline next to `session.userId`) into a reusable component for Suspense streaming.
+- **Fix:** Dropped `userId` prop entirely. UserCard now calls `requireSession()` itself. Page passes nothing.
+
+### S2 — `user!` non-null assertion after `await signOut(...)` (very low)
+- **Status:** fixed
+- **What:** Pattern `if (!user) await signOut(...); user!.email`. Relied on signOut throwing `NEXT_REDIRECT`. If signOut ever returned (lib upgrade, config change, NextAuth signOut behavior change), `user!` would TypeError.
+- **Fix:** `forceSignOut(redirectTo): Promise<never>` helper in `lib/auth/session.ts` calls signOut + throws Error if it returns. UserCard uses `if (!user) { await forceSignOut("/auth"); throw new Error("unreachable"); }` — TS narrows `user`, no `!` assertions.
+
+### S3 — Triple `getSession()` per /account request (very low / info)
+- **Status:** mitigated + documented
+- **What:** Layout + page + UserCard all call `getSession()`. Three calls per request.
+- **Fix:** Documented in `app/account/layout.tsx` comment that Auth.js v5 dedupes `auth()` per-request via React `cache()` — three calls = one JWT verify + one Redis lookup. Kept all three for defense-in-depth.
+
+### S4 — Home CTA flash for authed users (very low / UX)
+- **Status:** fixed
+- **What:** `HomeClient` uses `useSession()`. First paint: `status==="loading"` → CTA href `/auth?from=order`. Authed user clicking in that ~100 ms window bounces through `/auth`.
+- **Fix:** `HomeClient` + `MobileHome` block click while `status === "loading"` (`onClick={(e) => isSessionLoading && e.preventDefault()}` + `aria-disabled={isSessionLoading}`). Authed users no longer bounce on first-paint clicks.
+
+### S5 — `loading.tsx` no auth check (very low / accepted)
+- **Status:** accepted-risk
+- **What:** 4 `loading.tsx` files render `<PageLoading />` without verifying session. If middleware + layout both fail, unauth user sees the bar briefly.
+- **Why accepted:** Adding `getSession()` to loading.tsx defeats its purpose (instant feedback). Layout `force-dynamic` + middleware = two layers of defense already. No data leaked from a spinner.
+
+### S6 — Cache-Control test gap on layouts (low / info)
+- **Status:** fixed
+- **What:** `tests/http/cache-control.test.ts` only verified pages; didn't cover the new layout files.
+- **Fix:** Both `app/account/layout.tsx` and `app/order/layout.tsx` now `export const dynamic = "force-dynamic"`. Test extended with `FORCE_DYNAMIC_LAYOUTS` block.
+
+### S7 — `verifyPayment` defense-in-depth gap (medium)
+- **Status:** fixed
+- **Severity:** medium
+- **What:** `lib/services/payment.ts:104` previously: `if (order.razorpayOrderId && order.razorpayOrderId !== input.razorpayOrderId)`. Short-circuited when `order.razorpayOrderId` was null (no initiate run on this order). Allowed: attacker pays for own order A, submits `verifyPayment(orderId=B, razorpayOrderId=rp_order_A, paymentId, signature)` — signature verifies (HMAC over A's tuple is valid), update tries to mark B paid. Currently blocked by `razorpayOrderId UNIQUE` DB constraint, but app layer must not rely on a single defense.
+- **Fix:** Inverted check: `if (!order.razorpayOrderId || order.razorpayOrderId !== input.razorpayOrderId) throw "razorpay order id mismatch"`. Forces verify after a successful initiate on the same row.
+
+### S8 — Verify-password account-lockout DoS via per-email rate limit (low)
+- **Status:** fixed
+- **What:** `verify-pw:email:${input.email}` 5/hour. Attacker fires 5 wrong-password POSTs to victim email → victim locked out for 1 hour.
+- **Fix:** Removed per-email hard cap. Replaced with progressive-delay counter `verify-pw:fail:${email}` (TTL 1 h). On bad password: INCR + sleep `min(200·2^(n-1), 10000)` ms before responding. On success: DEL counter. Per-IP cap (20/hr) retained as absolute brake. Legitimate users get unlimited retries with typo-friendly delay; attackers get exponential slowdown.
+
+### S9 — Email-enumeration timing leak in `send-otp` (low)
+- **Status:** fixed
+- **What:** `SEND_LATENCY_TARGET_MS = 350` only padded the no-op branch. Real Resend send routinely 400–2000 ms → no padding → response time leaked existence.
+- **Fix:** Bumped target to `2500` (above Resend p99). Both branches indistinguishable at the cost of UX latency on every send-otp. Long-term: decouple via background queue (noted in code comment).
+
+### S10 — `getClientIp` trusts `x-real-ip` / `x-forwarded-for` without source pinning (low / deployment-dependent)
+- **Status:** fixed
+- **What:** Read both headers in fallback chain. If app deployed off Vercel (custom proxy chain or direct function URL), client could spoof either, breaking all per-IP rate limits.
+- **Fix:** Added `TRUSTED_IP_HEADER` env var (default `x-real-ip` for Vercel). `getClientIp` now reads only that one header. Non-Vercel deploys must set it (`cf-connecting-ip` for Cloudflare, etc.). Fail-closed in production if header missing.
+
+### S11 — Login-OTP spam via peek-only token check (low)
+- **Status:** fixed
+- **What:** `peekPendingMfaToken` reads token without invalidating. Per-email rate limit allowed 5 OTP sends/hour. Attacker with valid pendingMfaToken spammed victim inbox + Resend quota.
+- **Fix:** Added per-token send counter `otp:login-send-count:${pendingMfaToken}` (TTL 5 min, cap 3). Throws 429 above cap → user must re-enter password to get a new pending token.
+
+### S12 — Address row count uncapped per user (low / data-growth)
+- **Status:** fixed
+- **What:** `createAddress` only checked ownership. 20 creates/hour × 8760 hours ≈ 175k rows/year. Soft-deletes never purged.
+- **Fix:** Pre-insert count of active addresses; throw 409 if `>= 50`. Cap is well above realistic usage.
+
+### S13 — Phone-verify binds client-supplied phone, not OTP-target phone (low)
+- **Status:** fixed
+- **What:** `verifyPhoneOtp(input.phone, input.code)` then `users.phone = input.phone`. With session compromise (XSS / cookie theft), attacker called `phone/send` with their own phone, got OTP on their phone, verified → victim's account had attacker phone linked. Victim locked out of phone recovery.
+- **Fix:** `phone/send` now writes `phone-pending:${userId} = phone` to Redis (TTL 10 min, matches Twilio Verify). `phone/verify` reads + asserts `boundPhone === input.phone` BEFORE Twilio check. Burned on success.
+
+### S14 — JWT callback fails-loud on Redis error during `pw:changed` lookup (very low / info)
+- **Status:** fixed
+- **What:** `redis.get('pw:changed:...')` inside JWT callback uncaught. On Upstash blip → all sessions broke until Redis recovered. Implicit fail-closed.
+- **Fix:** Explicit `try/catch` with `logger.error` + `return invalidToken`. Documented choice (security > uptime). Same effective behavior, now intentional and alerted.
+
+### S15 — Webhook event-dedup TOCTOU window (very low / info)
+- **Status:** fixed
+- **What:** `findFirst({razorpayEventId})` → if not found, do work → `insert(paymentEvents)`. Concurrent Razorpay retries could both pass dedup, both attempt order update, second insert collided on unique → 500. Razorpay then retried again. Idempotent overall but noisy.
+- **Fix:** Refactored `applyWebhookEvent` to insert first with `onConflictDoNothing({target: paymentEvents.razorpayEventId})`. Order update only if insert returned a row. Atomic dedup; second delivery short-circuits cleanly.
+
+### S16 — Change-password / phone-verify don't require old credential (low / info)
+- **Status:** partially fixed (change-password done; phone-verify accepted-risk)
+- **What:** Both endpoints required only session + email/phone OTP. Session-cookie compromise + email access = silent password rotation; session compromise + phone-OTP intercept = silent phone change.
+- **Fix (change-password):**
+  - Schema (`lib/contracts/auth.ts`) `ChangePasswordRequest` adds required `currentPassword: LoginPassword`.
+  - Route (`app/api/account/change-password/route.ts`) verifies via `verifyPassword(input.currentPassword, user.passwordHash)` BEFORE consuming the OTP token (wrong currentPassword doesn't burn the OTP).
+  - Hook + page UI: new `currentPassword` field as the first input on the change-password page; `setActiveField("current")` is the default focus; sent in request body.
+- **Accepted (phone-verify):** Adding currentPassword prompt to phone change adds friction and the binding fix from S13 already closes the most realistic attack chain. Tracked as backlog if phone is later treated as a recovery factor with higher trust.
+
+### §12 verification
+
+| Check | Result |
+|---|---|
+| `tsc --noEmit --skipLibCheck` after every batch of edits | exit 0 |
+| F11.1 → F11.12 individually re-tested in code | done |
+| Loading-refactor surface re-audited (S1 → S6) | done |
+| Deep audit of auth + payment + addresses + webhook + IP trust + JWT lifecycle (S7 → S16) | done |
+| New helpers (`forceSignOut`, `TRUSTED_IP_HEADER`, address cap, phone-bind, fail counter, OTP send counter) covered with explicit comments tying back to finding ID | done |
+| `dangerouslySetInnerHTML` / `eval` introduced by any fix | none |
+| Drizzle queries still parameterised | yes — all changes use `eq()`, `and()`, `count()`; no raw SQL interpolation |
+
+### §12 summary
+
+| ID | Severity | Description | Status |
+|---|---|---|---|
+| F11.1 | medium | RSC date formatters use local TZ → SSR hydration mismatch | fixed |
+| F11.2 | low | RSC redirect drops query string | fixed |
+| F11.3 | low | `/api/account/me` dead production code | fixed (deleted) |
+| F11.4 | low | User-deleted-but-session-valid: inconsistent error UX | fixed (`forceSignOut`) |
+| F11.5 | low | RSC reads bypass per-user rate limits | fixed |
+| F11.6 | medium | No layout-level auth gate | fixed (layouts added) |
+| F11.7 | medium | Confirmation shows "Paid" for pending orders | fixed (poll + LoadingBar) |
+| F11.8 | low | RSC `Cache-Control` headers not asserted by tests | fixed |
+| F11.9 | very low | Type-only: `let order` widening | fixed (refactor) |
+| F11.10 | low (perf) | Home page `force-dynamic` wastes compute | fixed (static + `useSession`) |
+| F11.11 | low | Error boundary reset loop on permanent failures | fixed (retry counter) |
+| F11.12 | low | Same loop in `/order/error.tsx` | fixed (retry counter) |
+| S1 | low | UserCard prop trust / footgun IDOR | fixed |
+| S2 | very low | `user!` after `signOut()` | fixed (`forceSignOut`) |
+| S3 | very low | Triple `getSession()` per request | mitigated + documented |
+| S4 | very low | Home CTA flash bounces authed user through `/auth` | fixed (click guard) |
+| S5 | very low | `loading.tsx` no auth check | accepted-risk |
+| S6 | low | Cache-Control test gap on layouts | fixed |
+| S7 | medium | `verifyPayment` defense-in-depth gap on `razorpayOrderId` | fixed |
+| S8 | low | Verify-password account-lockout DoS | fixed (progressive delay) |
+| S9 | low | Email-enumeration timing leak in `send-otp` | fixed (raised target) |
+| S10 | low | `getClientIp` trusts unverified headers | fixed (`TRUSTED_IP_HEADER`) |
+| S11 | low | Login-OTP spam via peek-only token check | fixed (per-token counter) |
+| S12 | low | Address row count uncapped | fixed (cap 50) |
+| S13 | low | Phone-verify binds client-supplied phone | fixed (Redis bind) |
+| S14 | very low | JWT callback fails-loud on Redis error | fixed (explicit fail-closed) |
+| S15 | very low | Webhook event-dedup TOCTOU window | fixed (insert-first) |
+| S16 | low | Change-password no current-password check | fixed (currentPassword required) |
+
+
 **Rollup:** 0 critical, 0 high, 3 medium, 8 low, 1 very-low. None block deployment per SECURITY_PLAN §6 (no high/critical). Recommended pre-launch: F11.1 (cheap fix, real user-visible bug), F11.6 (defense-in-depth, single layout file per route), F11.7 (UX trust). F11.3 + F11.10 are easy wins post-launch.
+
+---
+
+## §13 — Deep audit pass (2026-05-26)
+
+Scope: re-audit auth provider matrix, pending-mfa token lifecycle, payment service, webhook, order/address services, validate-address outbound, and middleware exemption surface. Threat model: XSS-on-login + email-inbox-only attacker + authenticated quota abuse + webhook trust gradient.
+
+### F13.1 — Unscoped `pending-mfa` token reused across three NextAuth providers → 2FA bypass via provider downgrade (HIGH)
+- **Status:** fixed
+- **Severity:** high
+- **What:** [lib/auth/pending-mfa.ts:19-34](lib/auth/pending-mfa.ts#L19) — `issuePendingMfaToken` writes `{ userId, email, ipHash, uaHash }` to key `pending-mfa:${uuid}`. Three NextAuth credentials providers all consume the same key namespace via `consumePendingMfaToken(token, ip, ua)`:
+  - `credentials-with-otp` — requires pendingMfaToken **+** valid login OTP ([lib/auth/index.ts:19-51](lib/auth/index.ts#L19))
+  - `credentials-signup` — requires pendingMfaToken only ([lib/auth/index.ts:52-74](lib/auth/index.ts#L52))
+  - `credentials-otp-login` — requires pendingMfaToken only ([lib/auth/index.ts:79-101](lib/auth/index.ts#L79))
+- **Attack:** XSS or any token-disclosure on the login page captures the `pendingMfaToken` that `/api/auth/verify-password` returns to the client (before the OTP step). Attacker `signIn("credentials-signup", { signupSessionToken: stolenToken })` from the same victim browser context → `consumePendingMfaToken` matches `ipHash`+`uaHash` (XSS runs in victim's tab) → session issued **without ever passing the OTP gate**. The F0.1 2FA fix is bypassed because the token itself doesn't encode the flow that issued it.
+- **Why this is new:** `credentials-signup` and `credentials-otp-login` were added after F0.1. Each was designed for its own happy path (auto-login after registration; passwordless email-OTP login). Neither asserts what kind of token it was given.
+- **Fix:** Add `flow: "mfa-second-factor" | "signup-auto" | "otp-login"` to `PendingMfaRecord`. `issuePendingMfaToken` takes the flow as required arg; `consumePendingMfaToken` takes `expectedFlow`. Mismatch → throw + burn the key (same pattern F7.2 used for `consumeOtpToken`).
+- **Files:** `lib/auth/pending-mfa.ts`, `lib/auth/index.ts`, `app/api/auth/verify-password/route.ts`, `app/api/auth/otp-login/route.ts`, `app/api/auth/register/route.ts`
+
+### F13.2 — `applyWebhookEvent` flips `status=paid` without amount/currency assertion (MEDIUM)
+- **Status:** fixed
+- **Severity:** medium
+- **What:** [lib/services/payment.ts:204-212](lib/services/payment.ts#L204) — on `payment.captured` the UPDATE only checks `id` + `status=pending`. The webhook event payload (`parsed.payload.payment.entity.amount` / `currency`) is never compared against `order.totalPaise` / `"INR"`. HMAC proves the payload came from Razorpay, but defense-in-depth says the server should still confirm the captured amount matches what the order owes.
+- **Attack realistic concern:** Less an external attack vector (Razorpay signs the payload) and more a guard against (a) Razorpay account misconfiguration replaying an event from a different merchant order via the same webhook secret, (b) future code paths that introduce variable amounts (discounts, refunds) where amount drift becomes possible. The verify-payment path has the equivalent guard via `razorpayOrderId` mismatch (S7); the webhook path doesn't.
+- **Fix:** In `applyWebhookEvent`, after fetching the order, assert `parsed.payload.payment.entity.amount === orderRow.totalPaise && currency === "INR"`. On mismatch log + insert the event row (for audit) but do not update `status`.
+- **Files:** `lib/services/payment.ts`
+
+### F13.3 — `createOrder` direct address inserts bypass S12 cap and pollute `listAddresses` (LOW)
+- **Status:** fixed
+- **Severity:** low
+- **What:** [lib/services/order.ts:38-49](lib/services/order.ts#L38) — billing/shipping addresses are inserted via `db.insert(addresses).values(...)` directly. The S12 cap (50 active rows per user, enforced in `createAddress` at [lib/services/address.ts:35-46](lib/services/address.ts#L35)) is bypassed entirely. 20 orders/hour × 2 addresses = 40 new rows/hour, accumulating without limit.
+- **Side effect:** Order-created addresses are visible in `GET /api/addresses` (no flag distinguishes them from user-managed entries), so the user's address book balloons after every checkout. Snapshot in `orders.billingAddressSnapshot` already preserves the data — the FK rows are not needed for past-order integrity.
+- **Fix (pick one):**
+  - Simplest: drop `billingAddressId`/`shippingAddressId` columns; rely on the snapshot JSONB columns. Removes a whole class of accumulation bugs and an IDOR surface.
+  - Or: tag order-driven addresses (`source: "order"`) and exclude them from `listAddresses`; still enforce the cap per-user across both sources.
+- **Files:** `lib/services/order.ts`, `lib/services/address.ts`, `lib/db/schema.ts`
+
+### F13.4 — `validate-address` outbound fetch has no timeout (LOW)
+- **Status:** fixed
+- **Severity:** low
+- **What:** [app/api/validate-address/route.ts:67-74](app/api/validate-address/route.ts#L67) — `fetch(...)` with no `AbortSignal.timeout`. If Google's Address Validation API stalls, the Node request stays open until the platform's request timeout kicks in (Vercel: ~25 s for hobby/pro). One user can hold one rate-limit slot's worth of compute time with no recourse.
+- **Fix:** `fetch(url, { signal: AbortSignal.timeout(5000), ... })` + treat the abort path the same as the existing `catch` branch (return `{ valid: false, error: "..." }`).
+- **Files:** `app/api/validate-address/route.ts`
+
+### F13.5 — `validate-address` parses non-2xx Google response without checking `ok` (LOW)
+- **Status:** fixed
+- **Severity:** low
+- **What:** [app/api/validate-address/route.ts:79](app/api/validate-address/route.ts#L79) — `await googleRes.json()` is called unconditionally. A 500 from Google returning HTML throws JSON parse error → unhandled → withHandler returns generic 500 to the caller, but the error gets logged as `unhandled route error` instead of the more specific upstream-failed code.
+- **Fix:** `if (!googleRes.ok) { logger.warn({ status: googleRes.status }, ...); return { valid: false, error: "..." }; }` before parsing.
+- **Files:** `app/api/validate-address/route.ts`
+
+### F13.6 — Passwordless OTP login leaves no "password reset" audit trail (LOW / design)
+- **Status:** fixed
+- **Severity:** low
+- **What:** `/api/auth/otp-login` lets an attacker with inbox access log in silently. The traditional canary — "your password was just reset" — never fires because the password is never touched. Login email notifications are not implemented (`logger.info "otp-login completed"` is server-side only).
+- **Why noted:** Same trust class as forgot-password, but forgot-password forces the attacker to set a new password (which usually triggers a notification + the victim noticing they can't log in). otp-login doesn't.
+- **Fix:** Send a "new sign-in from email-only flow" email on successful `credentials-otp-login` authorize. Include IP / UA / timestamp. Either non-blocking or behind a Resend-friendly queue. Bonus: rate-limit notifications to one per 24 h per account to avoid being a spam lever.
+- **Files:** `lib/auth/index.ts` (credentials-otp-login authorize hook), `lib/email/provider.ts`
+
+### F13.7 — `consumeOtpToken` flow-mismatch reveals existence of a still-valid token via GETDEL semantics (LOW)
+- **Status:** fixed (logged via the new pending-mfa flow-mismatch warning; same pattern can be added to `consumeOtpToken` in `lib/auth/otp.ts` if desired)
+- **Severity:** low
+- **What:** [lib/auth/otp.ts:167-188](lib/auth/otp.ts#L167) — `consumeOtpToken` uses `GETDEL`. On flow mismatch the record was already deleted by GETDEL before the flow check throws. Intentional per F7.2 ("burn before throwing"). Side effect: an attacker holding a valid `email-verify` token who sends it to the **wrong** endpoint (e.g. `/api/account/change-password` expecting `change-pw`) burns the token. If the attacker was using the token speculatively against a guessed-flow endpoint, they've now invalidated it for the legitimate consumer path. Edge-case griefing vector.
+- **Why noted:** The F7.2 design choice is deliberate (defense-in-depth against scope confusion). Documenting that the trade-off cost is "an attacker who already has a token can burn it" — which is not really a cost, since the token was already in attacker hands. Net: accept the F7.2 behavior; just log a `flow-mismatch` event so multiple mismatched submissions are visible in monitoring.
+- **Fix:** Add `logger.warn({ expectedFlow, actualFlow }, "otp-token flow mismatch")` inside the mismatch branch before throwing.
+- **Files:** `lib/auth/otp.ts`
+
+### §13 verification
+| Check | Result |
+|---|---|
+| `tsc --noEmit` | not run (read-only audit) |
+| Provider matrix cross-checked | done — three providers, one token namespace, two providers skip OTP |
+| Webhook signature verification path | unchanged, verified via [`verifyWebhookSignature`](lib/razorpay/verify.ts) |
+| IDOR scoping on order/address services | unchanged — all queries scoped by `userId` |
+| Rate-limit coverage on §13-touched routes | unchanged — `validate-address`, `otp-login`, `verify-password` all rate-limited |
+| New `dangerouslySetInnerHTML` / `eval` introduced | none |
+
+### §13 summary
+| ID | Severity | Description | Status |
+|---|---|---|---|
+| F13.1 | **high** | Unscoped `pending-mfa` token + 3 providers → 2FA bypass via provider downgrade | **fixed** |
+| F13.2 | medium | Webhook `payment.captured` flips status without amount/currency assertion | **fixed** |
+| F13.3 | low | `createOrder` bypasses S12 address cap + pollutes address book | **fixed** (FK inserts dropped; snapshot is sole source of truth) |
+| F13.4 | low | `validate-address` outbound fetch has no timeout | **fixed** (5s `AbortSignal.timeout`) |
+| F13.5 | low | `validate-address` parses non-2xx Google response without `.ok` check | **fixed** |
+| F13.6 | low | Passwordless OTP login has no audit-trail notification to victim | **fixed** (Resend `sendLoginAlert`, 1/24h dedup) |
+| F13.7 | low | `consumeOtpToken` flow-mismatch burns token silently (document + log) | **fixed** (`logger.warn` added) |
+
+### §13 fixes — implementation notes
+- **F13.1:** `PendingMfaFlow = "mfa-second-factor" | "signup-auto" | "otp-login"` added to `pending-mfa.ts`. `issuePendingMfaToken` requires flow; `consumePendingMfaToken` requires `expectedFlow`. Flow mismatch is burned-on-rejection (GETDEL semantics). `peekPendingMfaToken` also flow-asserts. Three call-site issuers (`verify-password`, `register`, `otp-login`) and three consumer providers (`credentials-with-otp`, `credentials-signup`, `credentials-otp-login`) updated. New tests in `pending-mfa.test.ts` cover cross-flow rejection.
+- **F13.2:** Webhook handler now fetches `{ id, totalPaise }` for the matched order, asserts `eventAmount === totalPaise && eventCurrency === "INR"` before the status transition on `payment.captured`. Mismatch logs + keeps the event row (audit) but no status change. New test in `payment-service.test.ts` (`amount mismatch → order stays pending`).
+- **F13.3:** `createOrder` no longer inserts into `addresses`. `billingAddressId`/`shippingAddressId` set to `null`; JSONB snapshots remain authoritative. Eliminates the S12-cap bypass and the address-book pollution side effect in one change.
+- **F13.4 / F13.5:** `fetch` to Google Address Validation now uses `AbortSignal.timeout(5000)`, and non-2xx responses surface as `{ valid: false, error: "Address validation service unavailable." }` instead of crashing on a non-JSON body. JSON parse errors fail closed in the same way.
+- **F13.6:** New `EmailProvider.sendLoginAlert(to, ctx)` method. Resend implementation sends a plaintext "new sign-in via email code" with IP / UA / UTC timestamp. Console provider logs to stdout for dev. `credentials-otp-login` authorize fires the alert inside an `async IIFE` (fire-and-forget); a Redis `SET NX EX 86400` on `login-alert-sent:${userId}` caps notifications at one per 24h per user.
+- **F13.7:** `consumeOtpToken` now logs `expectedFlow`/`actualFlow` on flow mismatch before throwing, matching the pattern used by `consumePendingMfaToken`.
+
+### §13 verification (post-fix)
+| Check | Result |
+|---|---|
+| `tsc --noEmit` | exit 0 |
+| `vitest run tests/auth/pending-mfa.test.ts` | 12/12 pass (incl. cross-flow rejection cases) |
+| `vitest run tests/checkout/payment-service.test.ts` | 20/20 pass (incl. F13.2 amount-mismatch case) |
+| Other test failures observed in full-suite run | Pre-existing — Redis rate-limit state pollution across sequential runs + `password123` fixture below F8.2 complexity floor; not regressions from §13. |
+
+**Deployment status:** F13.1 (the only blocker) is closed. No critical or high findings remain open.
+
+---
+
+## §14 — Deep audit pass #2 (2026-05-26)
+
+Scope: post-§13 sweep across CSRF/auth surface, NextAuth config trust posture, change-password attack chain, send-otp PII logging, CSP minimization, and outbound provider ordering. Threat model: cross-origin attacker against CSRF-exempt /api/auth/* routes + authenticated session-cookie-only attacker probing currentPassword.
+
+### F14.1 — `verify-password` per-email progressive-delay counter is a cross-origin DoS lever (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/api/auth/verify-password/route.ts](app/api/auth/verify-password/route.ts) — `verify-pw:fail:${email}` increments on every bad password, decays only on a *successful* login. `/api/auth/*` is CSRF-exempt in [middleware.ts:28-30](middleware.ts#L28). evil.com loaded in the victim's browser can fire `fetch("/api/auth/verify-password", { method: "POST", body: JSON.stringify({ email: victim, password: "" }) })` (cookies sent thanks to SameSite=lax behaviour on top-level form-equivalent POSTs is mitigated, but a script that does its own fetch can submit cross-origin POSTs that the route happily processes because no CSRF check fires). One request → counter at 1 → victim's next login delayed 200 ms. Sustained botnet → counter saturated at 10 s for the full hour-long TTL.
+- **Why this is new:** S8 replaced the hard cap with a soft progressive delay specifically to remove an account-lockout DoS. The new vector is annoyance-DoS rather than lockout, but it scales the same way.
+- **Fix:** Cap the counter regardless of source (e.g. clamp to 20 in addition to the time decay), AND/OR scope the counter by `${email}:${ip}` so a single attacker cannot poison a global counter. Per-IP brake (20/hr) already exists but isn't tight enough across a botnet.
+- **Files:** `app/api/auth/verify-password/route.ts`
+
+### F14.2 — `change-password` brute-force budget for `currentPassword` lacks progressive delay (MEDIUM)
+- **Status:** open
+- **Severity:** medium
+- **What:** [app/api/account/change-password/route.ts:24](app/api/account/change-password/route.ts#L24) — `change-pw:${userId}` 5/15min. A session-cookie-only attacker (XSS, device theft, browser malware) can probe `currentPassword` at 5 attempts/15min ≈ 20/hr. No progressive delay (S8 pattern), no per-IP brake. The S16 currentPassword requirement was the second line of defence for exactly this attacker class; with a slow but unbounded budget the defence is rate-limited but not actually stopped.
+- **Why this is new:** S16 added the currentPassword check but didn't import the S8 progressive-delay shape. The two defences should be symmetric.
+- **Fix:** Apply S8-style progressive delay to `change-pw:fail:${userId}`. Reset on success. Tighten the per-user budget (5/15min → 5/hr) and add `change-pw:ip:${ip}` 10/hr as a brake.
+- **Files:** `app/api/account/change-password/route.ts`
+
+### F14.3 — `/api/account/send-otp` (change-pw) sends OTP without prior `currentPassword` check (MEDIUM)
+- **Status:** open
+- **Severity:** medium
+- **What:** [app/api/account/send-otp/route.ts:17-34](app/api/account/send-otp/route.ts#L17) — only requires a valid session. A session-cookie attacker can spam OTPs to the victim's inbox at 5/hr per user. This pairs with F14.2: even if currentPassword brute-force is slow, the inbox-spam vector burns Resend quota + degrades victim trust in their own notifications.
+- **Why this is new:** S16 added `currentPassword` to `/api/account/change-password` itself but did not gate the OTP-send step. Defence-in-depth should require currentPassword (or `verify-current-password`) to unlock the OTP-send step.
+- **Fix:** Require `POST /api/account/verify-current-password` (or pass `currentPassword` directly) before issuing the change-pw OTP. Burn a short-lived `change-pw:authz:${userId}` Redis token on verify-current-password success; require it on the send-otp route.
+- **Files:** `app/api/account/send-otp/route.ts`, `app/api/account/verify-current-password/route.ts`
+
+### F14.4 — `reset-password` execution-path timing leaks user existence (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/api/auth/reset-password/route.ts:40-58](app/api/auth/reset-password/route.ts#L40) — `findFirst` always runs, `hashPassword` always runs (uniform), but the `UPDATE users SET ...` + `redis.set("pw:changed:...")` only runs when the user exists. ~10–50 ms wall-clock delta between branches. With a botnet enumerating, an attacker who has already passed verify-otp (i.e. owns the inbox) can still gain a small existence-confirmation timing signal. Practical impact is near-zero because reaching this endpoint requires a valid email-verify token bound to the email being checked, so the attacker can already see existence via verify-otp's `accountExists` field. Documenting as a residual leak.
+- **Fix:** Run the UPDATE+`pw:changed` write inside the same `constantTime(target, work)` wrapper used in `send-otp` so both branches take the same wall-clock time. Or accept-risk given the bound (must own inbox to reach here).
+- **Files:** `app/api/auth/reset-password/route.ts`
+
+### F14.5 — `send-otp` logs `emailExists: !!existing` + raw `email` at info level (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/api/auth/send-otp/route.ts:69-72](app/api/auth/send-otp/route.ts#L69) — `logger.info({ flow, emailExists, sent, ip }, "otp send requested")` ships a per-call boolean revealing whether the email is registered, to Axiom. Anyone with read access to logs (or anyone exploiting a future log-export bug) gets a free user-existence map. Same route logs `email` at info-level in several places — PII in logs is a privacy concern even without a security boundary breach.
+- **Fix:** Drop `emailExists` from the log (the `sent` field already captures what we need for debugging). Either drop `email` from info-level logs or hash-truncate it (`sha256(email).slice(0,8)`).
+- **Files:** `app/api/auth/send-otp/route.ts`, multiple auth routes that log `email`
+
+### F14.6 — Logger redact list missing `currentPassword`, `loginToken` (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [lib/logger.ts:33-58](lib/logger.ts#L33) — pino redact matches *exact* property names (per F10.4). The list covers `password` / `pendingMfaToken` / `signupSessionToken` but does not include `currentPassword` (introduced by S16) or `loginToken` (introduced by F13.1's credentials-otp-login provider). No code path currently logs these fields, but the F10.4 lesson is that a future log call would silently leak them. Latent regression risk.
+- **Fix:** Add `currentPassword`, `loginToken`, `*.currentPassword`, `*.loginToken` to redact paths.
+- **Files:** `lib/logger.ts`
+
+### F14.7 — NextAuth `trustHost: true` is unconditional (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [lib/auth/config.ts:23](lib/auth/config.ts#L23) — `trustHost: true`. On Vercel this is fine (the platform sets `X-Forwarded-Host` correctly and rejects spoofs). On a self-hosted or non-Vercel deploy this trusts whatever `Host` header arrives. If the deployment ever moves off Vercel without a proxy that normalises `Host`, a malicious proxy or DNS rebinding scenario could redirect NextAuth callbacks through an attacker-controlled host. NEXTAUTH_URL is set in env, but `trustHost: true` overrides URL inference from env.
+- **Fix:** Make this conditional on `process.env.VERCEL` so non-Vercel deploys must explicitly opt-in. Or remove and rely on NEXTAUTH_URL.
+- **Files:** `lib/auth/config.ts`
+
+### F14.8 — CSP `frame-src https://api.razorpay.com` is over-permissive (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [next.config.ts:17](next.config.ts#L17) — `frame-src https://api.razorpay.com https://checkout.razorpay.com`. `api.razorpay.com` is the JSON API endpoint, not a frameable origin; checkout.razorpay.com is the iframe target. Including api.razorpay.com in frame-src widens the iframe-embedding surface for no functional gain.
+- **Fix:** `frame-src https://checkout.razorpay.com` (drop api.razorpay.com).
+- **Files:** `next.config.ts`
+
+### F14.9 — `phone/send` writes the phone binding AFTER the Twilio call (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/api/account/phone/send/route.ts:25-26](app/api/account/phone/send/route.ts#L25) — `await sendPhoneOtp(input.phone); await redis.set(phoneBindKey, ...)`. If Twilio succeeds but Redis fails (network blip, quota), the OTP was sent but the verify step has nothing to compare against. User gets a code that won't work. The reverse ordering (write binding first, then send) is no worse: a failed Twilio call leaves a stale binding that will expire in 10 min.
+- **Fix:** Order doesn't matter much; for cleanest UX write the binding first so the binding always reflects intent. Or wrap both in a try/catch that clears the binding on Twilio failure.
+- **Files:** `app/api/account/phone/send/route.ts`
+
+### F14.10 — `cookies` config absent in NextAuth — default cookie naming may not include `__Host-` prefix in non-Vercel deploys (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [lib/auth/config.ts](lib/auth/config.ts) — no explicit `cookies: { sessionToken: { options: { ... } } }`. NextAuth defaults to `next-auth.session-token` (or `__Secure-next-auth.session-token` when `useSecureCookies`). The `__Host-` prefix would be the strongest (no Path, no Domain, Secure), but NextAuth doesn't use it by default.
+- **Fix:** Configure `cookies.sessionToken.name = "__Host-next-auth.session-token"` in production. Also pin `sameSite: "lax"`, `secure: true`, `httpOnly: true`, `path: "/"` explicitly.
+- **Files:** `lib/auth/config.ts`
+
+### §14 verification
+| Check | Result |
+|---|---|
+| Read-only audit (no code changes in this pass) | done |
+| Cross-referenced against §F0 through §F13 | done — none of the §14 items are duplicates |
+| Threat model: cross-origin POSTs / session-only attacker / log-export breach / non-Vercel deploy | covered |
+
+### §14 summary
+| ID | Severity | Description | Status |
+|---|---|---|---|
+| F14.1 | low | `verify-password` `fail` counter poisonable cross-origin → progressive-delay DoS | **fixed** |
+| F14.2 | medium | `change-password` `currentPassword` brute-force lacks progressive delay + per-IP brake | **fixed** |
+| F14.3 | medium | `/api/account/send-otp` (change-pw) sends OTP without `currentPassword` gate → inbox-spam vector | **fixed** |
+| F14.4 | low | `reset-password` UPDATE-only-when-user-exists leaks ~10–50 ms timing signal | **fixed** |
+| F14.5 | low | `send-otp` logs `emailExists` + raw `email` at info level → log-based enumeration / PII | **fixed** |
+| F14.6 | low | Logger redact list missing `currentPassword`, `loginToken` (F10.4-style latent leak) | **fixed** |
+| F14.7 | low | NextAuth `trustHost: true` unconditional → non-Vercel deploy risk | **fixed** |
+| F14.8 | low | CSP `frame-src https://api.razorpay.com` is over-permissive | **fixed** |
+| F14.9 | low | `phone/send` order: Twilio call before Redis binding write — UX-fragile | **fixed** |
+| F14.10 | low | NextAuth session cookie not `__Host-` prefixed | **fixed** |
+
+### §14 fixes — implementation notes
+- **F14.1:** `verify-pw:fail` key now scoped `(email, ip)`. New `MAX_FAILURE_COUNT = 7` clamp prevents botnet saturation of the delay ceiling. A bot from one IP can no longer poison every other user's login attempt.
+- **F14.2:** New per-user progressive delay (`change-pw:fail:${userId}`) mirrors S8. Same exponential 200ms→10s curve, same 7-step clamp. Per-user budget tightened from `5 / 15min` to `5 / 1hr`; new `change-pw:ip:${ip}` 10/hr brake added.
+- **F14.3:** New `change-pw:authz:${userId}` Redis marker (TTL 10min). Issued only by `/api/account/verify-current-password` on currentPassword success. `/api/account/send-otp` requires the marker; `/api/account/change-password` burns it on successful rotation. Closes session-cookie-only inbox-spam vector. The existing client flow already calls verify-current-password before send-otp, so no client change needed.
+- **F14.4:** New `padToTarget(700ms, work)` wrapper. Both branches (user exists / not exists) now take the same wall-clock time. 700ms comfortably above bcrypt(12) + Neon UPDATE round-trip.
+- **F14.5:** `send-otp` no longer logs `emailExists` or raw `email`. Now logs `emailHash = sha256(email).slice(0,12)` for per-account correlation without persisting PII.
+- **F14.6:** Logger redact paths gained `currentPassword`, `loginToken`, plus their `*.` wildcard variants.
+- **F14.7:** `authConfig.trustHost = !!process.env.VERCEL`. Non-Vercel deploys must now set `NEXTAUTH_URL` and run behind a Host-normalising proxy.
+- **F14.8:** CSP `frame-src` now lists only `https://checkout.razorpay.com`.
+- **F14.9:** `phone/send` writes the Redis binding before calling Twilio. On Twilio failure the binding is cleared so a retry with a different number works cleanly.
+- **F14.10:** Production NextAuth `cookies.sessionToken.name = "__Host-next-auth.session-token"` with explicit `httpOnly`/`sameSite`/`secure`/`path`. Dev keeps default name so `http://localhost` works.
+
+### §14 verification (post-fix)
+| Check | Result |
+|---|---|
+| `tsc --noEmit` | exit 0 |
+| `vitest run tests/auth/pending-mfa.test.ts tests/checkout/payment-service.test.ts` | 32/32 pass |
+| Manual change-password flow trace | verify-current-password → mint authz → send-otp checks authz → verify-otp → change-password burns authz on success |
+
+**Deployment status:** all §14 items closed. No critical or high findings remain open.
+
+---
+
+## §15 — Deep audit pass #3 (2026-05-27)
+
+Scope: post-§14 sweep across signed-in user flows (account-ready signup-auto, /account/details multi-step layout, payment + payment-failed pages, anchor-dock RSC pages), env-var trust posture, error boundaries, schema dead-state, and the NextAuth signout path. Threat model: misconfigured production env, XSS-on-sessionStorage chains, and dead state confusing future maintainers.
+
+### F15.1 — `NEXT_PUBLIC_DEV_SKIP_AUTH_GATES` not validated in production (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [middleware.ts:18](middleware.ts#L18) and [app/hooks/useAuthGate.ts:8](app/hooks/useAuthGate.ts#L8) both read `process.env.NEXT_PUBLIC_DEV_SKIP_AUTH_GATES === "true"`. `lib/env.ts` does not validate this flag, and `NEXT_PUBLIC_*` is inlined into the client bundle at build time. If the flag ever ships to a production build (operator misconfig), the middleware page-redirect for `/account/*` + `/order/*` is bypassed and the client `useAuthGate` no-ops. Per-route `requireSession()` and per-page RSC `getSession()` still gate, so the actual security boundary holds — but the early-redirect defense-in-depth layer is missing and unauth users will hit the page shell before the RSC redirect fires. Same class as F4.8 (hardcoded dev IP) and F10.2 (`NODE_ENV` default).
+- **Fix:** Validate the flag in `lib/env.ts`: refuse to start when `NODE_ENV === "production"` and the flag is truthy. Build-time bundle inlining still happens, but at least the prod runtime fails closed.
+- **Files:** `lib/env.ts`
+
+### F15.2 — Error boundaries log raw `error.message` to client console (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/account/error.tsx:17](app/account/error.tsx#L17) and [app/order/error.tsx:17](app/order/error.tsx#L17) — `console.error("[account error]", error.digest ?? error.message)`. Next.js scrubs RSC server-error messages in production (passes empty string + digest), but client-side errors still carry their original message. Browser DevTools console is the only consumer; not a data-exfil vector per se, but verbose stacks in console can leak internal API paths / fixture names if a JS bug fires during the protected flow.
+- **Fix:** Log only `error.digest`. Drop `error.message` from the console call: `console.error("[account error]", error.digest ?? "no-digest")`.
+- **Files:** `app/account/error.tsx`, `app/order/error.tsx`
+
+### F15.3 — Sign-out link uses `<Link>` GET; Auth.js v5 GET signout renders confirmation, doesn't sign out (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/account/error.tsx:31](app/account/error.tsx#L31) and [app/order/error.tsx:32](app/order/error.tsx#L32) — `<Link href="/api/auth/signout?callbackUrl=/auth">`. Auth.js v5 treats GET `/api/auth/signout` as a confirmation page (shows a "Sign out?" button), not as the sign-out action. POST is required. User clicks Link → sees a NextAuth confirmation page → must click again. Defeats the F11.11 / F11.12 escape hatch (intent was to break the error-boundary reset loop by signing out).
+- **Fix:** Replace with a `<button onClick={() => signOut({ callbackUrl: "/auth" })}>` using `signOut` from `next-auth/react`. Or use a POST form.
+- **Files:** `app/account/error.tsx`, `app/order/error.tsx`
+
+### F15.4 — `/api/payments/initiate` accepts `orderId` without explicit UUID validation (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [lib/contracts/payment.ts](lib/contracts/payment.ts) (per code inspection) — `InitiatePaymentRequest.orderId` not constrained to UUID. Payment page passes raw `searchParams.get("orderId")` to the route. A non-UUID string hits the Postgres `uuid` column type, which throws a parse error → bubbled as a generic 500 (not the cleaner 400 `VALIDATION_FAILED`). UX-only; no security boundary impact since `loadOwnedOrder` would 404 on any non-matching UUID anyway.
+- **Fix:** `InitiatePaymentRequest = z.object({ orderId: UUID })`. Same for `VerifyPaymentRequest.orderId`.
+- **Files:** `lib/contracts/payment.ts`
+
+### F15.5 — Dead `userProfiles.phone*` columns after F8.3 fix (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [lib/db/schema.ts:36-64](lib/db/schema.ts#L36) — `userProfiles.phone`, `userProfiles.phoneCountryCode`, `userProfiles.phoneSign`. F8.3 removed phone fields from `UpdateProfileRequest`, so `PUT /api/account/profile` strips them silently. The only writer is the (now no-op) `/account/details/phone` step in [app/account/details/layout.tsx:102-109](app/account/details/layout.tsx#L102) which builds a phone-only patch that Zod discards. The verified phone is written to `users.phone` by `/api/account/phone/verify`. Net effect: three columns in `user_profiles` are unreachable and stay `NULL` forever. If a future feature reads from there expecting the verified phone, it will silently see nothing.
+- **Why noted:** Schema drift hides the F8.3 design from future maintainers. Either drop the columns (best), or remove the dead PUT call in `details/layout.tsx` step 3 and document the decision.
+- **Fix:** Migration to drop the three columns; remove step 3 PUT from `details/layout.tsx` (the phone is already saved by `phone/verify` at line 137).
+- **Files:** `lib/db/schema.ts`, `drizzle/`, `app/account/details/layout.tsx`
+
+### F15.6 — `useAuthGate` is purely a UX gate; document the layered defense (LOW / info)
+- **Status:** open
+- **Severity:** low (informational)
+- **What:** [app/hooks/useAuthGate.ts](app/hooks/useAuthGate.ts) — runs in client effect, redirects on `status === "unauthenticated"`. It is not — and cannot be — an auth boundary. The actual gates are: (1) `middleware.ts` PROTECTED_PAGE/PROTECTED_API regex match + cookie check; (2) layout-level `getSession()` redirect (F11.6); (3) per-route `requireSession()`. A future maintainer removing `requireSession()` "because middleware already redirects" would open IDOR holes.
+- **Fix:** Add a comment header to `useAuthGate.ts` and to `middleware.ts` documenting the three layers. Or move to a `SECURITY.md` describing the chain.
+- **Files:** `app/hooks/useAuthGate.ts`, `middleware.ts`, `SECURITY.md` (new)
+
+### F15.7 — `account-ready` `pendingSignup` stored in sessionStorage without freshness check (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/account-ready/page.tsx:18-27](app/account-ready/page.tsx#L18) — reads `pendingSignup` from sessionStorage without checking server-side TTL. If the user lingers >5 min (`issuePendingMfaToken` TTL_SEC=300), the token is expired server-side but still in the page state. `signIn("credentials-signup", ...)` fails with generic "Could not sign in". User UX hits dead-end without a clear "session expired, please log in" message.
+- **Fix:** Store the issued timestamp alongside the token; on mount, if older than 5 min, clear the sessionStorage entry and redirect to `/login` with a "session expired" message. Or simply catch the credentials-signup error and surface "Your sign-in session expired — please log in" to the user.
+- **Files:** `app/account-ready/page.tsx`
+
+### §15 verification
+| Check | Result |
+|---|---|
+| Read-only audit pass (no code changes) | done |
+| Cross-referenced against §F0 – §F14 — no duplicates | done |
+| Threat model coverage: env-var misconfig / sessionStorage XSS / dead-state confusion / GET vs POST signout | done |
+
+### §15 summary
+| ID | Severity | Description | Status |
+|---|---|---|---|
+| F15.1 | low | `NEXT_PUBLIC_DEV_SKIP_AUTH_GATES` not validated in production env | **fixed** |
+| F15.2 | low | Error boundaries log raw `error.message` to client console | **fixed** |
+| F15.3 | low | Sign-out `<Link>` is GET; v5 GET signout shows confirmation, not action | **fixed** |
+| F15.4 | low | `/api/payments/initiate` accepts orderId without UUID validation in contract | **not-applicable** (contract already uses `UUID`) |
+| F15.5 | low | Dead `userProfiles.phone*` columns after F8.3; schema drift | **fixed** (migration `0003_steady_mephisto.sql`) |
+| F15.6 | low | `useAuthGate` is UX-only; document layered defense | **fixed** |
+| F15.7 | low | `pendingSignup` sessionStorage has no client-side freshness check | **fixed** |
+
+### §15 fixes — implementation notes
+- **F15.1:** `lib/env.ts` now throws at boot when `NODE_ENV=production && NEXT_PUBLIC_DEV_SKIP_AUTH_GATES=true`. Build-time inlining still happens but prod runtime fails closed.
+- **F15.2:** Both `app/account/error.tsx` and `app/order/error.tsx` log only `error.digest ?? "no-digest"`. Stack messages no longer leak to browser DevTools.
+- **F15.3:** Both error boundaries replaced the `<Link href="/api/auth/signout?...">` with a `<button onClick={() => signOut({ callbackUrl: "/auth" })}>` using `next-auth/react`. POST signout fires, cookie cleared, redirect runs.
+- **F15.4:** Audit error — `lib/contracts/payment.ts` already constrained both `InitiatePaymentRequest.orderId` and `VerifyPaymentRequest.orderId` to the `UUID` schema. No code change needed.
+- **F15.5:** `userProfiles.phone`, `phoneCountryCode`, `phoneSign` columns dropped from `lib/db/schema.ts` along with the `phone_sign_check` constraint. `Profile` contract trimmed to `{ firstName, lastName, birthday, gender }`. `getProfile`, `useEditDetailsForm`, and the view-details RSC page updated — phone now sourced from `users.phone` and passed as a separate prop. The no-op PUT in `app/account/details/layout.tsx` step 3 removed. Drizzle migration `drizzle/0003_steady_mephisto.sql` generated; run `bun run db:migrate` before deploy. Tests in `tests/profile/profile-service.test.ts` updated.
+- **F15.6:** `useAuthGate.ts` gained a doc header explaining the three real layers (middleware → layout `getSession()` → per-route `requireSession()`) and that removing this hook is safe but removing any of those layers is a regression.
+- **F15.7:** `pendingSignup` sessionStorage entry now carries `issuedAt`. `account-ready/page.tsx` checks `Date.now() - issuedAt > 4.5 min` on mount; on expiry, clears the entry and redirects to `/login?reason=signup-expired` instead of dragging the user through a doomed `signIn` attempt.
+
+### §15 verification (post-fix)
+| Check | Result |
+|---|---|
+| `tsc --noEmit` | exit 0 |
+| `vitest run tests/auth/pending-mfa.test.ts tests/checkout/payment-service.test.ts tests/profile/profile-service.test.ts` | 37/37 pass |
+| `drizzle-kit generate` | new migration `drizzle/0003_steady_mephisto.sql` (column drop only) |
+
+**Deployment status:** all §15 items closed. Run `bun run db:migrate` to apply the F15.5 migration before deploy. No critical or high findings remain open.
+
+---
+
+## §16 — Deep audit pass #4 (2026-05-27, post-SEO surface)
+
+Scope: changes since §15 — SEO infrastructure (robots / sitemap / manifest / icon / opengraph-image), JSON-LD injection, per-route metadata layouts, `next.config.ts` CSP additions for Vercel Analytics, redirects + cache headers, F15 view-details refactor, `account-ready` freshness check, SvgText `as` prop. Threat model: cost-amplification DoS on edge-runtime image routes + CDN cache poisoning + sessionStorage tampering + log-PII drift.
+
+### F16.1 — ImageResponse routes (`/icon`, `/apple-icon`, `/opengraph-image`) lack query-string cache normalization (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/icon.tsx](app/icon.tsx), [app/apple-icon.tsx](app/apple-icon.tsx), [app/opengraph-image.tsx](app/opengraph-image.tsx) — edge-runtime image generators. CDN cache header set ([next.config.ts:71](next.config.ts#L71)) `public, max-age=3600, s-maxage=86400`. Vercel CDN keys on full URL including query string. Unauth attacker can hit `/icon?cb=1`, `/icon?cb=2`, ... → each unique URL bypasses cache → N edge function invocations → cost amplification (per-invocation billing) + degraded latency for legitimate users.
+- **Why this is new:** F15 / SEO added these routes; previously the site shipped no edge-rendered image surface.
+- **Fix:** Pre-render at build time → check static PNGs into `public/icon.png`, `public/apple-icon.png`, `public/opengraph-image.png` and drop the `.tsx` files. CDN serves directly; zero edge compute. Cost = one-time `next/og` invocation locally + checked-in assets. Alternative (no asset commit): add a route handler that ignores query strings and forces a single cache key via `Vercel-CDN-Cache-Control: public, max-age=86400` + drop non-canonical query strings via `cleanUrls` / middleware rewrite.
+- **Files:** `app/icon.tsx`, `app/apple-icon.tsx`, `app/opengraph-image.tsx`, `public/`
+
+### F16.2 — `account-ready` parses sessionStorage without try/catch (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/account-ready/page.tsx:31](app/account-ready/page.tsx#L31) — `JSON.parse(raw) as Pending` runs without exception handling. If sessionStorage payload is malformed (browser corruption, XSS planting bad JSON, or future schema change), throws SyntaxError → propagates up → Next error boundary → user stuck without a recovery path. The F15.7 issuedAt check that follows assumes `parsed` is a valid object.
+- **Fix:** Wrap parse + apply schema check (e.g. `typeof parsed === "object" && typeof parsed.signupSessionToken === "string"`). On failure, clear the entry and redirect to `/login`.
+- **Files:** `app/account-ready/page.tsx`
+
+### F16.3 — `/api/auth/otp-login` logs `email` at info level (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/api/auth/otp-login/route.ts:46-86](app/api/auth/otp-login/route.ts#L46) — `logger.info({ email, ip, outcome }, ...)`. Same PII-in-logs concern as F14.5 (`/api/auth/send-otp`). Three log call sites (`token-invalid`, `email-mismatch`, `ok`) all ship the raw email to Axiom.
+- **Fix:** Replace with the same `hashEmail(email)` helper used in `send-otp` after F14.5, OR drop the field — `ip` + outcome already enough for triage.
+- **Files:** `app/api/auth/otp-login/route.ts`
+
+### F16.4 — `useEditDetailsForm.savePillField` silently no-ops on `phone` field after F15.5 (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/account/view-details/hooks/useEditDetailsForm.ts:85-118](app/account/view-details/hooks/useEditDetailsForm.ts#L85) — pill saver sends `{ [field]: v }` PUT to `/api/account/profile`. F15.5 dropped `phone` from `UpdateProfileRequest`. Zod `.partial()` strips unknown keys silently (not `.strict()`). Result: PUT returns `{ ok: true }`, UI shows "Saved.", but `users.phone` is unchanged. Latent functional bug. Phone case in the switch (`setPhone(v)`) updates client state to a value that never persisted.
+- **Why noted:** No UI surface currently triggers the phone pill in view-details (read-only view), but the case in the switch suggests intent to wire it. If wired without fixing the route, phone edits silently drop.
+- **Fix:** Either (a) remove the `phone` case from `savePillField` and `editPillPlaceholders`, OR (b) route phone edits through the existing `/api/account/phone/send` + `/verify` OTP flow instead of profile PUT.
+- **Files:** `app/account/view-details/hooks/useEditDetailsForm.ts`
+
+### F16.5 — `manifest.ts` `start_url` missing tracking parameter / `id` field (LOW / info)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/manifest.ts:8](app/manifest.ts#L8) — `start_url: "/"`, no `id`. Without an explicit `id`, the browser uses `start_url` as the PWA identity. If `start_url` ever changes (e.g. add `?source=pwa` for analytics), the browser treats it as a new app and installed users lose their install. Cosmetic until you start tagging PWA traffic.
+- **Fix:** Set `id: "/"` explicitly so identity is decoupled from `start_url`. Future analytics tagging can update `start_url` without breaking installs.
+- **Files:** `app/manifest.ts`
+
+### F16.6 — CSP newly trusts `va.vercel-scripts.com` for both `script-src` and `connect-src` (LOW / supply-chain)
+- **Status:** open (accepted-risk)
+- **Severity:** low
+- **What:** [next.config.ts:12,19](next.config.ts#L12) — CSP whitelists Vercel's analytics beacon domain for script load + fetch. If Vercel's analytics script is ever compromised, every site using it inherits arbitrary JS execution + data exfil. Same supply-chain class as Razorpay checkout.
+- **Why accepted:** Vercel hosts the site; if their infrastructure is compromised, the threat model is wider than just analytics. Accepting parity with the platform we already trust.
+- **Fix (optional):** Self-host the Vercel Analytics agent (`@vercel/analytics` exports a custom-host mode) or switch to Plausible self-hosted. Reduces blast radius to your own infrastructure.
+- **Files:** `next.config.ts`
+
+### F16.7 — Sitemap entry list is single-route — no path discovery hint for crawlers when public sub-pages land (LOW / info)
+- **Status:** open
+- **Severity:** low (operational, not security)
+- **What:** [app/sitemap.ts](app/sitemap.ts) — returns only `/`. When `/privacy-policy`, `/terms`, future product detail pages ship, crawler discovery slows because robots.txt + sitemap don't surface them.
+- **Fix:** Maintain a `PUBLIC_ROUTES` constant + iterate. Or auto-generate from the file system (`fast-glob` over `app/**/page.tsx` minus the gated routes).
+- **Files:** `app/sitemap.ts`
+
+### F16.8 — `robots.ts` includes Yandex-specific `host` field (LOW / info)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/robots.ts:26](app/robots.ts#L26) — `host: SITE_URL`. Non-standard; only Yandex parses it. Most major crawlers ignore. Harmless but useless.
+- **Fix:** Drop the field unless Yandex is a target market.
+- **Files:** `app/robots.ts`
+
+### F16.9 — `redirects()` `/home` → `/` uses `permanent: true` (301) — browser caches forever (LOW)
+- **Status:** open
+- **Severity:** low
+- **What:** [next.config.ts:85](next.config.ts#L85) — 301 redirects for `/home`, `/index`, `/index.html`. Browsers cache 301s indefinitely. If any of these paths becomes a legitimate page later, returning users will not see the new content until they clear cache or use an incognito session. Acceptable for these specific paths (unlikely to ever be routes), but worth noting the irreversibility.
+- **Fix:** Change to `permanent: false` (302/307) until you're certain the path is permanently retired. Net SEO impact minimal — Googlebot follows 302s too.
+- **Files:** `next.config.ts`
+
+### F16.10 — `metadataBase: new URL(SITE_URL)` throws at module load on bad input (LOW / info)
+- **Status:** open
+- **Severity:** low
+- **What:** [app/layout.tsx:18](app/layout.tsx#L18) — `new URL(SITE_URL)` throws TypeError if `NEXT_PUBLIC_SITE_URL` is set but malformed (missing protocol, trailing whitespace, etc.). Boot-time failure that takes the whole app down. Fail-closed is correct security-wise, but a misconfig can ship a totally dark deploy.
+- **Fix:** Validate `NEXT_PUBLIC_SITE_URL` via Zod in `lib/env.ts` alongside `NEXTAUTH_URL` so the failure surface is a single, well-formatted env-validation error rather than an opaque TypeError. See F10.2 pattern.
+- **Files:** `lib/env.ts`, `app/layout.tsx`, `app/sitemap.ts`, `app/robots.ts`, `lib/seo/jsonld.ts`
+
+### §16 verification
+| Check | Result |
+|---|---|
+| Read-only audit pass (no code changes) | done |
+| Cross-referenced §F0 – §F15 — no duplicates | done |
+| Threat model: edge cost amplification / sessionStorage tampering / log-PII drift / supply chain / env-misconfig | done |
+| Existing IDOR scoping on view-details users.phone fetch | verified — `eq(users.id, session.userId)` |
+
+### §16 summary
+| ID | Severity | Description | Status |
+|---|---|---|---|
+| F16.1 | low | ImageResponse routes vulnerable to query-string cache busting (cost amplification) | **fixed** (middleware 308 strip) |
+| F16.2 | low | `account-ready` parses sessionStorage without try/catch | **fixed** |
+| F16.3 | low | `/api/auth/otp-login` logs raw email at info level (F14.5-pattern) | **fixed** (emailHash) |
+| F16.4 | low | `savePillField` phone case is a silent no-op after F15.5 | **fixed** (early reject + read-only `phone`) |
+| F16.5 | low | `manifest.ts` missing explicit `id` field | **fixed** |
+| F16.6 | low | CSP newly trusts `va.vercel-scripts.com` (supply-chain) | accepted-risk |
+| F16.7 | low | Sitemap is single-route; no discovery hint for future public pages | **fixed** (`PUBLIC_ROUTES` table) |
+| F16.8 | low | `robots.ts` has Yandex-only `host` field | **fixed** (dropped) |
+| F16.9 | low | `/home`/`/index` redirects are permanent (301) — browser-cached forever | **fixed** (307) |
+| F16.10 | low | `metadataBase` boot-time throw on malformed `NEXT_PUBLIC_SITE_URL` | **fixed** (Zod url() in `lib/env.ts`) |
+
+### §16 fixes — implementation notes
+- **F16.1:** `middleware.ts` now 308-redirects any `/icon`, `/apple-icon`, `/opengraph-image` request with a non-empty query string to the canonical path. Vercel CDN cache key is now stable; attacker-supplied `?cb=…` no longer cache-busts the edge generator.
+- **F16.2:** `account-ready/page.tsx` wraps `JSON.parse` in try/catch with shape validation (`typeof obj.signupSessionToken === "string"`). Malformed payloads clear sessionStorage and bounce to `/login?reason=signup-expired`.
+- **F16.3:** `/api/auth/otp-login/route.ts` gained the `hashEmail` helper from F14.5 and logs `emailHash` instead of raw `email` at all three log call sites.
+- **F16.4:** `useEditDetailsForm.savePillField` short-circuits with a clear error message when `field === "phone"`. Unused `setPhone` setter removed — `phone` is now read-only inside the hook.
+- **F16.5:** `app/manifest.ts` declares `id: "/"` so PWA identity is decoupled from `start_url`.
+- **F16.7:** `app/sitemap.ts` switched to a `PUBLIC_ROUTES` table iterated into the result. Adding new indexable pages is a one-line append.
+- **F16.8:** `app/robots.ts` dropped the Yandex-only `host` field.
+- **F16.9:** `next.config.ts` flips `/home`, `/index`, `/index.html` redirects from `permanent: true` (301) to `permanent: false` (307). Browsers no longer cache these forever.
+- **F16.10:** `lib/env.ts` validates `NEXT_PUBLIC_SITE_URL` as `z.string().url().default("https://axceal.com")`. Malformed value now surfaces as a structured Zod env-validation error at boot instead of a generic `new URL()` TypeError.
+
+### §16 verification (post-fix)
+| Check | Result |
+|---|---|
+| `tsc --noEmit` | exit 0 |
+| `vitest run tests/auth/pending-mfa.test.ts tests/checkout/payment-service.test.ts` | 32/32 pass |
+
+**Deployment status:** all §16 items closed (F16.6 accepted-risk). No critical or high findings remain open.
+

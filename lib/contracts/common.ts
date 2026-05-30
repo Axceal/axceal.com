@@ -8,11 +8,14 @@ export const LoginPassword = z.string().min(8).max(128);
 // Password used for *setting* a new credential (register, reset, change).
 // Full complexity — mirrors the client-side rule in useChangePasswordForm so
 // the client check cannot be bypassed by direct API calls.
+// Whitespace explicitly rejected. The "special character" regex excludes
+// whitespace so a literal space cannot satisfy the special-char requirement.
 export const Password = z.string()
   .min(8).max(64)
+  .regex(/^\S+$/, "Must not contain whitespace")
   .regex(/[A-Z]/, "Must contain an uppercase letter")
   .regex(/[0-9]/, "Must contain a digit")
-  .regex(/[^a-zA-Z0-9]/, "Must contain a special character");
+  .regex(/[^\sa-zA-Z0-9]/, "Must contain a special character");
 export const Otp4 = z.string().regex(/^\d{4}$/);
 export const PhoneCountryCode = z.string().regex(/^\d{1,4}$/);
 export const PhoneDigits = z.string().regex(/^\d{7,15}$/);

@@ -2,10 +2,11 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { SvgText } from "../components/SvgText";
-import { SvgInput } from "../components/SvgInput";
-import { PasswordToggle } from "../components/PasswordToggle";
+import { SvgText } from "../components/text/SvgText";
+import { SvgInput } from "../components/text/SvgInput";
+import { PasswordToggle } from "../components/form/PasswordToggle";
 import { useLoginForm } from "./hooks/useLoginForm";
+import { RightArrow } from "../components/icons/action/RightArrow";
 
 const SPRING = { type: "spring", stiffness: 280, damping: 28 } as const;
 
@@ -32,26 +33,31 @@ function LoginPageInner() {
         indicatorTop,
         isOtp,
         otpCode,
+        recentlySent,
+        isFocused,
     } = useLoginForm();
 
     return (
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 flex items-center justify-center relative">
             <form
                 onSubmit={handleSubmit}
                 className="relative flex flex-col items-center gap-6 w-[min(100vw-2rem,320px)]"
             >
-                <SvgText
-                    text="Log into Axceal Account"
-                    weight="600"
-                    height={20}
-                    className="text-[#1e1e1e] flex self-start"
-                />
+                <div className="flex items-center gap-3 self-start">
+                    <div className="w-[8px] h-[8px] bg-[#aaaaaa] rounded-full shrink-0" aria-hidden />
+                    <SvgText
+                        text="Log into Axceal Account"
+                        weight="600"
+                        height={20}
+                        className="text-[#1e1e1e]"
+                    />
+                </div>
 
                 <div
                     className={`absolute left-1/2 -translate-x-1/2 w-[40px] h-[2.5px] rounded-full pointer-events-none transition-all duration-200 ease-in-out ${message?.kind === "error" ? "bg-[#ff0000]" : "bg-[#0000f4]"}`}
                     style={{
                         top: indicatorTop !== null ? `${indicatorTop}px` : undefined,
-                        opacity: indicatorTop !== null ? 1 : 0,
+                        opacity: isFocused && indicatorTop !== null ? 1 : 0,
                     }}
                 />
 
@@ -107,6 +113,7 @@ function LoginPageInner() {
                             text={message.text}
                             weight="500"
                             height={14}
+                            align="center"
                             className={message.kind === "error" ? "text-[#ff0000]" : "text-[#0000f4]"}
                         />
                     )}
@@ -185,18 +192,31 @@ function LoginPageInner() {
                                     </div>
                                 </div>
 
+                                {message?.field === "otp" && (
+                                    <div className="self-center">
+                                        <SvgText
+                                            text={message.text}
+                                            weight="500"
+                                            height={14}
+                                            maxWidth={Infinity}
+                                            className="text-[#ff0000]"
+                                        />
+                                    </div>
+                                )}
+
                                 <button
                                     type="button"
                                     onClick={() => pendingMfaToken && sendOtp(pendingMfaToken)}
-                                    disabled={sendingOtp || !pendingMfaToken}
-                                    className="cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none self-center"
-                                    aria-label="Resend OTP"
+                                    disabled={sendingOtp || !pendingMfaToken || recentlySent}
+                                    className="cursor-pointer disabled:cursor-not-allowed focus:outline-none self-center"
+                                    aria-label="Resend Code"
                                 >
                                     <SvgText
-                                        text={sendingOtp ? "Sending..." : "Resend"}
+                                        text={recentlySent ? "Code sent" : sendingOtp ? "Sending..." : "Resend"}
                                         weight="600"
                                         height={14}
-                                        className="text-[#0000f4]"
+                                        maxWidth={Infinity}
+                                        className={recentlySent ? "text-[#aaaaaa]" : "text-[#0000f4]"}
                                     />
                                 </button>
                             </motion.div>
@@ -222,8 +242,24 @@ function LoginPageInner() {
                         className="text-[#0000f4] group-hover:text-white"
                     />
                 </button>
-
             </form>
+
+            {!isOtp && (
+                <div className="absolute bottom-8 w-[min(100vw-2rem,320px)] bg-[#f1f1f1] rounded-full pl-8 pr-1 py-1 flex items-center justify-between group">
+                    <SvgText
+                        text="New to Axceal account"
+                        weight="600"
+                        height={16}
+                        className="text-[#1e1e1e]"
+                    />
+                    <Link
+                        href="/create-account"
+                        className="bg-[#0000f4] rounded-full aspect-square h-[42px] flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity shrink-0"
+                    >
+                        <RightArrow className="text-white ml-1 w-[10px] h-auto" />
+                    </Link>
+                </div>
+            )}
         </main>
     );
 }

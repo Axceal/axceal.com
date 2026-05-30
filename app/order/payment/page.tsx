@@ -3,10 +3,12 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthGate } from "@/app/hooks/useAuthGate";
 import Script from "next/script";
-import { SvgText } from "../../components/SvgText";
-import { Stepper, type Step } from "../../components/Stepper";
+import { SvgText } from "../../components/text/SvgText";
+import { Stepper, type Step } from "../../components/feedback/Stepper";
 import { apiFetch } from "@/lib/http/client";
-import { AeroIcon } from "../../components/icons/AeroIcon";
+import { AeroIcon } from "../../components/icons/brand/AeroIcon";
+import { Squircle } from "../../components/layout/Squircle";
+import { sessionKeys, clearSession } from "@/lib/sessionKeys";
 
 const STEPS: Step[] = [
     { label: "Order", state: "past", href: "/order/units" },
@@ -126,9 +128,7 @@ function PaymentPageInner() {
                             );
                             return;
                         }
-                        try {
-                            sessionStorage.removeItem("order:idempotency-key");
-                        } catch { }
+                        clearSession(sessionKeys.orderIdempotencyKey);
                         router.push(
                             `/order/confirmation?orderId=${encodeURIComponent(orderId)}`,
                         );
@@ -165,23 +165,26 @@ function PaymentPageInner() {
             />
 
             {/* ── Progress stepper ── */}
-            <Stepper steps={STEPS} className="mb-10" />
+            <Stepper steps={STEPS} className="mb-16" />
 
             {/* ── Mobile layout (hidden sm+) ── */}
             <div className="flex sm:hidden flex-col gap-4 items-center w-full px-4">
-                <SvgText text="Payment" weight="600" height={18} className="text-[#1e1e1e]" />
-
-                <div className="bg-[#f1f1f1] rounded-[20px] w-[320px] h-[320px] flex items-center justify-center">
-                    <AeroIcon alt="Aero x1" className="w-[60%]" />
+                <div className="flex items-center gap-3 w-[320px] justify-start mb-1">
+                    <div className="w-[8px] h-[8px] bg-[#aaaaaa] rounded-full shrink-0" aria-hidden />
+                    <SvgText text="Payment" weight="600" height={18} className="text-[#1e1e1e]" />
                 </div>
+
+                <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-[320px] h-[320px] flex items-center justify-center">
+                    <AeroIcon alt="Aero x1" className="w-[60%]" />
+                </Squircle>
 
                 <SvgText text="X  1" weight="600" height={18} className="text-[#1e1e1e]" />
 
-                <div className="bg-[#f1f1f1] rounded-[15px] px-6 py-[25px] flex items-center justify-between w-[320px]">
+                <Squircle borderRadius={15} smoothing={50} className="bg-[#f1f1f1] px-6 py-[25px] flex items-center justify-between w-[320px]">
                     <SvgText text="Price" weight="500" height={14} className="text-[#aaaaaa]" />
                     <SvgText text="INR 9,999" weight="600" height={18} className="text-[#1e1e1e]" />
                     <SvgText text="Inc. Taxes" weight="500" height={14} className="text-[#aaaaaa]" />
-                </div>
+                </Squircle>
 
                 <div className="flex flex-col items-center gap-1 w-full mt-[20px] text-center">
                     <SvgText
@@ -218,24 +221,27 @@ function PaymentPageInner() {
             {/* ── Desktop layout (hidden mobile) ── */}
             <div className="hidden sm:flex flex-col items-center">
                 <div className="flex flex-col gap-4 items-start">
-                    <SvgText text="Payment" weight="600" height={18} className="text-[#1e1e1e] ml-[10px]" />
+                    <div className="flex items-center gap-3">
+                        <div className="w-[8px] h-[8px] bg-[#aaaaaa] rounded-full shrink-0" aria-hidden />
+                        <SvgText text="Payment" weight="600" height={18} className="text-[#1e1e1e]" />
+                    </div>
 
                     {/* Product card — X 1 floats right */}
                     <div className="relative w-[300px] h-[300px]">
-                        <div className="bg-[#f1f1f1] rounded-[20px] w-full h-full flex items-center justify-center">
+                        <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-full h-full flex items-center justify-center">
                             <AeroIcon alt="Aero x1" className="w-[200px]" />
-                        </div>
+                        </Squircle>
                         <div className="absolute top-1/2 -translate-y-1/2 left-[calc(100%+32px)]">
                             <SvgText text="X  1" weight="600" height={18} className="text-[#1e1e1e]" />
                         </div>
                     </div>
 
                     {/* Price pill */}
-                    <div className="bg-[#f1f1f1] rounded-[15px] px-6 py-[25px] flex items-center justify-between w-[300px]">
+                    <Squircle borderRadius={15} smoothing={50} className="bg-[#f1f1f1] px-6 py-[25px] flex items-center justify-between w-[300px]">
                         <SvgText text="Price" weight="500" height={14} className="text-[#aaaaaa]" />
                         <SvgText text="INR 9,999" weight="600" height={18} className="text-[#1e1e1e]" />
                         <SvgText text="Inc. Taxes" weight="500" height={14} className="text-[#aaaaaa]" />
-                    </div>
+                    </Squircle>
                 </div>
 
                 {/* Description */}

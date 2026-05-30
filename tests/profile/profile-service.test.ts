@@ -35,9 +35,7 @@ describe("services/profile", () => {
     expect(profile.lastName).toBeNull();
     expect(profile.birthday).toBeNull();
     expect(profile.gender).toBeNull();
-    expect(profile.phoneCountryCode).toBeNull();
-    expect(profile.phone).toBeNull();
-    expect(profile.phoneSign).toBe("+");
+    // F15.5 — phone fields removed from Profile; phone lives on users.phone now.
   });
 
   it("PUT -> GET roundtrip across allowed fields", async () => {
@@ -56,11 +54,7 @@ describe("services/profile", () => {
     expect(profile.lastName).toBe("Lovelace");
     expect(profile.birthday).toBe("1815-12-10");
     expect(profile.gender).toBe("female");
-    // Phone fields are not writable through updateProfile (F8.3) — must go
-    // through /api/account/phone/send + /verify so users.phone stays the
-    // single source of truth for verification status.
-    expect(profile.phone).toBeNull();
-    expect(profile.phoneCountryCode).toBeNull();
+    // F15.5 — phone fields removed from Profile; legacy assertions deleted.
   });
 
   it("partial updates preserve previously-written fields", async () => {

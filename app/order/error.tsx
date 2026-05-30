@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { SvgText } from "../components/SvgText";
+import { signOut } from "next-auth/react";
+import { SvgText } from "../components/text/SvgText";
 
 export default function OrderError({
     error,
@@ -14,7 +15,8 @@ export default function OrderError({
     const [retries, setRetries] = useState(0);
 
     useEffect(() => {
-        console.error("[order error]", error.digest ?? error.message);
+        // F15.2 — see comment in app/account/error.tsx.
+        console.error("[order error]", error.digest ?? "no-digest");
     }, [error]);
 
     const handleReset = () => {
@@ -28,12 +30,13 @@ export default function OrderError({
                 <div className="flex flex-col items-center gap-6">
                     <SvgText text="Something went wrong." weight="600" height={16} className="text-[#1e1e1e]" />
                     <div className="flex gap-4">
-                        <Link
-                            href="/api/auth/signout?callbackUrl=/auth"
-                            className="rounded-full px-6 py-3 bg-[#ff0000] focus:outline-none focus-visible:outline-none flex items-center"
+                        <button
+                            type="button"
+                            onClick={() => signOut({ callbackUrl: "/auth" })}
+                            className="rounded-full px-6 py-3 bg-[#ff0000] cursor-pointer focus:outline-none focus-visible:outline-none flex items-center"
                         >
                             <SvgText text="Sign out and try again" weight="600" height={14} className="text-white" />
-                        </Link>
+                        </button>
                         <Link
                             href="/"
                             className="rounded-full px-6 py-3 bg-[#f1f1f1] focus:outline-none focus-visible:outline-none flex items-center"

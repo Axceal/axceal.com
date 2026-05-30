@@ -1,23 +1,18 @@
 import { z } from "zod";
-import { PhoneCountryCode, PhoneDigits } from "@/lib/contracts/common";
 
+// F15.5 — phone fields were removed from the profile schema. F8.3 had
+// previously stripped them from UpdateProfileRequest so they could not be set
+// without verification, but the columns / response shape lingered as dead
+// state. Phone now lives only on `users.phone` (written by
+// /api/account/phone/verify).
 export const ProfileSchema = z.object({
   firstName: z.string().min(1).max(80).nullable(),
   lastName: z.string().min(1).max(80).nullable(),
   birthday: z.string().date().nullable(),
   gender: z.enum(["female", "male", "private"]).nullable(),
-  phoneCountryCode: PhoneCountryCode.nullable(),
-  phone: PhoneDigits.nullable(),
-  phoneSign: z.enum(["+", "-"]).default("+"),
 });
 
-// Phone fields are deliberately excluded — they must go through the
-// /api/account/phone/send + /verify OTP flow so the verified `users.phone`
-// stays consistent with the profile copy. Allowing PUT here would let an
-// authenticated user set any phone without verification.
-export const UpdateProfileRequest = ProfileSchema
-  .omit({ phone: true, phoneCountryCode: true, phoneSign: true })
-  .partial();
+export const UpdateProfileRequest = ProfileSchema.partial();
 
 export type Profile = z.infer<typeof ProfileSchema>;
 export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequest>;

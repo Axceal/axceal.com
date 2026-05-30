@@ -2,19 +2,19 @@
 import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { AxcealLogo } from "../icons/AxcealLogo";
-import { SvgText } from "../SvgText";
-import { CuesIcon } from "../icons/CuesIcon";
-import { NavigationIcon } from "../icons/NavigationIcon";
-import { SenseIcon } from "../icons/SenseIcon";
-import { FeatherIcon } from "../icons/FeatherIcon";
-import { BatteryIcon } from "../icons/BatteryIcon";
-import { AeroIcon } from "../icons/AeroIcon";
-import { AeroCuesSlideIcon } from "../icons/AeroCuesSlideIcon";
-import { AeroNavigationSlideIcon } from "../icons/AeroNavigationSlideIcon";
-import { AeroSenseSlideIcon } from "../icons/AeroSenseSlideIcon";
-import { AeroFeatherSlideIcon } from "../icons/AeroFeatherSlideIcon";
-import { AeroBatterySlideIcon } from "../icons/AeroBatterySlideIcon";
+import { AxcealLogo } from "../icons/brand/AxcealLogo";
+import { SvgText } from "../text/SvgText";
+import { CuesIcon } from "../icons/feature/CuesIcon";
+import { NavigationIcon } from "../icons/feature/NavigationIcon";
+import { SenseIcon } from "../icons/feature/SenseIcon";
+import { FeatherIcon } from "../icons/feature/FeatherIcon";
+import { BatteryIcon } from "../icons/feature/BatteryIcon";
+import { AeroIcon } from "../icons/brand/AeroIcon";
+import { AeroCuesSlideIcon } from "../icons/slide/AeroCuesSlideIcon";
+import { AeroNavigationSlideIcon } from "../icons/slide/AeroNavigationSlideIcon";
+import { AeroSenseSlideIcon } from "../icons/slide/AeroSenseSlideIcon";
+import { AeroFeatherSlideIcon } from "../icons/slide/AeroFeatherSlideIcon";
+import { AeroBatterySlideIcon } from "../icons/slide/AeroBatterySlideIcon";
 
 type SlideIcon = (props: { className: string; alt: string }) => React.ReactElement;
 
@@ -30,12 +30,13 @@ const AERO_SLIDES: { Icon: SlideIcon; className: string }[] = [
 interface Props {
   // Resolved on mount: "/order/units" if authed, "/auth?from=order" otherwise
   getOneHref: string;
+  isSessionLoading?: boolean;
 }
 
 // Mobile layout — simple vertical scroll through all three sections.
 // Scroll-snap and Framer Motion animations are desktop-only; mobile gets a plain
 // linear flow so the OS scroll behaviour feels native.
-export function MobileHome({ getOneHref }: Props) {
+export function MobileHome({ getOneHref, isSessionLoading = false }: Props) {
   const footerRef = useRef<HTMLDivElement>(null);
   const [footerVisible, setFooterVisible] = useState(false);
   const [aeroSlide, setAeroSlide] = useState(0);
@@ -63,7 +64,7 @@ export function MobileHome({ getOneHref }: Props) {
 
       {/* Section 1: Aero — full-viewport-height slider */}
       <div className="flex flex-col gap-4 min-h-[calc(100dvh-115px)]">
-        <SvgText text="Aero" weight="700" className="text-[#1e1e1e] ml-2" height={26} />
+        <SvgText as="h2" text="Aero" weight="700" maxWidth={Infinity} className="text-[#1e1e1e] ml-2" height={26} />
 
         <div
           className="relative flex-1 overflow-hidden"
@@ -94,7 +95,7 @@ export function MobileHome({ getOneHref }: Props) {
                   <AeroIcon alt="Aero x1" className={AERO_SLIDES[0].className} priority />
                   <div className="absolute left-[57%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
                     <AxcealLogo className="h-3 w-auto text-[#0000f4]" />
-                    <SvgText text="Aero x1" weight="600" className="text-[#0000f4]" height={16} />
+                    <SvgText text="Aero x1" weight="600" maxWidth={Infinity} className="text-[#0000f4]" height={16} />
                   </div>
                 </div>
               ) : (
@@ -118,13 +119,13 @@ export function MobileHome({ getOneHref }: Props) {
 
       {/* Section 2: What can Aero do — 5 features, each: text+icon row then image */}
       <div className="flex flex-col gap-12 -mt-[70px]">
-        <SvgText text={"What can Aero\ndo"} weight="700" className="text-[#1e1e1e] ml-2" height={26} />
+        <SvgText as="h2" text={"What can Aero\ndo"} weight="700" maxWidth={Infinity} className="text-[#1e1e1e] ml-2" height={26} />
 
         {/* Feature 1: Multi dimensional Cues */}
         <div className="flex flex-col gap-6 px-4">
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-col gap-4">
-              <SvgText text="Multi dimensional Cues" weight="600" height={14} className="text-[#aaaaaa]" />
+              <SvgText as="h3" text="Multi dimensional Cues" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
               <SvgText text="Up to Milli second Cues latency" weight="600" height={14} className="text-[#aaaaaa]" superscript="1" />
             </div>
             <CuesIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
@@ -139,7 +140,7 @@ export function MobileHome({ getOneHref }: Props) {
         <div className="flex flex-col gap-6 px-4">
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-col gap-4">
-              <SvgText text="All axis anchor navigation" weight="600" height={14} className="text-[#aaaaaa]" />
+              <SvgText as="h3" text="All axis anchor navigation" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
               <SvgText text="Up to Micro second navigation latency" weight="600" height={14} className="text-[#aaaaaa]" superscript="9" />
               <SvgText text="Up to Milli second Wrap Rate" weight="600" height={14} className="text-[#aaaaaa]" />
             </div>
@@ -155,8 +156,8 @@ export function MobileHome({ getOneHref }: Props) {
         <div className="flex flex-col gap-6 px-4">
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-col gap-4">
-              <SvgText text="Surround Sense" weight="600" height={14} className="text-[#aaaaaa]" />
-              <SvgText text={"Receive multi dimensional updates\nfor Cues"} weight="600" height={14} className="text-[#aaaaaa]" />
+              <SvgText as="h3" text="Surround Sense" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
+              <SvgText text={"Receive multi dimensional updates for Cues"} weight="600" maxWidth={Infinity} height={14} className="text-[#aaaaaa]" />
               <SvgText text="Aomni-Fit have on Softech design" weight="600" height={14} className="text-[#aaaaaa]" />
             </div>
             <SenseIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
@@ -171,9 +172,9 @@ export function MobileHome({ getOneHref }: Props) {
         <div className="flex flex-col gap-6 px-4">
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-col gap-4">
-              <SvgText text="90g on your Palm" weight="600" height={14} className="text-[#aaaaaa]" />
+              <SvgText as="h3" text="90g on your Palm" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
               <SvgText text="Light Aluminum and glass build" weight="600" height={14} className="text-[#aaaaaa]" />
-              <SvgText text={"IP68 water, dust rating and\nIK06 impact rating"} weight="600" height={14} className="text-[#aaaaaa]" />
+              <SvgText text={"IP68 water, dust rating and IK06 impact rating"} weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
             </div>
             <FeatherIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
           </div>
@@ -187,7 +188,7 @@ export function MobileHome({ getOneHref }: Props) {
         <div className="flex flex-col gap-6 px-4">
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-col gap-4">
-              <SvgText text="Up to 23hr Battery Life" weight="600" height={14} className="text-[#aaaaaa]" superscript="2" />
+              <SvgText as="h3" text="Up to 23hr Battery Life" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" superscript="2" />
               <SvgText text="25W Type-C charging" weight="600" height={14} className="text-[#aaaaaa]" />
             </div>
             <BatteryIcon className="w-9 h-auto text-[#aaaaaa] flex-shrink-0" />
@@ -204,15 +205,21 @@ export function MobileHome({ getOneHref }: Props) {
       >
         <Link
           href={getOneHref}
-          className="px-8 py-4 bg-[#0000f4] rounded-full hover:opacity-90 transition-opacity cursor-pointer flex items-center"
+          onClick={(e) => { if (isSessionLoading) e.preventDefault(); }}
+          aria-disabled={isSessionLoading}
+          className="flex items-center gap-3 bg-[#f1f1f1] rounded-full p-[5px] pr-[30px] cursor-pointer hover:opacity-90 transition-opacity"
         >
-          <SvgText text="Get One" weight="600" height={18} className="text-white" />
+          <div className="px-8 py-4 bg-[#0000f4] rounded-full flex items-center justify-center">
+            <SvgText text="Get One" weight="600" height={18} className="text-white" />
+          </div>
+          {/* <div className="w-[8px] h-[8px] rounded-full bg-[#aaaaaa] shrink-0" /> */}
+          <SvgText text="Queue Me Up" weight="500" height={18} className="text-[#aaaaaa]" />
         </Link>
       </motion.div>
 
       {/* Section 3: What's inside the box */}
       <div className="flex flex-col gap-12 mt-8">
-        <SvgText text={"What's inside\nthe Box"} weight="700" className="text-[#1e1e1e] ml-2" height={26} />
+        <SvgText as="h2" text={"What's inside\nthe Box"} weight="700" maxWidth={Infinity} className="text-[#1e1e1e] ml-2" height={26} />
       </div>
 
       {/* Spacer so fixed Get One button doesn't overlap footer content */}

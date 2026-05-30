@@ -1,17 +1,19 @@
 "use client";
+import { Suspense } from "react";
 import Link from "next/link";
-import { SvgText } from "../components/SvgText";
-import { SvgInput } from "../components/SvgInput";
-import { PasswordConstraints } from "../components/PasswordConstraints";
-import { OtpSection } from "../components/OtpSection";
-import { AnimatedPasswordField } from "../components/AnimatedPasswordField";
+import { SvgText } from "../components/text/SvgText";
+import { SvgInput } from "../components/text/SvgInput";
+import { PasswordConstraints } from "../components/form/PasswordConstraints";
+import { RightArrow } from "@/app/components/icons/action/RightArrow";
+import { OtpSection } from "../components/form/OtpSection";
+import { AnimatedPasswordField } from "../components/form/AnimatedPasswordField";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForgotPasswordForm } from "./hooks/useForgotPasswordForm";
-import { Squircle } from "@/app/components/Squircle";
+import { Squircle } from "@/app/components/layout/Squircle";
 
 const LAYOUT_ID = "forgot-password-indicator";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordForm() {
     const {
         email, setEmail,
         otp,
@@ -23,6 +25,7 @@ export default function ForgotPasswordPage() {
         showRePassword, setShowRePassword,
         sendingOtp,
         otpSent,
+        verifyingOtp,
         submitting,
         message,
         handleSendOtp,
@@ -39,6 +42,9 @@ export default function ForgotPasswordPage() {
         hasAnyConstraint,
         otpVerified,
         passwordValid,
+        prefilled,
+        recentlySent,
+        isFocused,
     } = useForgotPasswordForm();
 
     return (
@@ -47,35 +53,45 @@ export default function ForgotPasswordPage() {
                 onSubmit={handleSubmit}
                 className="relative flex flex-col items-center gap-5 w-[300px]"
             >
-                <Link
-                    href="/login"
-                    className="absolute right-full mr-[30px] top-[18px]"
-                >
-                    <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e]" />
-                </Link>
-
-                <Squircle
-                    smoothing={60}
-                    borderRadius={15}
-                    className="w-full bg-[#0000f4] px-10 py-5 flex justify-center"
-                    aria-hidden
-                >
-                    <SvgText text="Forgot Password" weight="600" height={14} className="text-white" />
-                </Squircle>
-
-                <div className="w-full flex flex-col items-start text-left gap-[4px] mt-1">
-                    <SvgText
-                        text={"Email address to which Axceal account\nis connected"}
-                        weight="600"
-                        height={16}
-                        className="text-[#aaaaaa]"
-                    />
+                {/* Mobile Back Button */}
+                <div className="flex lg:hidden w-full items-center justify-start mb-[5px]">
+                    <Link href="/login" className="flex items-center w-fit shrink-0 whitespace-nowrap">
+                        <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e] " />
+                    </Link>
                 </div>
 
-                {/* Email + Send OTP */}
+                <div className="relative flex items-center justify-center w-full">
+                    {/* Desktop Back Button */}
+                    <Link href="/login" className="hidden lg:flex absolute right-full mr-[30px] top-[22px] whitespace-nowrap">
+                        <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e] " />
+                    </Link>
+                    <Squircle
+                        smoothing={60}
+                        borderRadius={15}
+                        className="w-full bg-[#0000f4] px-10 py-5 flex justify-center"
+                        aria-hidden
+                    >
+                        <SvgText text="Forgot Password" weight="600" height={14} className="text-white" />
+                    </Squircle>
+                </div>
+
+                {!prefilled && (
+                    <div className="w-full flex flex-col items-start text-left gap-[4px] mt-1">
+                        <SvgText
+                            text={"Email address to which Axceal account\nis connected"}
+                            weight="600"
+                            height={16}
+                            className="text-[#aaaaaa]"
+                        />
+                    </div>
+                )}
+
+                {/* Email + Send OTP. When prefilled, render the input read-only
+                    without the Send button — the email + OTP were already
+                    verified on the create-account page. */}
                 <div className="w-full flex flex-col gap-2">
                     <div className="w-full relative">
-                        {activeField === "email" && (
+                        {!prefilled && activeField === "email" && isFocused && (
                             <motion.div
                                 layoutId={LAYOUT_ID}
                                 className={`absolute -top-[2.5px] left-1/2 -translate-x-1/2 w-[40px] h-[2.5px] rounded-full pointer-events-none z-10 ${message?.kind === "error" ? "bg-[#ff0000]" : "bg-[#0000f4]"}`}
@@ -88,48 +104,57 @@ export default function ForgotPasswordPage() {
                             placeholder="Email"
                             value={email}
                             onChange={setEmail}
+                            readOnly={prefilled}
                             weight="600"
-                            height={14}
-                            className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1 transition-all"
+                            height={prefilled ? 16 : 14}
+                            className={`w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-[5px] py-1 transition-all ${prefilled ? "opacity-60 cursor-not-allowed" : ""}`}
                             onFocus={() => handleFocus("email")}
                             onBlur={handleBlur}
                             rightSlot={
-                                <button
-                                    type="button"
-                                    id="fp-send-otp-btn"
-                                    onClick={handleSendOtp}
-                                    disabled={sendingOtp}
-                                    className="bg-[#aaaaaa] text-white font-semibold rounded-full px-5 py-3 cursor-pointer hover:bg-[#0000f4] transition-colors shrink-0 flex items-center disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#aaaaaa]"
-                                >
-                                    <SvgText text={sendingOtp ? "Sending..." : "Send"} weight="600" height={14} className="text-white h-full" />
-                                </button>
+                                !prefilled ? (
+                                    <button
+                                        type="button"
+                                        id="send-otp-btn"
+                                        onClick={handleSendOtp}
+                                        disabled={sendingOtp}
+                                        className="bg-[#0000f4] rounded-full aspect-square h-[42px] cursor-pointer hover:opacity-90 transition-opacity shrink-0 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[#aaaaaa]"
+                                    >
+                                        <RightArrow className="text-white w-[10px] ml-1 h-auto" />
+                                    </button>
+                                ) : undefined
                             }
                         />
                     </div>
-                    {message?.field === "email" && (
+                    {!prefilled && message?.field === "email" && (
                         <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center" />
                     )}
                 </div>
 
-                <OtpSection
-                    otpSent={otpSent}
-                    otp={otp}
-                    activeField={activeField}
-                    focusedOtpIdx={focusedOtpIdx}
-                    handleOtpChange={handleOtpChange}
-                    handleOtpKeyDown={handleOtpKeyDown}
-                    onDigitFocus={(i) => { handleFocus("otp"); setFocusedOtpIdx(i); }}
-                    onDigitBlur={handleBlur}
-                    sendingOtp={sendingOtp}
-                    email={email}
-                    handleSendOtp={handleSendOtp}
-                    message={message}
-                    layoutId={LAYOUT_ID}
-                    otpIdPrefix="fp-otp-digit"
-                    otpKeyPrefix="fp-otp"
-                />
-                {message?.field === "otp" && (
-                    <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center -mt-3" />
+                {!prefilled && (
+                    <>
+                        <OtpSection
+                            otpSent={otpSent}
+                            otp={otp}
+                            activeField={activeField}
+                            focusedOtpIdx={focusedOtpIdx}
+                            handleOtpChange={handleOtpChange}
+                            handleOtpKeyDown={handleOtpKeyDown}
+                            onDigitFocus={(i) => { handleFocus("otp"); setFocusedOtpIdx(i); }}
+                            onDigitBlur={handleBlur}
+                            sendingOtp={sendingOtp}
+                            email={email}
+                            handleSendOtp={handleSendOtp}
+                            message={message}
+                            layoutId={LAYOUT_ID}
+                            otpIdPrefix="fp-otp-digit"
+                            otpKeyPrefix="fp-otp"
+                            recentlySent={recentlySent}
+                            isFocused={isFocused}
+                        />
+                        {message?.field === "otp" && (
+                            <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center -mt-3" />
+                        )}
+                    </>
                 )}
 
                 <AnimatedPasswordField
@@ -146,6 +171,7 @@ export default function ForgotPasswordPage() {
                     onBlur={handleBlur}
                     layoutId={LAYOUT_ID}
                     message={message}
+                    isFocused={isFocused}
                 />
                 {otpVerified && message?.field === "password" && (
                     <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center -mt-3" />
@@ -184,6 +210,7 @@ export default function ForgotPasswordPage() {
                     onBlur={handleBlur}
                     layoutId={LAYOUT_ID}
                     message={message}
+                    isFocused={isFocused}
                 />
                 {passwordValid && message?.field === "repassword" && (
                     <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center" />
@@ -201,20 +228,39 @@ export default function ForgotPasswordPage() {
                     )}
                 </div>
 
-                <button
-                    id="fp-submit"
-                    type="submit"
-                    disabled={!formValid || submitting || !otpSent}
-                    className="w-fit bg-[#f1f1f1] rounded-full px-10 py-4.5 cursor-pointer hover:bg-[#0000f4] transition-colors flex justify-center group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#f1f1f1]"
-                >
-                    <SvgText
-                        text={submitting ? "Submitting..." : "Proceed"}
-                        weight="600"
-                        height={16}
-                        className="text-[#aaaaaa] group-hover:text-white group-disabled:group-hover:text-[#aaaaaa]"
-                    />
-                </button>
+                {(prefilled || otpSent) && (
+                    <button
+                        id="fp-submit"
+                        type="submit"
+                        disabled={
+                            submitting
+                            || verifyingOtp
+                            || (!prefilled && !otpVerified && otp.join("").length !== 4)
+                            || (otpVerified && !formValid)
+                        }
+                        className="w-fit bg-[#f1f1f1] rounded-full px-10 py-4.5 cursor-pointer hover:bg-[#0000f4] transition-colors flex justify-center group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#f1f1f1]"
+                    >
+                        <SvgText
+                            text={
+                                !prefilled && !otpVerified
+                                    ? (verifyingOtp ? "Verifying..." : "Verify")
+                                    : (submitting ? "Saving..." : "Save")
+                            }
+                            weight="600"
+                            height={16}
+                            className="text-[#aaaaaa] group-hover:text-white group-disabled:group-hover:text-[#aaaaaa]"
+                        />
+                    </button>
+                )}
             </form>
         </main>
+    );
+}
+
+export default function ForgotPasswordPage() {
+    return (
+        <Suspense>
+            <ForgotPasswordForm />
+        </Suspense>
     );
 }

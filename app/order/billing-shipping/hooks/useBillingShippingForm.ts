@@ -1,360 +1,123 @@
 "use client";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiFetch } from "@/lib/http/client";
-import countriesData from "../../../data/countries.json";
-import statesData from "../../../data/states.json";
+import { useAddressSide } from "./useAddressSide";
+import { validateAddressFields } from "./types";
+import { createOrderApi, validateAddressApi, type ValidateResult } from "./submitOrder";
+import { sessionKeys, readSessionString, writeSession } from "@/lib/sessionKeys";
 
-const COUNTRIES = countriesData as { name: string; code: string; dialCode: string }[];
-const STATES = statesData as Record<string, string[]>;
+// Re-export public types for existing consumers (AddressForm imports from here).
+export type { AddressFormState, FieldErrorMap } from "./types";
 
-export function indicatorPos(el: HTMLDivElement | null): { top: number; left: number } | null {
-    if (!el) return null;
-    return {
-        top: el.offsetTop - 2.5,
-        left: el.offsetLeft + el.offsetWidth / 2 - 20,
-    };
-}
-
-export type FieldErrorMap = Partial<Record<"first" | "last" | "address" | "country" | "state" | "zip" | "phone", string>>;
-
-export interface AddressFormState {
-    first: string; setFirst: (v: string) => void;
-    last: string; setLast: (v: string) => void;
-    address: string; setAddress: (v: string) => void;
-    country: string; setCountry: (v: string) => void;
-    state: string; setState: (v: string) => void;
-    zip: string; setZip: (v: string) => void;
-    phone1: string; setPhone1: (v: string) => void;
-    phone2: string; setPhone2: (v: string) => void;
-    code: string[]; setCode: React.Dispatch<React.SetStateAction<string[]>>;
-    sign: string; setSign: React.Dispatch<React.SetStateAction<string>>;
-    countryCode: string; setCountryCode: (v: string) => void;
-    countryFocused: boolean; setCountryFocused: (v: boolean) => void;
-    stateFocused: boolean; setStateFocused: (v: boolean) => void;
-    zipError: string | null; setZipError: (v: string | null) => void;
-    fieldErrors: FieldErrorMap;
-    clearFieldError: (field: keyof FieldErrorMap) => void;
-    firstRef: React.RefObject<HTMLDivElement | null>;
-    lastRef: React.RefObject<HTMLDivElement | null>;
-    addressRef: React.RefObject<HTMLDivElement | null>;
-    countryRef: React.RefObject<HTMLDivElement | null>;
-    stateRef: React.RefObject<HTMLDivElement | null>;
-    zipRef: React.RefObject<HTMLDivElement | null>;
-    phoneRef: React.RefObject<HTMLDivElement | null>;
-    activeField: string;
-    pos: { top: number; left: number } | null;
-    onFocus: (f: string) => void;
-    onBlur: () => void;
-    countrySuggestions: string[];
-    stateSuggestions: string[];
+function readQuantity(raw: string | null): number {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 1) return 1;
+    if (n > 5) return 5;
+    return Math.floor(n);
 }
 
 export function useBillingShippingForm() {
-    // ── Billing state ──────────────────────────────────────────────────────────
-    const [billingFirst, setBillingFirst] = useState("");
-    const [billingLast, setBillingLast] = useState("");
-    const [billingAddress, setBillingAddress] = useState("");
-    const [billingCountry, setBillingCountry] = useState("");
-    const [billingState, setBillingState] = useState("");
-    const [billingZip, setBillingZip] = useState("");
-    const [billingPhone1, setBillingPhone1] = useState("");
-    const [billingPhone2, setBillingPhone2] = useState("");
-    const [billingCode, setBillingCode] = useState(["9", "1", ""]);
-    const [billingSign, setBillingSign] = useState("+");
-    const [billingCountryCode, setBillingCountryCode] = useState("");
-    const [billingCountryFocused, setBillingCountryFocused] = useState(false);
-    const [billingStateFocused, setBillingStateFocused] = useState(false);
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
-    // ── Shipping state ─────────────────────────────────────────────────────────
-    const [shippingFirst, setShippingFirst] = useState("");
-    const [shippingLast, setShippingLast] = useState("");
-    const [shippingAddress, setShippingAddress] = useState("");
-    const [shippingCountry, setShippingCountry] = useState("");
-    const [shippingState, setShippingState] = useState("");
-    const [shippingZip, setShippingZip] = useState("");
-    const [shippingPhone1, setShippingPhone1] = useState("");
-    const [shippingPhone2, setShippingPhone2] = useState("");
-    const [shippingCode, setShippingCode] = useState(["9", "1", ""]);
-    const [shippingSign, setShippingSign] = useState("+");
-    const [shippingCountryCode, setShippingCountryCode] = useState("");
-    const [shippingCountryFocused, setShippingCountryFocused] = useState(false);
-    const [shippingStateFocused, setShippingStateFocused] = useState(false);
+    const billingSide = useAddressSide("b");
+    const shippingSide = useAddressSide("s");
 
     const [correctedFields, setCorrectedFields] = useState<Set<string>>(new Set());
-    const [billingZipError, setBillingZipError] = useState<string | null>(null);
-    const [shippingZipError, setShippingZipError] = useState<string | null>(null);
-    const [billingFieldErrors, setBillingFieldErrors] = useState<FieldErrorMap>({});
-    const [shippingFieldErrors, setShippingFieldErrors] = useState<FieldErrorMap>({});
     const [showShipping, setShowShipping] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    // ── Active field tracking ──────────────────────────────────────────────────
-    const [activeBilling, setActiveBilling] = useState("bFirst");
-    const [activeShipping, setActiveShipping] = useState("sFirst");
-
-    // Two effects with constant dep-array sizes (React rule).
-    const [, forceUpdate] = useState(0);
-    const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
-    void focusedIdx; void setFocusedIdx;
-
-    // One ref per individual input pill so the indicator centers over that pill only.
-    const bFirstRef = useRef<HTMLDivElement>(null);
-    const bLastRef = useRef<HTMLDivElement>(null);
-    const bAddressRef = useRef<HTMLDivElement>(null);
-    const bCountryRef = useRef<HTMLDivElement>(null);
-    const bStateRef = useRef<HTMLDivElement>(null);
-    const bZipRef = useRef<HTMLDivElement>(null);
-    const bPhoneRef = useRef<HTMLDivElement>(null);
-
-    const sFirstRef = useRef<HTMLDivElement>(null);
-    const sLastRef = useRef<HTMLDivElement>(null);
-    const sAddressRef = useRef<HTMLDivElement>(null);
-    const sCountryRef = useRef<HTMLDivElement>(null);
-    const sStateRef = useRef<HTMLDivElement>(null);
-    const sZipRef = useRef<HTMLDivElement>(null);
-    const sPhoneRef = useRef<HTMLDivElement>(null);
-
     const idempotencyKeyRef = useRef<string>("");
 
+    // Force re-render on mount + when shipping toggles so the indicator picks
+    // up the now-mounted refs' offsetTop/Left values.
+    const [, forceUpdate] = useState(0);
     useEffect(() => { forceUpdate(n => n + 1); }, []);
     useEffect(() => { forceUpdate(n => n + 1); }, [showShipping]);
+
     useEffect(() => {
-        const STORAGE_KEY = "order:idempotency-key";
-        let key = sessionStorage.getItem(STORAGE_KEY);
+        let key = readSessionString(sessionKeys.orderIdempotencyKey);
         if (!key) {
             key = crypto.randomUUID();
-            sessionStorage.setItem(STORAGE_KEY, key);
+            writeSession(sessionKeys.orderIdempotencyKey, key);
         }
         idempotencyKeyRef.current = key;
     }, []);
 
-    // ── Indicator positions ────────────────────────────────────────────────────
-    const billingRefMap: Record<string, React.RefObject<HTMLDivElement | null>> = {
-        bFirst: bFirstRef, bLast: bLastRef, bAddress: bAddressRef,
-        bCountry: bCountryRef, bState: bStateRef, bZip: bZipRef, bPhone: bPhoneRef,
-    };
-    const bPos = indicatorPos(billingRefMap[activeBilling]?.current ?? null);
+    const quantity = readQuantity(searchParams.get("qty"));
 
-    const shippingRefMap: Record<string, React.RefObject<HTMLDivElement | null>> = {
-        sFirst: sFirstRef, sLast: sLastRef, sAddress: sAddressRef,
-        sCountry: sCountryRef, sState: sStateRef, sZip: sZipRef, sPhone: sPhoneRef,
-    };
-    const sPos = indicatorPos(shippingRefMap[activeShipping]?.current ?? null);
-
-    const onBillingFocus = useCallback((f: string) => setActiveBilling(f), []);
-    const onBillingBlur = useCallback(() => setActiveBilling("bFirst"), []);
-    const onShippingFocus = useCallback((f: string) => setActiveShipping(f), []);
-    const onShippingBlur = useCallback(() => setActiveShipping("sFirst"), []);
-
-    const router = useRouter();
-    const searchParams = useSearchParams();
-
-    // qty arrives as ?qty=N from /order/units; clamp to the server-enforced range.
-    const quantity = (() => {
-        const raw = Number(searchParams.get("qty"));
-        if (!Number.isFinite(raw) || raw < 1) return 1;
-        if (raw > 5) return 5;
-        return Math.floor(raw);
-    })();
-
-    const clearBillingFieldError = useCallback((field: keyof FieldErrorMap) => {
-        setBillingFieldErrors(e => { const n = { ...e }; delete n[field]; return n; });
-    }, []);
-    const clearShippingFieldError = useCallback((field: keyof FieldErrorMap) => {
-        setShippingFieldErrors(e => { const n = { ...e }; delete n[field]; return n; });
-    }, []);
-
-    function validateFields(
-        addr: ReturnType<typeof buildAddress>,
-        countryCode: string,
-        side: "billing" | "shipping",
-    ): FieldErrorMap {
-        const to = `${side}`;
-        const e: FieldErrorMap = {};
-        if (!addr.firstName) e.first = `Add first name to ${to}`;
-        if (!addr.lastName) e.last = `Add last name to ${to}`;
-        if (!addr.line1) e.address = `Add home address to ${to}`;
-        if (!addr.country) e.country = `Add country to ${to}`;
-        else if (!countryCode) e.country = `Select a country from the list.`;
-        if (!addr.state) e.state = `Add state to ${to}`;
-        if (!addr.zip) e.zip = `Add zip / pincode to ${to}`;
-        if ((addr.phone?.length ?? 0) < 7) e.phone = `Add valid phone number to ${to}`;
-        return e;
-    }
-
-    function extractDigits(s: string): string {
-        return s.replace(/\D/g, "");
-    }
-
-    function buildAddress(side: "billing" | "shipping") {
-        const isB = side === "billing";
-        return {
-            firstName: (isB ? billingFirst : shippingFirst).trim(),
-            lastName: (isB ? billingLast : shippingLast).trim(),
-            line1: (isB ? billingAddress : shippingAddress).trim(),
-            country: (isB ? billingCountry : shippingCountry).trim(),
-            state: (isB ? billingState : shippingState).trim(),
-            zip: (isB ? billingZip : shippingZip).trim(),
-            phoneCountryCode: extractDigits((isB ? billingCode : shippingCode).join("")),
-            phone: isB ? billingPhone1 + billingPhone2 : shippingPhone1 + shippingPhone2,
-            phoneSign: (isB ? billingSign : shippingSign) as "+" | "-",
-        };
+    function applyCorrections(billingRes: ValidateResult, shippingRes: ValidateResult): Set<string> {
+        const next = new Set<string>();
+        if (billingRes.corrections?.zip) { billingSide.setZip(billingRes.corrections.zip); next.add("bZip"); }
+        if (billingRes.corrections?.state) { billingSide.setState(billingRes.corrections.state); next.add("bState"); }
+        if (shippingRes.corrections?.zip) { shippingSide.setZip(shippingRes.corrections.zip); next.add("sZip"); }
+        if (shippingRes.corrections?.state) { shippingSide.setState(shippingRes.corrections.state); next.add("sState"); }
+        return next;
     }
 
     async function handleProceed() {
         if (submitting) return;
         setErrorMsg(null);
 
-        const billing = buildAddress("billing");
-        const shipping = showShipping ? buildAddress("shipping") : billing;
+        const billing = billingSide.buildPayload();
+        const shipping = showShipping ? shippingSide.buildPayload() : billing;
 
-        // Client-side validation before hitting any API
-        const bErrors = validateFields(billing, billingCountryCode, "billing");
-        const sErrors = showShipping ? validateFields(shipping, shippingCountryCode, "shipping") : {};
-        setBillingFieldErrors(bErrors);
-        setShippingFieldErrors(sErrors);
+        const bErrors = validateAddressFields(billing, billingSide.countryCode, "billing");
+        const sErrors = showShipping
+            ? validateAddressFields(shipping, shippingSide.countryCode, "shipping")
+            : {};
+        billingSide.setFieldErrors(bErrors);
+        shippingSide.setFieldErrors(sErrors);
         if (Object.keys(bErrors).length > 0 || Object.keys(sErrors).length > 0) return;
 
         setSubmitting(true);
         try {
-            // ── Address validation ────────────────────────────────────────────
-            type ValidateResult = { valid: boolean; error?: string; corrections?: { zip?: string; state?: string } };
-
-            const validateSide = async (addr: ReturnType<typeof buildAddress>, countryCode: string): Promise<ValidateResult> => {
-                const res = await apiFetch("/api/validate-address", {
-                    method: "POST",
-                    headers: { "content-type": "application/json" },
-                    body: JSON.stringify({ line1: addr.line1, state: addr.state, zip: addr.zip, countryCode }),
-                });
-                return res.json();
-            };
-
             const [billingResult, shippingResult] = await Promise.all([
-                validateSide(billing, billingCountryCode),
-                showShipping ? validateSide(shipping, shippingCountryCode) : Promise.resolve({ valid: true } as ValidateResult),
+                validateAddressApi(billing, billingSide.countryCode),
+                showShipping
+                    ? validateAddressApi(shipping, shippingSide.countryCode)
+                    : Promise.resolve<ValidateResult>({ valid: true }),
             ]);
 
             if (!billingResult.valid) {
-                setBillingZipError("Incorrect pincode/zipcode");
+                billingSide.formState.setZipError("Incorrect pincode/zipcode");
                 return;
             }
             if (!shippingResult.valid) {
-                setShippingZipError("Incorrect pincode/zipcode");
+                shippingSide.formState.setZipError("Incorrect pincode/zipcode");
                 return;
             }
-            setBillingZipError(null);
-            setShippingZipError(null);
+            billingSide.formState.setZipError(null);
+            shippingSide.formState.setZipError(null);
 
-            const newCorrected = new Set<string>();
-            if (billingResult.corrections?.zip) { setBillingZip(billingResult.corrections.zip); newCorrected.add("bZip"); }
-            if (billingResult.corrections?.state) { setBillingState(billingResult.corrections.state); newCorrected.add("bState"); }
-            if (shippingResult.corrections?.zip) { setShippingZip(shippingResult.corrections.zip); newCorrected.add("sZip"); }
-            if (shippingResult.corrections?.state) { setShippingState(shippingResult.corrections.state); newCorrected.add("sState"); }
-
+            const newCorrected = applyCorrections(billingResult, shippingResult);
             if (newCorrected.size > 0) {
                 setCorrectedFields(newCorrected);
                 setErrorMsg("Address corrected — review highlighted fields and proceed again.");
                 return;
             }
-
             setCorrectedFields(new Set());
 
-            // ── Place order ───────────────────────────────────────────────────
-            const res = await apiFetch("/api/orders", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({
-                    quantity,
-                    billingAddress: billing,
-                    shippingAddress: shipping,
-                    idempotencyKey: idempotencyKeyRef.current,
-                }),
+            const result = await createOrderApi({
+                quantity,
+                billing,
+                shipping,
+                idempotencyKey: idempotencyKeyRef.current,
             });
-            const body = await res.json().catch(() => null);
-            if (!res.ok || !body?.ok) {
-                setErrorMsg(body?.error?.message ?? "Could not place order. Please check your details and try again.");
+            if (!result.ok) {
+                setErrorMsg(result.message);
                 return;
             }
-            const orderId = body.data.id as string;
-            router.push(`/order/payment?orderId=${orderId}`);
-        } catch {
-            setErrorMsg("Network error. Please try again.");
+            router.push(`/order/payment?orderId=${result.orderId}`);
         } finally {
             setSubmitting(false);
         }
     }
 
-    // ── Country / state suggestions (derived, no extra state) ─────────────────
-    const billingCountrySuggestions = billingCountryFocused && billingCountry.length > 0
-        ? COUNTRIES.filter(c => c.name.toLowerCase().startsWith(billingCountry.toLowerCase())).slice(0, 6).map(c => c.name)
-        : [];
-    const billingStateSuggestions = billingStateFocused && billingCountryCode
-        ? (STATES[billingCountryCode] ?? []).filter(s => s.toLowerCase().startsWith(billingState.toLowerCase())).slice(0, 6)
-        : [];
-    const shippingCountrySuggestions = shippingCountryFocused && shippingCountry.length > 0
-        ? COUNTRIES.filter(c => c.name.toLowerCase().startsWith(shippingCountry.toLowerCase())).slice(0, 6).map(c => c.name)
-        : [];
-    const shippingStateSuggestions = shippingStateFocused && shippingCountryCode
-        ? (STATES[shippingCountryCode] ?? []).filter(s => s.toLowerCase().startsWith(shippingState.toLowerCase())).slice(0, 6)
-        : [];
-
-    const billing: AddressFormState = {
-        first: billingFirst, setFirst: setBillingFirst,
-        last: billingLast, setLast: setBillingLast,
-        address: billingAddress, setAddress: setBillingAddress,
-        country: billingCountry, setCountry: setBillingCountry,
-        state: billingState, setState: setBillingState,
-        zip: billingZip, setZip: setBillingZip,
-        phone1: billingPhone1, setPhone1: setBillingPhone1,
-        phone2: billingPhone2, setPhone2: setBillingPhone2,
-        code: billingCode, setCode: setBillingCode,
-        sign: billingSign, setSign: setBillingSign,
-        countryCode: billingCountryCode, setCountryCode: setBillingCountryCode,
-        countryFocused: billingCountryFocused, setCountryFocused: setBillingCountryFocused,
-        stateFocused: billingStateFocused, setStateFocused: setBillingStateFocused,
-        zipError: billingZipError, setZipError: setBillingZipError,
-        fieldErrors: billingFieldErrors, clearFieldError: clearBillingFieldError,
-        firstRef: bFirstRef, lastRef: bLastRef, addressRef: bAddressRef,
-        countryRef: bCountryRef, stateRef: bStateRef, zipRef: bZipRef, phoneRef: bPhoneRef,
-        activeField: activeBilling,
-        pos: bPos,
-        onFocus: onBillingFocus,
-        onBlur: onBillingBlur,
-        countrySuggestions: billingCountrySuggestions,
-        stateSuggestions: billingStateSuggestions,
-    };
-
-    const shipping: AddressFormState = {
-        first: shippingFirst, setFirst: setShippingFirst,
-        last: shippingLast, setLast: setShippingLast,
-        address: shippingAddress, setAddress: setShippingAddress,
-        country: shippingCountry, setCountry: setShippingCountry,
-        state: shippingState, setState: setShippingState,
-        zip: shippingZip, setZip: setShippingZip,
-        phone1: shippingPhone1, setPhone1: setShippingPhone1,
-        phone2: shippingPhone2, setPhone2: setShippingPhone2,
-        code: shippingCode, setCode: setShippingCode,
-        sign: shippingSign, setSign: setShippingSign,
-        countryCode: shippingCountryCode, setCountryCode: setShippingCountryCode,
-        countryFocused: shippingCountryFocused, setCountryFocused: setShippingCountryFocused,
-        stateFocused: shippingStateFocused, setStateFocused: setShippingStateFocused,
-        zipError: shippingZipError, setZipError: setShippingZipError,
-        fieldErrors: shippingFieldErrors, clearFieldError: clearShippingFieldError,
-        firstRef: sFirstRef, lastRef: sLastRef, addressRef: sAddressRef,
-        countryRef: sCountryRef, stateRef: sStateRef, zipRef: sZipRef, phoneRef: sPhoneRef,
-        activeField: activeShipping,
-        pos: sPos,
-        onFocus: onShippingFocus,
-        onBlur: onShippingBlur,
-        countrySuggestions: shippingCountrySuggestions,
-        stateSuggestions: shippingStateSuggestions,
-    };
-
     return {
-        billing,
-        shipping,
+        billing: billingSide.formState,
+        shipping: shippingSide.formState,
         correctedFields,
         setCorrectedFields,
         showShipping,

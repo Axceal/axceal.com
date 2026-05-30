@@ -1,11 +1,12 @@
 "use client";
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SvgText } from "../../../components/SvgText";
-import { SvgInput } from "../../../components/SvgInput";
+import { SvgText } from "../../../components/text/SvgText";
+import { SvgInput } from "../../../components/text/SvgInput";
 import { SPRING } from "../constants";
-import { DisableCircle } from "../../../components/icons/DisableCircle";
+import { DisableCircle } from "../../../components/icons/state/DisableCircle";
 import { usePhoneForm } from "./hooks/usePhoneForm";
+import { Squircle } from "../../../components/layout/Squircle";
 
 export default function PhonePage() {
     const {
@@ -38,12 +39,12 @@ export default function PhonePage() {
 
             <div className="flex flex-col gap-3 w-full md:w-fit md:self-center">
                 {/* Country Code Block */}
-                <div className="bg-[#f1f1f1] rounded-[15px] md:rounded-[20px] px-4 md:px-5 flex justify-between w-full md:w-fit md:self-center gap-2 md:gap-4 items-center h-[60px] md:h-[72px]">
+                <Squircle borderRadius={15} smoothing={50} className="bg-[#f1f1f1] px-4 md:px-5 flex justify-between w-full md:w-fit md:self-center gap-2 md:gap-4 items-center h-[60px] md:h-[72px]">
                     <div className="hidden md:block shrink-0">
-                        <SvgText text="Country Code" height={14} className="text-[#aaaaaa]" />
+                        <SvgText text="Country Code" height={14} className="text-[#aaaaaa]" maxWidth={Infinity} />
                     </div>
                     <div className="block md:hidden shrink-0">
-                        <SvgText text="Country Code" height={14} className="text-[#aaaaaa]" />
+                        <SvgText text="Country Code" height={14} className="text-[#aaaaaa]" maxWidth={200} />
                     </div>
                     <div className="flex items-center gap-2 md:gap-2">
                         <button
@@ -65,10 +66,10 @@ export default function PhonePage() {
                             );
                         })}
                     </div>
-                </div>
+                </Squircle>
 
                 {/* Phone Number Block — full-width on mobile, compact on desktop */}
-                <div className="bg-[#f1f1f1] rounded-[20px] md:rounded-[20px] px-4 py-4 md:px-5 md:py-0 w-full md:w-fit md:h-[72px] flex items-center">
+                <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] px-4 py-4 md:px-5 md:py-0 w-full md:w-fit md:h-[72px] flex items-center">
                     {/* Mobile: two rows — flex-1 on each cell keeps spacing identical across rows */}
                     <div className="flex flex-col gap-3 w-full md:hidden">
                         <div className="flex w-full items-center">
@@ -151,7 +152,7 @@ export default function PhonePage() {
                             </div>
                         ))}
                     </div>
-                </div>
+                </Squircle>
             </div>
 
             {/* OTP section — shown after Twilio sends SMS */}
@@ -163,11 +164,11 @@ export default function PhonePage() {
                         exit={{ opacity: 0, height: 0, marginTop: 0 }}
                         className="flex flex-col gap-3 overflow-hidden mt-1"
                     >
-                        <SvgText text="Check your Phone for OTP" weight="600" height={16} className="text-[#aaaaaa] self-start pl-3 mt-2" />
+                        <SvgText text="Check your Phone for Code" weight="600" height={16} className="text-[#aaaaaa] self-start pl-3 mt-2" />
 
-                        <div className="bg-[#f1f1f1] rounded-[20px] h-[72px] px-1 md:px-5 flex items-center justify-between w-[calc(100%+32px)] -mx-4 md:mx-0 md:w-[360px] gap-2 md:gap-4">
+                        <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] h-[72px] px-1 md:px-5 flex items-center justify-between w-[calc(100%+32px)] -mx-4 md:mx-0 md:w-[360px] gap-2 md:gap-4">
                             <div className="pl-2 shrink-0">
-                                <SvgText text="OTP" weight="500" height={14} className="text-[#aaaaaa]" />
+                                <SvgText text="Code" weight="500" height={14} className="text-[#aaaaaa]" />
                             </div>
                             <div className="flex w-full justify-between md:justify-start md:gap-2">
                                 {phoneOtp.map((digit, i) => (
@@ -191,7 +192,7 @@ export default function PhonePage() {
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </Squircle>
 
                         <button
                             type="button"
@@ -206,7 +207,7 @@ export default function PhonePage() {
 
             {/* Always-visible error */}
             {errorMsg && (
-                <SvgText text={errorMsg} weight="500" height={12} className="text-[#e11d48] pl-3 mt-1" />
+                <SvgText text={errorMsg} weight="500" height={12} className="text-[#ff0000] pl-3 mt-1" />
             )}
 
             {/* Country search — hidden while OTP is in progress */}

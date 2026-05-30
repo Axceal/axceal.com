@@ -70,13 +70,34 @@ export const POST = withHandler({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(googlePayload),
+          // F13.4 — bound the outbound call so a stalled Google API does not
+          // hold a request slot indefinitely. 5s comfortably exceeds Google's
+          // p99 for this endpoint; abort surfaces as the same UX as a network
+          // failure below.
+          signal: AbortSignal.timeout(5000),
         }
       );
     } catch {
       return { valid: false, error: "Could not reach address validation service." };
     }
 
-    const data: GoogleApiResponse = await googleRes.json();
+    // F13.5 — non-2xx may return HTML or a quota error page; parsing as JSON
+    // would throw and surface as an opaque 500. Treat non-ok as upstream
+    // failure with a logged status code for triage.
+    if (!googleRes.ok) {
+      logger.warn(
+        { status: googleRes.status },
+        "Google Address Validation API non-2xx response",
+      );
+      return { valid: false, error: "Address validation service unavailable." };
+    }
+
+    let data: GoogleApiResponse;
+    try {
+      data = (await googleRes.json()) as GoogleApiResponse;
+    } catch {
+      return { valid: false, error: "Address validation service returned an invalid response." };
+    }
 
     if (data.error) {
       logger.error({ code: data.error.code }, "Google Address Validation API error");

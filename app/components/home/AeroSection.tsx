@@ -1,8 +1,8 @@
 "use client";
 import { motion } from "framer-motion";
-import { AxcealLogo } from "../icons/AxcealLogo";
-import { AeroIcon } from "../icons/AeroIcon";
-import { SvgText } from "../SvgText";
+import { AxcealLogo } from "../icons/brand/AxcealLogo";
+import { AeroIcon } from "../icons/brand/AeroIcon";
+import { SvgText } from "../text/SvgText";
 import { SPRING } from "./constants";
 
 interface Props {
@@ -30,15 +30,19 @@ export function AeroSection({ section }: Props) {
             {/* Product label overlaid on the device image */}
             <div className="absolute left-[57%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
               <AxcealLogo className="h-[clamp(12px,3vw,16px)] w-auto text-[#0000f4]" />
-              <SvgText text="Aero x1" weight="600" className="text-[#0000f4]" height={20} />
+              {/* §7 — maxWidth={Infinity} skips the useParentWidth measure
+                  phase, so server-rendered glyph paths are final on first
+                  paint. Removes the measure → reflow → CLS cycle for hero
+                  labels that never need to soft-wrap. */}
+              <SvgText as="h1" text="Aero x1" weight="600" maxWidth={Infinity} className="text-[#0000f4]" height={20} />
             </div>
           </div>
         </div>
 
         {/* Hero taglines — right side, large screens only */}
         <div className="hidden lg:flex absolute md:right-[clamp(2rem,15vw,17.5rem)] md:top-1/2 md:-translate-y-1/2 flex-col gap-[clamp(2rem,10vh,5rem)] items-end text-left">
-          <SvgText align="right" text={"Be unconstrained in\nall you\ndo"} weight="700" className="text-[#0000f4]" height={24} />
-          <SvgText align="right" text={"Do\nmore,\nbe frictionless"} weight="700" className="text-[#0000f4]" height={24} />
+          <SvgText align="right" text={"Be unconstrained in\nall you\ndo"} weight="700" maxWidth={Infinity} className="text-[#0000f4]" height={24} />
+          <SvgText align="right" text={"Do\nmore,\nbe frictionless"} weight="700" maxWidth={Infinity} className="text-[#0000f4]" height={24} />
         </div>
       </motion.div>
     </div>

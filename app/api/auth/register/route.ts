@@ -64,7 +64,13 @@ export const POST = withHandler({
     }
 
     const ua = req.headers.get("user-agent") ?? "";
-    const signupSessionToken = await issuePendingMfaToken(userRow.id, email, ip, ua);
+    const signupSessionToken = await issuePendingMfaToken(
+      userRow.id,
+      email,
+      ip,
+      ua,
+      "signup-auto",
+    );
 
     return { userId: userRow.id, signupSessionToken };
   },

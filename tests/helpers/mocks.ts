@@ -4,6 +4,7 @@ import { vi } from "vitest";
 export const emailProviderMock = {
   sendOtp: vi.fn(async () => {}),
   sendWelcome: vi.fn(async () => {}),
+  sendLoginAlert: vi.fn(async () => {}),
 };
 
 /** Drop-in for vi.mock("@/lib/twilio/verify") */
@@ -33,6 +34,7 @@ export const razorpayMock = {
 export function resetMocks() {
   emailProviderMock.sendOtp.mockReset();
   emailProviderMock.sendWelcome.mockReset();
+  emailProviderMock.sendLoginAlert.mockReset();
   twilioMock.sendVerification.mockReset();
   twilioMock.checkVerification.mockReset();
   razorpayMock.orders.create.mockReset();

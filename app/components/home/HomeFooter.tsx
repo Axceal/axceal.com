@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
-import { AxcealLogo } from "../icons/AxcealLogo";
-import { SvgText } from "../SvgText";
+import { AxcealLogo } from "../icons/brand/AxcealLogo";
+import { SvgText } from "../text/SvgText";
 
 interface Props {
   section: number;
@@ -23,13 +23,13 @@ export function HomeFooter({ section }: Props) {
           <AxcealLogo className="h-3 w-auto text-[#aaaaaa]" />
           <SvgText text="Axceal" weight="600" height={12} className="text-[#aaaaaa]" />
         </div>
-        <SvgText text="All intellectual property belongs to Axceal Pvt. Ltd." weight="500" height={11} className="text-[#aaaaaa]" />
+        <SvgText text="All intellectual property belongs to Axceal Pvt. Ltd." weight="500" height={12} maxWidth={Infinity} className="text-[#aaaaaa]" />
       </div>
 
       {/* Right: contact label + details */}
       <div className="flex flex-col items-end gap-2">
         <SvgText text="Contact" weight="500" height={12} className="text-[#aaaaaa]" />
-        <SvgText text="contact@axceal.com | +91 88302-61513" weight="500" height={11} className="text-[#aaaaaa]" />
+        <SvgText text="contact@axceal.com | +91 88302-61513" weight="500" height={12} maxWidth={Infinity} className="text-[#aaaaaa]" />
       </div>
     </motion.div>
   );

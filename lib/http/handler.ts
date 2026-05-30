@@ -16,20 +16,26 @@ type Config<I, O> = {
 
 export function withHandler<I, O>(config: Config<I, O>) {
   return async (req: Request): Promise<Response> => {
-    const reqId = crypto.randomUUID();
+    // Codebase-review item 11 — honour a client-supplied request id when
+    // present (lets upstream tracing systems thread their own id through),
+    // otherwise mint a fresh UUID. Echoed back via the response helpers.
+    const incomingReqId = req.headers.get("x-request-id");
+    const reqId = (incomingReqId && /^[a-zA-Z0-9_-]{1,128}$/.test(incomingReqId))
+      ? incomingReqId
+      : crypto.randomUUID();
     const log = logger.child({ reqId });
     try {
       let input = undefined as unknown as I;
       if (config.input) {
         // Reject early when client truthfully advertises an oversize body.
-        const sizeErr = assertBodySize(req, MAX_JSON_BYTES);
+        const sizeErr = assertBodySize(req, MAX_JSON_BYTES, reqId);
         if (sizeErr) return sizeErr;
         // Defence-in-depth: even if content-length is absent or lying, this
         // bounded read aborts as soon as we exceed MAX_JSON_BYTES on the wire,
         // so an attacker cannot blow memory by streaming a huge body.
         const raw = await readJsonBounded(req, MAX_JSON_BYTES);
         if (raw === BODY_TOO_LARGE) {
-          return fail(ErrorCode.VALIDATION_FAILED, "Request body too large", 413);
+          return fail(ErrorCode.VALIDATION_FAILED, "Request body too large", 413, undefined, reqId);
         }
         const parsed = config.input.safeParse(raw);
         if (!parsed.success) {
@@ -38,6 +44,7 @@ export function withHandler<I, O>(config: Config<I, O>) {
             "Invalid request body",
             400,
             parsed.error.issues,
+            reqId,
           );
         }
         input = parsed.data;
@@ -61,20 +68,22 @@ export function withHandler<I, O>(config: Config<I, O>) {
         }
       }
 
-      return ok(data);
+      return ok(data, undefined, reqId);
     } catch (err) {
       return handleError(err, reqId);
     }
   };
 }
 
-function assertBodySize(req: Request, max: number): Response | null {
+function assertBodySize(req: Request, max: number, reqId: string): Response | null {
   const len = req.headers.get("content-length");
   if (len && Number(len) > max) {
     return fail(
       ErrorCode.VALIDATION_FAILED,
       "Request body too large",
       413,
+      undefined,
+      reqId,
     );
   }
   return null;
@@ -119,7 +128,7 @@ async function readJsonBounded(
 
 function handleError(err: unknown, reqId: string): Response {
   if (err instanceof AppError) {
-    return fail(err.code, err.message, err.status, err.details);
+    return fail(err.code, err.message, err.status, err.details, reqId);
   }
   if (err instanceof ZodError) {
     return fail(
@@ -127,8 +136,9 @@ function handleError(err: unknown, reqId: string): Response {
       "Validation failed",
       400,
       err.issues,
+      reqId,
     );
   }
   logger.error({ err, reqId }, "unhandled route error");
-  return fail(ErrorCode.INTERNAL, "Internal server error", 500);
+  return fail(ErrorCode.INTERNAL, "Internal server error", 500, undefined, reqId);
 }

@@ -4,14 +4,14 @@ import { userProfiles, type UserProfile } from "@/lib/db/schema";
 import type { Profile, UpdateProfileRequest } from "@/lib/contracts/profile";
 
 function rowToProfile(row: UserProfile | undefined): Profile {
+  // F15.5 — phone fields removed from user_profiles. Verified phone lives on
+  // users.phone (written by /api/account/phone/verify) and is exposed
+  // separately when needed.
   return {
     firstName: row?.firstName ?? null,
     lastName: row?.lastName ?? null,
     birthday: row?.birthday ?? null,
     gender: (row?.gender as Profile["gender"]) ?? null,
-    phoneCountryCode: row?.phoneCountryCode ?? null,
-    phone: row?.phone ?? null,
-    phoneSign: row?.phoneSign === "-" ? "-" : "+",
   };
 }
 

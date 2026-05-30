@@ -101,7 +101,14 @@ export async function verifyPayment(
       422,
     );
   }
-  if (order.razorpayOrderId && order.razorpayOrderId !== input.razorpayOrderId) {
+  // S7 — defense in depth: require initiate to have run for this order AND
+  // the razorpay order id submitted to match the one bound on the row. Without
+  // this, an attacker who legitimately paid order A could submit verify on
+  // their own pending order B with A's razorpay credentials; signature would
+  // verify and B would be marked paid for free. Currently also blocked by the
+  // UNIQUE(razorpayOrderId) DB constraint, but the app layer must not rely on
+  // a single defense.
+  if (!order.razorpayOrderId || order.razorpayOrderId !== input.razorpayOrderId) {
     throw new AppError(
       ErrorCode.VALIDATION_FAILED,
       "Razorpay order id mismatch",
@@ -153,6 +160,8 @@ type RazorpayWebhookEvent = {
         id?: string;
         order_id?: string;
         status?: string;
+        amount?: number;
+        currency?: string;
       };
     };
   };
@@ -165,51 +174,79 @@ export async function applyWebhookEvent(
   const eventId = parsed.id;
   if (!eventId) return { handled: false };
 
-  const existing = await db.query.paymentEvents.findFirst({
-    where: eq(paymentEvents.razorpayEventId, eventId),
-  });
-  if (existing) return { handled: false };
-
   const razorpayOrderId = parsed.payload?.payment?.entity?.order_id ?? null;
   const razorpayPaymentId = parsed.payload?.payment?.entity?.id ?? null;
+  const eventAmount = parsed.payload?.payment?.entity?.amount ?? null;
+  const eventCurrency = parsed.payload?.payment?.entity?.currency ?? null;
 
-  let matchedOrderId: string | null = null;
+  // Fetch the full order so F13.2 amount/currency assertion can run before
+  // any state transition. HMAC already proves Razorpay sent the payload, but
+  // an amount mismatch would mean either Razorpay account misconfiguration or
+  // a future code path that mutates amounts post-initiate — both should fail
+  // closed, not silently mark the order paid.
+  type MatchedOrder = { id: string; totalPaise: number };
+  let matchedOrder: MatchedOrder | null = null;
   if (razorpayOrderId) {
     const orderRow = await db.query.orders.findFirst({
       where: eq(orders.razorpayOrderId, razorpayOrderId),
+      columns: { id: true, totalPaise: true },
     });
-    if (orderRow) matchedOrderId = orderRow.id;
-
-    if (orderRow) {
-      if (parsed.event === "payment.captured" && orderRow.status === "pending") {
-        await db
-          .update(orders)
-          .set({
-            status: "paid",
-            razorpayPaymentId: razorpayPaymentId ?? orderRow.razorpayPaymentId,
-          })
-          .where(eq(orders.id, orderRow.id));
-      } else if (
-        parsed.event === "payment.failed" &&
-        orderRow.status === "pending"
-      ) {
-        await db
-          .update(orders)
-          .set({
-            status: "failed",
-            razorpayPaymentId: razorpayPaymentId ?? orderRow.razorpayPaymentId,
-          })
-          .where(eq(orders.id, orderRow.id));
-      }
-    }
+    if (orderRow) matchedOrder = orderRow;
   }
 
-  await db.insert(paymentEvents).values({
-    orderId: matchedOrderId,
-    razorpayEventId: eventId,
-    eventType: parsed.event,
-    payload: JSON.parse(rawBody),
-  });
+  // S15 — collapse the previous "find existing event then insert" into a
+  // single insert with ON CONFLICT DO NOTHING. Closes the TOCTOU window
+  // where two concurrent Razorpay retries could both pass the find check,
+  // both attempt the order update, and the second insert would 500. Now the
+  // first delivery wins atomically and the second short-circuits.
+  const inserted = await db
+    .insert(paymentEvents)
+    .values({
+      orderId: matchedOrder?.id ?? null,
+      razorpayEventId: eventId,
+      eventType: parsed.event,
+      payload: JSON.parse(rawBody),
+    })
+    .onConflictDoNothing({ target: paymentEvents.razorpayEventId })
+    .returning({ id: paymentEvents.id });
+
+  if (!inserted.length) return { handled: false };
+
+  if (matchedOrder) {
+    // F13.2 — defense in depth: assert the captured amount + currency on
+    // payment.captured match what the order is owed. Log + skip state
+    // transition on mismatch so the event row stays for audit but the order
+    // does not flip to paid on a divergent payload.
+    if (parsed.event === "payment.captured") {
+      if (eventAmount !== matchedOrder.totalPaise || eventCurrency !== "INR") {
+        logger.warn(
+          {
+            orderId: matchedOrder.id,
+            expectedPaise: matchedOrder.totalPaise,
+            eventAmount,
+            eventCurrency,
+          },
+          "webhook payment.captured amount/currency mismatch — order NOT marked paid",
+        );
+        return { handled: true };
+      }
+      await db
+        .update(orders)
+        .set({
+          status: "paid",
+          razorpayPaymentId: razorpayPaymentId ?? undefined,
+        })
+        .where(and(eq(orders.id, matchedOrder.id), eq(orders.status, "pending")));
+    } else if (parsed.event === "payment.failed") {
+      await db
+        .update(orders)
+        .set({
+          status: "failed",
+          razorpayPaymentId: razorpayPaymentId ?? undefined,
+        })
+        .where(and(eq(orders.id, matchedOrder.id), eq(orders.status, "pending")));
+    }
+  }
 
   return { handled: true };
 }

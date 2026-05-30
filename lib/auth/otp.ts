@@ -1,9 +1,13 @@
 import { randomUUID, randomInt } from "node:crypto";
 import { redis } from "@/lib/redis";
 import { AppError, ErrorCode } from "@/lib/http/errors";
+import { logger } from "@/lib/logger";
 
 const OTP_TTL_SEC = 10 * 60;
-const TOKEN_TTL_SEC = 10 * 60;
+// Post-verify token. Short window — user is in an active flow and the token
+// authorises sensitive follow-on actions (register / reset / passwordless
+// login). Tab-away scenarios re-OTP rather than extend the trust window.
+const TOKEN_TTL_SEC = 5 * 60;
 const MAX_ATTEMPTS = 5;
 
 // OTP record no longer stores attempts — attempt counting is done with a
@@ -40,7 +44,7 @@ export async function verifyOtp(email: string, code: string): Promise<void> {
   if (!record) {
     throw new AppError(
       ErrorCode.OTP_EXPIRED,
-      "OTP expired or not found. Please request a new one.",
+      "Code expired or not found. Please request a new one.",
       400,
     );
   }
@@ -54,13 +58,13 @@ export async function verifyOtp(email: string, code: string): Promise<void> {
     await redis.del(key);
     throw new AppError(
       ErrorCode.INVALID_OTP,
-      "Too many incorrect attempts. Please request a new OTP.",
+      "Too many incorrect attempts. Please request a new Code.",
       400,
     );
   }
 
   if (record.code !== code) {
-    throw new AppError(ErrorCode.INVALID_OTP, "Incorrect OTP.", 400);
+    throw new AppError(ErrorCode.INVALID_OTP, "Incorrect Code.", 400);
   }
 
   // Correct — consume both keys so OTP cannot be reused.
@@ -93,7 +97,7 @@ export async function verifyLoginOtp(email: string, code: string): Promise<void>
   if (!record) {
     throw new AppError(
       ErrorCode.OTP_EXPIRED,
-      "OTP expired or not found. Please request a new one.",
+      "Code expired or not found. Please request a new one.",
       400,
     );
   }
@@ -105,13 +109,13 @@ export async function verifyLoginOtp(email: string, code: string): Promise<void>
     await redis.del(key);
     throw new AppError(
       ErrorCode.INVALID_OTP,
-      "Too many incorrect attempts. Please request a new OTP.",
+      "Too many incorrect attempts. Please request a new Code.",
       400,
     );
   }
 
   if (record.code !== code) {
-    throw new AppError(ErrorCode.INVALID_OTP, "Incorrect OTP.", 400);
+    throw new AppError(ErrorCode.INVALID_OTP, "Incorrect Code.", 400);
   }
 
   await redis.del(key);
@@ -136,7 +140,7 @@ export async function verifyChangePasswordOtp(email: string, code: string): Prom
   if (!record) {
     throw new AppError(
       ErrorCode.OTP_EXPIRED,
-      "OTP expired or not found. Please request a new one.",
+      "Code expired or not found. Please request a new one.",
       400,
     );
   }
@@ -148,13 +152,13 @@ export async function verifyChangePasswordOtp(email: string, code: string): Prom
     await redis.del(key);
     throw new AppError(
       ErrorCode.INVALID_OTP,
-      "Too many incorrect attempts. Please request a new OTP.",
+      "Too many incorrect attempts. Please request a new Code.",
       400,
     );
   }
 
   if (record.code !== code) {
-    throw new AppError(ErrorCode.INVALID_OTP, "Incorrect OTP.", 400);
+    throw new AppError(ErrorCode.INVALID_OTP, "Incorrect Code.", 400);
   }
 
   await redis.del(key);
@@ -163,7 +167,11 @@ export async function verifyChangePasswordOtp(email: string, code: string): Prom
 
 export async function consumeOtpToken(token: string, expectedFlow: TokenFlow): Promise<string> {
   const key = tokenKey(token);
-  const record = (await redis.get<TokenRecord>(key)) ?? null;
+  // Atomic GET+DEL — prevents two concurrent consumers from both passing the
+  // existence check before either deletes the key (race that would allow
+  // double-use of a single-use token). Upstash returns the prior value and
+  // removes the key in a single round trip.
+  const record = (await redis.getdel<TokenRecord>(key)) ?? null;
   if (!record) {
     throw new AppError(
       ErrorCode.OTP_EXPIRED,
@@ -171,10 +179,15 @@ export async function consumeOtpToken(token: string, expectedFlow: TokenFlow): P
       400,
     );
   }
-  // Always delete the key — even on flow mismatch — so a misrouted token is
-  // burned in a single use and cannot be retried against the correct flow.
-  await redis.del(key);
   if (record.flow !== expectedFlow) {
+    // F13.7 — flow mismatches mean either a misrouted legitimate flow or a
+    // probe against an unintended endpoint. Log so multiple mismatches
+    // surface in monitoring; the token has already been burned by GETDEL
+    // above, so this branch is observation-only.
+    logger.warn(
+      { expectedFlow, actualFlow: record.flow },
+      "otp-token flow mismatch — token burned",
+    );
     throw new AppError(
       ErrorCode.INVALID_OTP,
       "Invalid verification token.",

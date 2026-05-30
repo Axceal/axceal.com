@@ -37,7 +37,7 @@ describe("POST /api/auth/login-otp", () => {
     const ip = uniqueIp();
     const email = `test-${randomUUID()}@example.com`;
     const userId = randomUUID();
-    const token = await issuePendingMfaToken(userId, email, "1.2.3.4", "Mozilla/5.0");
+    const token = await issuePendingMfaToken(userId, email, "1.2.3.4", "Mozilla/5.0", "mfa-second-factor");
     pendingTokens.push(token);
     rlKeys.push(`otp:login-rate-ip:${ip}`, `otp:login-rate:${email}`, `otp:login:${email}`);
 
@@ -66,7 +66,7 @@ describe("POST /api/auth/login-otp", () => {
     const ip = uniqueIp();
     const email = `test-${randomUUID()}@example.com`;
     const userId = randomUUID();
-    const token = await issuePendingMfaToken(userId, email, "1.2.3.4", "agent");
+    const token = await issuePendingMfaToken(userId, email, "1.2.3.4", "agent", "mfa-second-factor");
     // Delete immediately to simulate already-consumed
     await redis.del(`pending-mfa:${token}`);
     rlKeys.push(`otp:login-rate-ip:${ip}`);
@@ -107,7 +107,7 @@ describe("POST /api/auth/login-otp", () => {
     const ip = uniqueIp();
     const email = `test-${randomUUID()}@example.com`;
     const userId = randomUUID();
-    const token = await issuePendingMfaToken(userId, email, "1.2.3.4", "Mozilla/5.0");
+    const token = await issuePendingMfaToken(userId, email, "1.2.3.4", "Mozilla/5.0", "mfa-second-factor");
     pendingTokens.push(token);
     rlKeys.push(`otp:login-rate-ip:${ip}`, `otp:login-rate:${email}`, `otp:login:${email}`);
 

@@ -2,8 +2,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { SvgText } from "../components/SvgText";
-import { AxcealLogo } from "../components/icons/AxcealLogo";
+import { SvgText } from "../components/text/SvgText";
+import { AxcealLogo } from "../components/icons/brand/AxcealLogo";
 
 function AuthChoiceContent() {
     const searchParams = useSearchParams();

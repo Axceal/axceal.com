@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { SvgText } from "../SvgText";
+import { SvgText } from "../text/SvgText";
 import { SPRING, NavState } from "./constants";
 
 interface Props {
@@ -22,7 +22,7 @@ export function DesktopNav({ nav, goSection, goSubSlide }: Props) {
         animate={nav.aero}
         transition={SPRING}
       >
-        <SvgText text="Aero" weight="700" className="text-[#1e1e1e]" height={30} />
+        <SvgText text="Aero" weight="700" className="text-[#1e1e1e]" height={30} maxWidth={80} />
       </motion.div>
 
       <motion.div

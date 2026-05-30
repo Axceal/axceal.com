@@ -17,12 +17,16 @@ function formatBirthday(iso: string): string {
 
 export type EditField = "firstName" | "lastName" | "birthday" | "gender" | "phone";
 
-export function useEditDetailsForm(p: Profile) {
+export function useEditDetailsForm(p: Profile, initialPhone: string | null = null) {
     const [firstName, setFirstName] = useState(p.firstName ?? "");
     const [lastName, setLastName] = useState(p.lastName ?? "");
     const [birthday, setBirthday] = useState(p.birthday ? formatBirthday(p.birthday) : "");
     const [gender, setGender] = useState(p.gender ?? "");
-    const [phone, setPhone] = useState(p.phone ?? "");
+    // F15.5 / F16.4 — phone sourced from users.phone via the page (not
+    // user_profiles). Read-only here; edits must go through
+    // /api/account/phone/send + /verify so the UI never displays a value
+    // that was silently dropped by Zod on the profile PUT.
+    const phone = initialPhone ?? "";
 
     const [pillSaving, setPillSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState<{ kind: "info" | "error"; text: string; field?: EditField | null } | null>(null);
@@ -85,6 +89,20 @@ export function useEditDetailsForm(p: Profile) {
         const v = pillInputValue.trim();
         const field = activeEditField;
 
+        // F16.4 — phone is not a profile field anymore (F15.5 dropped it from
+        // UpdateProfileRequest). The /api/account/profile PUT would silently
+        // strip the value via Zod and the UI would show "Saved." for a write
+        // that never persisted. Reject early with guidance to use the phone
+        // OTP flow.
+        if (field === "phone") {
+            setSaveMessage({
+                kind: "error",
+                text: "Phone changes require verification — use the phone OTP flow.",
+                field,
+            });
+            return;
+        }
+
         setPillSaving(true);
         setSaveMessage(null);
         try {
@@ -103,7 +121,6 @@ export function useEditDetailsForm(p: Profile) {
                 case "lastName": setLastName(v); break;
                 case "birthday": setBirthday(v); break;
                 case "gender": setGender(v); break;
-                case "phone": setPhone(v); break;
             }
             setSaveMessage({ kind: "info", text: "Saved." });
             setActiveEditField(null);

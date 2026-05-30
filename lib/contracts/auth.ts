@@ -24,7 +24,24 @@ export const SendOtpRequest = z.object({
 export const SendOtpResponse = z.object({ sent: z.literal(true) });
 
 export const VerifyOtpRequest = z.object({ email: Email, otp: Otp4 });
-export const VerifyOtpResponse = z.object({ otpToken: z.string() });
+// `accountExists` is included in the response so the create-account UI can
+// branch to a "Login / Forgot Password" pathway once the caller has proven
+// inbox control via OTP. Revealing existence here is acceptable because the
+// caller already controls the email — they could equally start a password
+// reset to learn the same fact.
+export const VerifyOtpResponse = z.object({
+  otpToken: z.string(),
+  accountExists: z.boolean(),
+});
+
+// Passwordless login — caller has just proven inbox control via verify-otp
+// and the returned otpToken. Issues a pendingMfaToken the NextAuth provider
+// exchanges for a session.
+export const OtpLoginRequest = z.object({
+  email: Email,
+  otpToken: z.string().min(1),
+});
+export const OtpLoginResponse = z.object({ pendingMfaToken: UUID });
 
 export const RegisterRequest = z.object({
   email: Email,
@@ -43,7 +60,15 @@ export const ResetPasswordResponse = z.object({ success: z.literal(true) });
 export const VerifyChangePasswordOtpRequest = z.object({ otp: Otp4 });
 export const VerifyChangePasswordOtpResponse = z.object({ otpToken: z.string() });
 
+// S16 — defense-in-depth: require knowledge of the current password to
+// rotate, on top of session + email-OTP. Prevents a session-cookie-only
+// attacker (XSS / cookie theft) from silently changing the password if they
+// also happen to have email access (combined attack chain).
+export const VerifyCurrentPasswordRequest = z.object({ currentPassword: LoginPassword });
+export const VerifyCurrentPasswordResponse = z.object({ verified: z.literal(true) });
+
 export const ChangePasswordRequest = z.object({
+  currentPassword: LoginPassword,
   otpToken: z.string().min(1),
   password: Password,
 });
@@ -68,12 +93,16 @@ export type SendOtpRequest = z.infer<typeof SendOtpRequest>;
 export type SendOtpResponse = z.infer<typeof SendOtpResponse>;
 export type VerifyOtpRequest = z.infer<typeof VerifyOtpRequest>;
 export type VerifyOtpResponse = z.infer<typeof VerifyOtpResponse>;
+export type OtpLoginRequest = z.infer<typeof OtpLoginRequest>;
+export type OtpLoginResponse = z.infer<typeof OtpLoginResponse>;
 export type RegisterRequest = z.infer<typeof RegisterRequest>;
 export type RegisterResponse = z.infer<typeof RegisterResponse>;
 export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequest>;
 export type ResetPasswordResponse = z.infer<typeof ResetPasswordResponse>;
 export type VerifyChangePasswordOtpRequest = z.infer<typeof VerifyChangePasswordOtpRequest>;
 export type VerifyChangePasswordOtpResponse = z.infer<typeof VerifyChangePasswordOtpResponse>;
+export type VerifyCurrentPasswordRequest = z.infer<typeof VerifyCurrentPasswordRequest>;
+export type VerifyCurrentPasswordResponse = z.infer<typeof VerifyCurrentPasswordResponse>;
 export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequest>;
 export type ChangePasswordResponse = z.infer<typeof ChangePasswordResponse>;
 export type SendPhoneRequest = z.infer<typeof SendPhoneRequest>;

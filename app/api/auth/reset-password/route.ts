@@ -15,6 +15,22 @@ import { logger } from "@/lib/logger";
 
 const SESSION_TTL_SEC = 30 * 24 * 60 * 60;
 
+// F14.4 — pad both branches (user exists / user does not exist) to the same
+// wall-clock time so a botnet that already owns the inbox cannot squeeze a
+// timing oracle out of the post-token-burn path. Threshold is well above the
+// typical bcrypt(12) hash time (~250ms) and a Neon UPDATE round-trip (~50ms).
+const RESET_LATENCY_TARGET_MS = 700;
+
+async function padToTarget<T>(target: number, work: () => Promise<T>): Promise<T> {
+  const start = Date.now();
+  const result = await work();
+  const elapsed = Date.now() - start;
+  if (elapsed < target) {
+    await new Promise((r) => setTimeout(r, target - elapsed));
+  }
+  return result;
+}
+
 export const POST = withHandler({
   input: ResetPasswordRequest,
   output: ResetPasswordResponse,
@@ -37,26 +53,28 @@ export const POST = withHandler({
       throw new AppError(ErrorCode.INVALID_OTP, "Invalid or expired verification token.", 400);
     }
 
-    const user = await db.query.users.findFirst({
-      where: eq(users.email, email),
-      columns: { id: true },
+    await padToTarget(RESET_LATENCY_TARGET_MS, async () => {
+      const user = await db.query.users.findFirst({
+        where: eq(users.email, email),
+        columns: { id: true },
+      });
+
+      // Always hash (uniform timing) even when user doesn't exist.
+      const hash = await hashPassword(password);
+
+      if (user) {
+        const now = new Date();
+        await db
+          .update(users)
+          .set({ passwordHash: hash, passwordChangedAt: now, updatedAt: now })
+          .where(eq(users.id, user.id));
+
+        // Invalidate all existing sessions for this user.
+        await redis.set(`pw:changed:${user.id}`, Date.now(), { ex: SESSION_TTL_SEC });
+
+        logger.info({ userId: user.id }, "password reset");
+      }
     });
-
-    // Always hash (uniform timing) even when user doesn't exist
-    const hash = await hashPassword(password);
-
-    if (user) {
-      const now = new Date();
-      await db
-        .update(users)
-        .set({ passwordHash: hash, passwordChangedAt: now, updatedAt: now })
-        .where(eq(users.id, user.id));
-
-      // Invalidate all existing sessions for this user
-      await redis.set(`pw:changed:${user.id}`, Date.now(), { ex: SESSION_TTL_SEC });
-
-      logger.info({ userId: user.id }, "password reset");
-    }
 
     return { success: true as const };
   },

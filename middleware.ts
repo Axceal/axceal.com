@@ -14,8 +14,12 @@ const PROTECTED_PAGE = [/^\/account(\/|$)/, /^\/order(\/|$)/];
 
 // Mirror of the client-side flag — lets developers bypass the server-side
 // redirect without changing code. Set NEXT_PUBLIC_DEV_SKIP_AUTH_GATES=true
-// in .env.local. Has no effect in production (flag is simply absent).
-const DEV_SKIP_GATES = process.env.NEXT_PUBLIC_DEV_SKIP_AUTH_GATES === "true";
+// in .env.local. NODE_ENV guard is load-bearing: NEXT_PUBLIC_* vars are baked
+// into the production build, so a stray .env.production entry would otherwise
+// disable auth gates sitewide.
+const DEV_SKIP_GATES =
+  process.env.NODE_ENV !== "production"
+  && process.env.NEXT_PUBLIC_DEV_SKIP_AUTH_GATES === "true";
 const PROTECTED_API = [
   /^\/api\/account(\/|$)/,
   /^\/api\/orders(\/|$)/,
@@ -31,6 +35,13 @@ const CSRF_EXEMPT = [
 ];
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+// F16.1 — edge-rendered image routes. Strip any query string so the Vercel
+// CDN sees a single canonical URL and serves cached PNG bytes for every
+// repeat hit. Without this, `/icon?cb=1` and `/icon?cb=2` would each cache-
+// miss and re-invoke the ImageResponse generator, turning the endpoints into
+// a cost-amplification DoS vector.
+const IMG_ROUTES = new Set(["/icon", "/apple-icon", "/opengraph-image"]);
 
 function ensureCsrfCookie(req: NextRequest, res: NextResponse): NextResponse {
   if (!req.cookies.get(CSRF_COOKIE)) {
@@ -55,6 +66,15 @@ function csrfReject(): NextResponse {
 export default auth((req) => {
   const path = req.nextUrl.pathname;
   const method = req.method.toUpperCase();
+
+  // F16.1 — collapse `/icon?...` → `/icon` so CDN cache key never varies on
+  // attacker-supplied query strings. 301 permanent so legitimate clients
+  // cache the redirect themselves.
+  if (IMG_ROUTES.has(path) && req.nextUrl.search.length > 0) {
+    const url = req.nextUrl.clone();
+    url.search = "";
+    return NextResponse.redirect(url, 308);
+  }
 
   const isApi = path.startsWith("/api/");
   const isMutating = MUTATING_METHODS.has(method);

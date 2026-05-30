@@ -1,17 +1,17 @@
 "use client";
 import { motion } from "framer-motion";
-import { SvgText } from "../SvgText";
+import { SvgText } from "../text/SvgText";
 import { SPRING, S1_SUBSLIDE_COUNT } from "./constants";
-import { CuesIcon } from "../icons/CuesIcon";
-import { NavigationIcon } from "../icons/NavigationIcon";
-import { SenseIcon } from "../icons/SenseIcon";
-import { FeatherIcon } from "../icons/FeatherIcon";
-import { BatteryIcon } from "../icons/BatteryIcon";
-import { AeroCuesSlideIcon } from "../icons/AeroCuesSlideIcon";
-import { AeroNavigationSlideIcon } from "../icons/AeroNavigationSlideIcon";
-import { AeroSenseSlideIcon } from "../icons/AeroSenseSlideIcon";
-import { AeroFeatherSlideIcon } from "../icons/AeroFeatherSlideIcon";
-import { AeroBatterySlideIcon } from "../icons/AeroBatterySlideIcon";
+import { CuesIcon } from "../icons/feature/CuesIcon";
+import { NavigationIcon } from "../icons/feature/NavigationIcon";
+import { SenseIcon } from "../icons/feature/SenseIcon";
+import { FeatherIcon } from "../icons/feature/FeatherIcon";
+import { BatteryIcon } from "../icons/feature/BatteryIcon";
+import { AeroCuesSlideIcon } from "../icons/slide/AeroCuesSlideIcon";
+import { AeroNavigationSlideIcon } from "../icons/slide/AeroNavigationSlideIcon";
+import { AeroSenseSlideIcon } from "../icons/slide/AeroSenseSlideIcon";
+import { AeroFeatherSlideIcon } from "../icons/slide/AeroFeatherSlideIcon";
+import { AeroBatterySlideIcon } from "../icons/slide/AeroBatterySlideIcon";
 
 interface Props {
   section: number;
@@ -60,7 +60,7 @@ export function WhatCanAeroSection({ section, subSlide, goSubSlide }: Props) {
           {/* flex row: text flows left, icon flows right — no separate absolute for icon */}
           <div className="absolute right-[clamp(8rem,5vw,6rem)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-10">
             <div className="flex flex-col gap-10 items-end">
-              <SvgText text="Multi dimensional Cues" weight="600" height={16} className="text-[#1e1e1e]" />
+              <SvgText as="h2" text="Multi dimensional Cues" weight="600" height={16} maxWidth={Infinity} className="text-[#1e1e1e]" />
               <SvgText text="Up to milli second Cues latency" weight="600" height={16} className="text-[#1e1e1e]" superscript="1" />
             </div>
             <CuesIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
@@ -79,7 +79,7 @@ export function WhatCanAeroSection({ section, subSlide, goSubSlide }: Props) {
           </div>
           <div className="absolute right-[clamp(8rem,5vw,6rem)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-10">
             <div className="flex flex-col gap-10 items-end">
-              <SvgText text="All axis anchor navigation" weight="600" height={16} className="text-[#1e1e1e]" />
+              <SvgText as="h2" text="All axis anchor navigation" weight="600" height={16} maxWidth={Infinity} className="text-[#1e1e1e]" />
               <SvgText text="Up to micro second navigation latency" weight="600" height={16} className="text-[#1e1e1e]" superscript="9" />
               <SvgText text="Up to milli second Wrap Rate" weight="600" height={16} className="text-[#1e1e1e]" />
             </div>
@@ -100,8 +100,8 @@ export function WhatCanAeroSection({ section, subSlide, goSubSlide }: Props) {
           </div>
           <div className="absolute right-[clamp(8rem,5vw,6rem)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-10">
             <div className="flex flex-col gap-10 items-end">
-              <SvgText text="Surround Sense" weight="600" height={16} className="text-[#1e1e1e]" />
-              <SvgText text={"Receive multi dimensional updates\nfor Cues"} weight="600" height={16} className="text-[#1e1e1e]" align="right" />
+              <SvgText as="h2" text="Surround Sense" weight="600" height={16} maxWidth={Infinity} className="text-[#1e1e1e]" />
+              <SvgText text={"Receive multi dimensional updates for Cues"} weight="600" height={16} className="text-[#1e1e1e]" align="right" />
               <SvgText text="Aomni-Fit have on Softech design" weight="600" height={16} className="text-[#1e1e1e]" />
             </div>
             <SenseIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
@@ -120,11 +120,11 @@ export function WhatCanAeroSection({ section, subSlide, goSubSlide }: Props) {
           </div>
           <div className="absolute right-[clamp(8rem,5vw,6rem)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-10">
             <div className="flex flex-col gap-10 items-end">
-              <SvgText text="90g on your Palm" weight="600" height={16} className="text-[#1e1e1e]" />
-              <SvgText text="Light Aluminum and glass build" weight="600" height={16} className="text-[#1e1e1e]" />
-              <SvgText text={"IP68 water, dust rating and\nIK06 impact rating"} weight="600" height={16} className="text-[#1e1e1e]" align="right" />
+              <SvgText as="h2" text="90g on your Palm" weight="600" height={16} maxWidth={Infinity} className="text-[#1e1e1e]" />
+              <SvgText text="Light Aluminum and glass build" weight="600" align="right" height={16} className="text-[#1e1e1e]" />
+              <SvgText text={"IP68 water, dust rating and IK06 impact rating"} weight="600" maxWidth={Infinity} height={16} className="text-[#1e1e1e]" align="right" />
             </div>
-            <FeatherIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
+            <FeatherIcon isActive={section === 1 && subSlide === 3} className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
           </div>
         </motion.div>
 
@@ -141,7 +141,7 @@ export function WhatCanAeroSection({ section, subSlide, goSubSlide }: Props) {
           </div>
           <div className="absolute right-[clamp(8rem,5vw,6rem)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-10">
             <div className="flex flex-col gap-10 items-end">
-              <SvgText text="Up to 23hr Battery Life" weight="600" height={16} className="text-[#1e1e1e]" superscript="2" />
+              <SvgText as="h2" text="Up to 23hr Battery Life" weight="600" height={16} maxWidth={Infinity} className="text-[#1e1e1e]" superscript="2" />
               <SvgText text="25W Type-C charging" weight="600" height={16} className="text-[#1e1e1e]" />
             </div>
             <BatteryIcon className="w-9 h-auto text-[#aaaaaa] flex-shrink-0" />

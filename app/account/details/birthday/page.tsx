@@ -1,6 +1,7 @@
 "use client";
-import { SvgText } from "../../../components/SvgText";
-import { SvgInput } from "../../../components/SvgInput";
+import { SvgText } from "../../../components/text/SvgText";
+import { SvgInput } from "../../../components/text/SvgInput";
+import { Squircle } from "../../../components/layout/Squircle";
 import { useAccountDetails } from "../context";
 import { MONTHS_ABBR, MONTHS_FULL, SPRING } from "../constants";
 import { daysInMonth, ordinal } from "../helpers";
@@ -83,7 +84,7 @@ export default function BirthdayPage() {
                 <div className="flex flex-col gap-3 shrink-0">
 
                     {/* Day block */}
-                    <div className="bg-[#f1f1f1] rounded-[24px] p-4 flex gap-3 w-fit h-fit">
+                    <Squircle borderRadius={24} smoothing={50} className="bg-[#f1f1f1] p-4 flex gap-3 w-fit h-fit">
                         <div className="mt-2 ml-2 absolute "><SvgText text="Day" weight="600" height={16} className="text-[#aaaaaa]" /></div>
                         <div className="flex items-end">
                             {getDayCols(dayCount).map((col, cIdx) => (
@@ -105,10 +106,10 @@ export default function BirthdayPage() {
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </Squircle>
 
                     {/* Year Box */}
-                    <div className="bg-[#f1f1f1] rounded-[20px] h-[72px] w-full flex items-center px-5 justify-between">
+                    <Squircle borderRadius={15} smoothing={50} className="bg-[#f1f1f1] h-[72px] w-full flex items-center px-5 justify-between">
                         <SvgText text="Year" weight="600" height={16} className="text-[#aaaaaa] ml-2" />
                         <div className="flex items-center gap-[20px]">
                             {(["19", "20"] as const).map(p => {
@@ -127,7 +128,7 @@ export default function BirthdayPage() {
                                             className={`cursor-pointer transition-all flex items-center pt-0.5 gap-[2px] ${active ? "text-[#1e1e1e]" : "text-[#aaaaaa] hover:text-[#1e1e1e]"
                                                 }`}
                                         >
-                                            <SvgText text={mainText} weight="600" height={active ? 24 : 16} />
+                                            <SvgText text={mainText} weight="600" height={active ? 24 : 16} maxWidth={120} />
                                             {!active && <SvgText text={"_".repeat(activeSuffixLen)} weight="600" height={16} className="ml-[1px]" />}
                                         </button>
 
@@ -150,7 +151,7 @@ export default function BirthdayPage() {
                                 );
                             })}
                         </div>
-                    </div>
+                    </Squircle>
                 </div>
 
                 {/* Right Col: Months */}

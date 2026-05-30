@@ -1,8 +1,8 @@
 "use client";
 import { Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SvgText } from "../../components/SvgText";
-import { Stepper, type Step } from "../../components/Stepper";
+import { SvgText } from "../../components/text/SvgText";
+import { Stepper, type Step } from "../../components/feedback/Stepper";
 import { useBillingShippingForm } from "./hooks/useBillingShippingForm";
 import { AddressForm } from "./components/AddressForm";
 import { useAuthGate } from "@/app/hooks/useAuthGate";
@@ -46,7 +46,7 @@ function BillingShippingPageInner() {
         <main className="flex-1 flex flex-col items-center pt-4 pb-4">
 
             {/* ── Progress stepper ── */}
-            <Stepper steps={STEPS} className="mb-10" />
+            <Stepper steps={STEPS} className="mb-16" />
 
             {/* ── Form area ── */}
             <div className="flex gap-10 md:gap-50 items-start flex-wrap justify-center w-full px-4">

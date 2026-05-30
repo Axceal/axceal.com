@@ -30,6 +30,33 @@ export const resendProvider: EmailProvider = {
       );
     }
   },
+  async sendLoginAlert(to, ctx) {
+    // F13.6 — passwordless OTP login has no traditional canary (no password
+    // reset alert), so notify the inbox owner directly when someone signs in
+    // using only an email OTP. Plain text only; if Resend fails we log but
+    // do not block the login (caller wraps this in a try/catch + fire-forget).
+    const when = ctx.occurredAt.toUTCString();
+    const text = [
+      "We just signed in to your Axceal account using a one-time code sent to this email.",
+      "",
+      `When: ${when}`,
+      `IP:   ${ctx.ip}`,
+      `Device: ${ctx.userAgent || "unknown"}`,
+      "",
+      "If this was you, no action is needed.",
+      "If this was NOT you, change your password immediately and contact support.",
+    ].join("\n");
+
+    const result = await client.emails.send({
+      from: env.EMAIL_FROM,
+      to,
+      subject: "New Axceal sign-in via email code",
+      text,
+    });
+    if (result.error) {
+      logger.error({ err: result.error, to: maskEmail(to) }, "resend login-alert failed");
+    }
+  },
 };
 
 function maskEmail(email: string): string {

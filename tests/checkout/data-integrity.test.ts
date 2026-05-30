@@ -78,7 +78,7 @@ describe("J.1 — order state machine", () => {
     const payload = {
       id: eventId,
       event: "payment.captured",
-      payload: { payment: { entity: { id: rpPaymentId, order_id: rpOrderId, status: "captured" } } },
+      payload: { payment: { entity: { id: rpPaymentId, order_id: rpOrderId, status: "captured", amount: order.totalPaise, currency: "INR" } } },
     };
     const result = await applyWebhookEvent(JSON.stringify(payload), payload);
 
@@ -101,7 +101,7 @@ describe("J.1 — order state machine", () => {
     const payload = {
       id: eventId,
       event: "payment.captured",
-      payload: { payment: { entity: { id: rpPaymentId, order_id: rpOrderId, status: "captured" } } },
+      payload: { payment: { entity: { id: rpPaymentId, order_id: rpOrderId, status: "captured", amount: order.totalPaise, currency: "INR" } } },
     };
     await applyWebhookEvent(JSON.stringify(payload), payload);
 

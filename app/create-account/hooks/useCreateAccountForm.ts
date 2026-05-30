@@ -1,22 +1,34 @@
 "use client";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
+import {
+    apiOtpLogin,
+    apiRegister,
+    apiSendRegisterOtp,
+    apiVerifyOtp,
+    checkPasswordComplexity,
+    EMAIL_RE,
+} from "./createAccountApi";
+import { sessionKeys, writeSession } from "@/lib/sessionKeys";
+import { safeInternalPath } from "@/lib/http/safe-redirect";
 
 type ActiveField = "email" | "otp" | "password" | "repassword";
+type MessageField = ActiveField | null;
+type Message = { kind: "info" | "error"; text: string; field?: MessageField };
 
 export function useCreateAccountForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const from = searchParams.get("from");
+    // Open-redirect guard: reject absolute URLs and protocol-relative paths.
+    const from = safeInternalPath(searchParams.get("from"));
 
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState(["", "", "", ""]);
     const [password, setPassword] = useState("");
     const [rePassword, setRePassword] = useState("");
 
-    // Default: indicator points at Email (first field)
     const [activeField, setActiveField] = useState<ActiveField>("email");
-    // Which OTP digit is currently focused (-1 = none)
     const [focusedOtpIdx, setFocusedOtpIdx] = useState(-1);
 
     const [showPassword, setShowPassword] = useState(false);
@@ -24,13 +36,18 @@ export function useCreateAccountForm() {
 
     const [sendingOtp, setSendingOtp] = useState(false);
     const [otpSent, setOtpSent] = useState(false);
+    const [emailExists, setEmailExists] = useState(false);
+    const [emailExistsFor, setEmailExistsFor] = useState<string>("");
     const [verifyingOtp, setVerifyingOtp] = useState(false);
     const [otpVerified, setOtpVerified] = useState(false);
     const [otpToken, setOtpToken] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [message, setMessage] = useState<{ kind: "info" | "error"; text: string; field?: "email" | "otp" | "password" | "repassword" | null } | null>(null);
+    const [otpLoginInProgress, setOtpLoginInProgress] = useState(false);
+    const [recentlySent, setRecentlySent] = useState(false);
+    const recentlySentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [message, setMessage] = useState<Message | null>(null);
+    const [isFocused, setIsFocused] = useState(false);
 
-    // Wrapper refs for each field group (indicator anchors to these)
     const emailWrapRef = useRef<HTMLDivElement>(null);
     const otpWrapRef = useRef<HTMLDivElement>(null);
     const passwordWrapRef = useRef<HTMLDivElement>(null);
@@ -40,65 +57,115 @@ export function useCreateAccountForm() {
     const [, forceUpdate] = useState(0);
     useEffect(() => { forceUpdate(n => n + 1); }, []);
 
-    const handleSendOtp = async () => {
+    const markRecentlySent = useCallback(() => {
+        setRecentlySent(true);
+        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
+        recentlySentTimer.current = setTimeout(() => setRecentlySent(false), 20000);
+    }, []);
+    useEffect(() => () => {
+        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
+    }, []);
+
+    // Clear emailExists when the user edits the email — the alt UI references a
+    // specific address and shouldn't persist across edits.
+    const setEmailReset = useCallback((next: string) => {
+        setEmail(next.replace(/\s/g, ""));
+        setEmailExists(false);
+    }, []);
+
+    const handleSendOtp = useCallback(async () => {
         if (sendingOtp) return;
         if (!email.trim()) {
             setActiveField("email");
             setMessage({ kind: "error", text: "Enter your email.", field: "email" });
             return;
         }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        if (!EMAIL_RE.test(email.trim())) {
             setActiveField("email");
             setMessage({ kind: "error", text: "Invalid email.", field: "email" });
             return;
         }
         setSendingOtp(true);
         setMessage(null);
+        setEmailExists(false);
         try {
-            const res = await fetch("/api/auth/send-otp", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ email, flow: "register" }),
-            });
-            const body = await res.json();
-            if (!res.ok || !body?.ok) {
-                setMessage({
-                    kind: "error",
-                    text: body?.error?.message ?? "Could not send OTP. Please try again.",
-                });
-                return;
-            }
+            const result = await apiSendRegisterOtp(email);
+            if (!result.ok) { setMessage({ kind: "error", text: result.message }); return; }
             setOtpSent(true);
-            setMessage({ kind: "info", text: "OTP sent. Check your inbox." });
-        } catch {
-            setMessage({ kind: "error", text: "Network error. Please try again." });
+            markRecentlySent();
         } finally {
             setSendingOtp(false);
         }
-    };
+    }, [sendingOtp, email, markRecentlySent]);
 
     const verifyOtp = useCallback(async (code: string) => {
         setVerifyingOtp(true);
         setMessage(null);
         try {
-            const res = await fetch("/api/auth/verify-otp", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ email, otp: code }),
-            });
-            const body = await res.json();
-            if (!res.ok || !body?.ok) {
-                setMessage({ kind: "error", text: body?.error?.message ?? "Invalid OTP.", field: "otp" });
-                return;
-            }
-            setOtpToken(body.data.otpToken);
+            const result = await apiVerifyOtp(email, code);
+            if (!result.ok) { setMessage({ kind: "error", text: result.message, field: "otp" }); return; }
+            setOtpToken(result.data.otpToken);
             setOtpVerified(true);
-        } catch {
-            setMessage({ kind: "error", text: "Network error verifying OTP.", field: "otp" });
+            // Caller has now proven inbox control. Backend reports whether the
+            // email is already registered — flip to the Login / Forgot Password
+            // UI so the user doesn't waste time entering a password they can't
+            // actually use to register.
+            if (result.data.accountExists) {
+                setEmailExists(true);
+                setEmailExistsFor(email);
+            }
         } finally {
             setVerifyingOtp(false);
         }
     }, [email]);
+
+    const handleOtpLogin = useCallback(async () => {
+        if (otpLoginInProgress) return;
+        if (!otpToken) {
+            setMessage({ kind: "error", text: "Code verification expired. Please request a new one." });
+            return;
+        }
+        setOtpLoginInProgress(true);
+        setMessage(null);
+        try {
+            const result = await apiOtpLogin(emailExistsFor || email, otpToken);
+            if (!result.ok) {
+                // Token is single-use — once burned the user must restart from
+                // email step. Clear local state so the UI matches server state.
+                setOtpToken(null);
+                setOtpVerified(false);
+                setEmailExists(false);
+                setMessage({ kind: "error", text: result.message });
+                return;
+            }
+            const signInResult = await signIn("credentials-otp-login", {
+                loginToken: result.data.pendingMfaToken,
+                redirect: false,
+            });
+            if (!signInResult || signInResult.error) {
+                setMessage({ kind: "error", text: "Sign-in failed. Please request a new Code." });
+                return;
+            }
+            router.push(from);
+        } finally {
+            setOtpLoginInProgress(false);
+        }
+    }, [otpLoginInProgress, otpToken, emailExistsFor, email, router, from]);
+
+    const handleForgotPassword = useCallback(() => {
+        if (!otpToken) {
+            setMessage({ kind: "error", text: "Code verification expired. Please request a new one." });
+            return;
+        }
+        // Hand off via sessionStorage so the otpToken doesn't leak via Referer
+        // or browser history. writeSession swallows quota / private-mode
+        // errors — forgot-password page falls back to re-collecting the OTP.
+        writeSession(sessionKeys.forgotPwPrefilled, {
+            email: emailExistsFor || email,
+            otpToken,
+        });
+        router.push("/forgot-password?prefilled=1");
+    }, [otpToken, emailExistsFor, email, router]);
 
     const handleOtpChange = (index: number, value: string) => {
         const v = value.replace(/\D/g, "").slice(-1);
@@ -112,9 +179,9 @@ export function useCreateAccountForm() {
         if (v && index < 3) {
             setTimeout(() => document.getElementById(`otp-digit-${index + 1}`)?.focus(), 10);
         }
-        if (updated.join("").length === 4) {
-            void verifyOtp(updated.join(""));
-        }
+        // Verification now driven by the bottom Submit button rather than
+        // firing on the 4th digit — gives the user a chance to correct typos
+        // and matches the gated flow on /login.
     };
 
     const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
@@ -125,19 +192,29 @@ export function useCreateAccountForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (submitting) return;
+        if (submitting || verifyingOtp) return;
 
         if (!email.trim()) {
             setActiveField("email");
             return setMessage({ kind: "error", text: "Enter your email.", field: "email" });
         }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        if (!EMAIL_RE.test(email.trim())) {
             setActiveField("email");
             return setMessage({ kind: "error", text: "Invalid email.", field: "email" });
         }
+        // Stage 1 (post-Send, pre-Verify): submit acts as the verify button.
+        if (otpSent && !otpVerified) {
+            const code = otp.join("");
+            if (code.length !== 4) {
+                setActiveField("otp");
+                return setMessage({ kind: "error", text: "Enter the 4-digit Code.", field: "otp" });
+            }
+            await verifyOtp(code);
+            return;
+        }
         if (!otpVerified || !otpToken) {
             setActiveField("otp");
-            return setMessage({ kind: "error", text: "Please verify your OTP first.", field: "otp" });
+            return setMessage({ kind: "error", text: "Please verify your Code first.", field: "otp" });
         }
         if (password.length < 8) {
             setActiveField("password");
@@ -151,49 +228,45 @@ export function useCreateAccountForm() {
         setSubmitting(true);
         setMessage(null);
         try {
-            const registerRes = await fetch("/api/auth/register", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ email, password, otpToken }),
+            const result = await apiRegister(email, password, otpToken);
+            if (!result.ok) { setMessage({ kind: "error", text: result.message }); return; }
+            writeSession(sessionKeys.pendingSignup, {
+                signupSessionToken: result.data.signupSessionToken,
+                from: from ?? "",
+                // F15.7 — issuedAt lets /account-ready bail with a clear
+                // "session expired" message instead of a generic signin
+                // failure once the server-side 5-min TTL elapses.
+                issuedAt: Date.now(),
             });
-            const registerBody = await registerRes.json();
-            if (!registerRes.ok || !registerBody?.ok) {
-                setMessage({
-                    kind: "error",
-                    text: registerBody?.error?.message ?? "Could not create account.",
-                });
-                return;
-            }
-
-            const signupSessionToken: string = registerBody.data.signupSessionToken;
-            sessionStorage.setItem("pendingSignup", JSON.stringify({ signupSessionToken, from: from ?? "" }));
             router.push("/account-ready");
-        } catch {
-            setMessage({ kind: "error", text: "Network error. Please try again." });
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleFocus = useCallback((field: ActiveField) => setActiveField(field), []);
-    // On blur return to Email (first field)
+    const handleFocus = useCallback((field: ActiveField) => {
+        setActiveField(field);
+        setIsFocused(true);
+    }, []);
     const handleBlur = useCallback(() => {
-        setActiveField("email");
+        setIsFocused(false);
         setFocusedOtpIdx(-1);
     }, []);
 
-    const isLengthValid = password.length >= 8 && password.length <= 64;
-    const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
-    const hasUpper = /[A-Z]/.test(password);
-    const hasDigit = /[0-9]/.test(password);
-    const hasAnyConstraint = !isLengthValid || !hasSpecialChar || !hasUpper || !hasDigit;
-    const passwordValid = isLengthValid && hasSpecialChar && hasUpper && hasDigit;
+    const complexity = checkPasswordComplexity(password);
+
+    // Strip whitespace at the input layer — backend Password schema rejects
+    // whitespace too, but stripping on entry stops the user ever seeing a
+    // space land in the field (defense-in-depth against accidental spacebar).
+    const setPasswordNoSpace = useCallback((v: string) => setPassword(v.replace(/\s/g, "")), []);
+    const setRePasswordNoSpace = useCallback((v: string) => setRePassword(v.replace(/\s/g, "")), []);
 
     return {
-        email, setEmail,
+        email, setEmail: setEmailReset,
+        emailExists, emailExistsFor,
         otp,
-        password, setPassword,
-        rePassword, setRePassword,
+        password, setPassword: setPasswordNoSpace,
+        rePassword, setRePassword: setRePasswordNoSpace,
         activeField,
         focusedOtpIdx, setFocusedOtpIdx,
         showPassword, setShowPassword,
@@ -210,15 +283,15 @@ export function useCreateAccountForm() {
         handleOtpChange,
         handleOtpKeyDown,
         handleSubmit,
+        handleOtpLogin,
+        handleForgotPassword,
+        otpLoginInProgress,
+        recentlySent,
         handleFocus,
         handleBlur,
+        isFocused,
         otpVerified,
         verifyingOtp,
-        isLengthValid,
-        hasSpecialChar,
-        hasUpper,
-        hasDigit,
-        hasAnyConstraint,
-        passwordValid,
+        ...complexity,
     };
 }

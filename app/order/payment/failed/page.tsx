@@ -3,9 +3,11 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthGate } from "@/app/hooks/useAuthGate";
 import Script from "next/script";
-import { SvgText } from "../../../components/SvgText";
+import { SvgText } from "../../../components/text/SvgText";
 import { apiFetch } from "@/lib/http/client";
-import { AeroIcon } from "../../../components/icons/AeroIcon";
+import { AeroIcon } from "../../../components/icons/brand/AeroIcon";
+import { Squircle } from "../../../components/layout/Squircle";
+import { sessionKeys, clearSession } from "@/lib/sessionKeys";
 
 const RAZORPAY_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 
@@ -119,9 +121,7 @@ function PaymentFailedPageInner() {
                             );
                             return;
                         }
-                        try {
-                            sessionStorage.removeItem("order:idempotency-key");
-                        } catch { }
+                        clearSession(sessionKeys.orderIdempotencyKey);
                         router.push(
                             `/order/confirmation?orderId=${encodeURIComponent(orderId)}`,
                         );
@@ -158,7 +158,7 @@ function PaymentFailedPageInner() {
             />
 
             {/* ── Stepper: Payment Failed — Retrying Payment ── */}
-            <div className="bg-[#f1f1f1] rounded-full py-4 px-8 flex items-center gap-6 mb-10">
+            <div className="flex items-center gap-6 mb-10">
                 <SvgText
                     text="Payment Failed"
                     weight="600"
@@ -181,6 +181,7 @@ function PaymentFailedPageInner() {
                         text="Retrying Payment"
                         weight="600"
                         height={16}
+                        maxWidth={Infinity}
                         className="text-[#0000f4]"
                     />
                 </button>
@@ -204,24 +205,21 @@ function PaymentFailedPageInner() {
                 </div>
 
                 {/* See details or take action — no-op placeholder */}
-                <button
-                    type="button"
-                    className="bg-[#f1f1f1] rounded-[15px] w-[300px] px-[60px] py-5 mb-5 cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus-visible:outline-none flex justify-center"
-                >
+                <Squircle as="button" borderRadius={15} smoothing={50} className="bg-[#f1f1f1] w-[300px] px-[60px] py-5 mb-5 cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus-visible:outline-none flex justify-center">
                     <SvgText
                         text="See details or take action"
                         weight="600"
                         height={14}
                         className="text-[#0000f4]"
                     />
-                </button>
+                </Squircle>
 
                 {/* Product card + X 1 + price (same pattern as /order/payment) */}
                 <div className="flex flex-col gap-4 items-start">
                     <div className="relative w-[300px] h-[300px]">
-                        <div className="bg-[#f1f1f1] rounded-[20px] w-full h-full flex items-center justify-center">
+                        <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-full h-full flex items-center justify-center">
                             <AeroIcon alt="Aero x1" className="w-[200px]" />
-                        </div>
+                        </Squircle>
                         {/* X 1 floats right of card on desktop */}
                         <div className="hidden sm:block absolute top-1/2 -translate-y-1/2 left-[calc(100%+32px)]">
                             <SvgText text="X  1" weight="600" height={18} className="text-[#1e1e1e]" />
@@ -233,11 +231,11 @@ function PaymentFailedPageInner() {
                         <SvgText text="X  1" weight="600" height={18} className="text-[#1e1e1e]" />
                     </div>
 
-                    <div className="bg-[#f1f1f1] rounded-[15px] px-6 py-[25px] flex items-center justify-between w-[300px]">
+                    <Squircle borderRadius={15} smoothing={50} className="bg-[#f1f1f1] px-6 py-[25px] flex items-center justify-between w-[300px]">
                         <SvgText text="Price" weight="500" height={14} className="text-[#aaaaaa]" />
                         <SvgText text="INR 9,999" weight="600" height={18} className="text-[#1e1e1e]" />
                         <SvgText text="Inc. Taxes" weight="500" height={14} className="text-[#aaaaaa]" />
-                    </div>
+                    </Squircle>
                 </div>
 
                 {/* Description */}

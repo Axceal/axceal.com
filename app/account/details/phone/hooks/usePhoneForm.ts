@@ -62,7 +62,7 @@ export function usePhoneForm() {
             });
             const body = await res.json().catch(() => null);
             if (!res.ok || !body?.ok) {
-                setErrorMsg(body?.error?.message ?? "Could not send OTP.");
+                setErrorMsg(body?.error?.message ?? "Could not send Code.");
                 return false;
             }
             return true;
@@ -76,7 +76,7 @@ export function usePhoneForm() {
         setErrorMsg(null);
         const code = phoneOtp.join("");
         if (code.length !== 6) {
-            setErrorMsg("Enter the 6-digit OTP.");
+            setErrorMsg("Enter the 6-digit Code.");
             return false;
         }
         try {

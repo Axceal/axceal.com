@@ -240,7 +240,7 @@ describe("payment service", () => {
       const payload = {
         id: eventId,
         event: "payment.captured",
-        payload: { payment: { entity: { id: rpPaymentId, order_id: rpOrderId, status: "captured" } } },
+        payload: { payment: { entity: { id: rpPaymentId, order_id: rpOrderId, status: "captured", amount: order.totalPaise, currency: "INR" } } },
       };
       const result = await applyWebhookEvent(JSON.stringify(payload), payload);
 
@@ -248,6 +248,28 @@ describe("payment service", () => {
       const updated = await db.query.orders.findFirst({ where: eq(orders.id, order.id) });
       expect(updated!.status).toBe("paid");
       expect(updated!.razorpayPaymentId).toBe(rpPaymentId);
+    });
+
+    // F13.2 — webhook with mismatched amount must NOT flip status
+    it("payment.captured with amount mismatch → order stays pending", async () => {
+      const user = await createTestUser();
+      const order = await createTestOrder(user.id);
+      cleanups.push(() => order.cleanup(), () => user.cleanup());
+      const rpOrderId = `order_wh_mm_${randomUUID().slice(0, 8)}`;
+      const rpPaymentId = `pay_wh_mm_${randomUUID().slice(0, 8)}`;
+      await db.update(orders).set({ razorpayOrderId: rpOrderId }).where(eq(orders.id, order.id));
+      const eventId = randomUUID();
+      eventIds.push(eventId);
+
+      const payload = {
+        id: eventId,
+        event: "payment.captured",
+        payload: { payment: { entity: { id: rpPaymentId, order_id: rpOrderId, status: "captured", amount: 1, currency: "INR" } } },
+      };
+      const result = await applyWebhookEvent(JSON.stringify(payload), payload);
+      expect(result.handled).toBe(true);
+      const after = await db.query.orders.findFirst({ where: eq(orders.id, order.id) });
+      expect(after!.status).toBe("pending");
     });
 
     it("payment.failed → order status = failed", async () => {
@@ -283,7 +305,7 @@ describe("payment service", () => {
       const payload = {
         id: eventId,
         event: "payment.captured",
-        payload: { payment: { entity: { id: "pay_dup", order_id: rpOrderId } } },
+        payload: { payment: { entity: { id: "pay_dup", order_id: rpOrderId, amount: order.totalPaise, currency: "INR" } } },
       };
       const first = await applyWebhookEvent(JSON.stringify(payload), payload);
       expect(first.handled).toBe(true);
@@ -331,7 +353,7 @@ describe("payment service", () => {
       const payload = {
         id: eventId,
         event: "payment.captured",
-        payload: { payment: { entity: { id: "pay_new", order_id: rpOrderId, status: "captured" } } },
+        payload: { payment: { entity: { id: "pay_new", order_id: rpOrderId, status: "captured", amount: order.totalPaise, currency: "INR" } } },
       };
       await applyWebhookEvent(JSON.stringify(payload), payload);
 

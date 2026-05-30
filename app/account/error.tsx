@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { SvgText } from "../components/SvgText";
+import { signOut } from "next-auth/react";
+import { SvgText } from "../components/text/SvgText";
 
 export default function AccountError({
     error,
@@ -14,7 +14,10 @@ export default function AccountError({
     const [retries, setRetries] = useState(0);
 
     useEffect(() => {
-        console.error("[account error]", error.digest ?? error.message);
+        // F15.2 — log only the digest. Client-side errors otherwise expose
+        // raw stack messages (internal paths, fixture names) in browser
+        // DevTools. The digest is enough to correlate with server logs.
+        console.error("[account error]", error.digest ?? "no-digest");
     }, [error]);
 
     const handleReset = () => {
@@ -27,12 +30,13 @@ export default function AccountError({
             <main className="flex-1 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-6">
                     <SvgText text="Something went wrong." weight="600" height={16} className="text-[#1e1e1e]" />
-                    <Link
-                        href="/api/auth/signout?callbackUrl=/auth"
-                        className="rounded-full px-6 py-3 bg-[#ff0000] focus:outline-none focus-visible:outline-none flex items-center"
+                    <button
+                        type="button"
+                        onClick={() => signOut({ callbackUrl: "/auth" })}
+                        className="rounded-full px-6 py-3 bg-[#ff0000] cursor-pointer focus:outline-none focus-visible:outline-none flex items-center"
                     >
                         <SvgText text="Sign out and try again" weight="600" height={14} className="text-white" />
-                    </Link>
+                    </button>
                 </div>
             </main>
         );

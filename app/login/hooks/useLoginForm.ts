@@ -2,18 +2,19 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { safeInternalPath } from "@/lib/http/safe-redirect";
 
 type Stage = "credentials" | "otp";
 type ActiveField = "email" | "password" | "otp";
+type MessageField = ActiveField | null;
 
 const GAP = 2.5;
 
 export function useLoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const raw = searchParams.get("callbackUrl") ?? "/";
-    // startsWith("/") alone allows protocol-relative URLs like //evil.com.
-    const callbackUrl = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+    // Open-redirect guard: reject absolute URLs and protocol-relative paths.
+    const callbackUrl = safeInternalPath(searchParams.get("callbackUrl"));
     const justRegistered = searchParams.get("registered") === "1";
 
     const [email, setEmail] = useState("");
@@ -28,9 +29,24 @@ export function useLoginForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [sendingOtp, setSendingOtp] = useState(false);
-    const [message, setMessage] = useState<{ kind: "info" | "error"; text: string; field?: "email" | "password" | null } | null>(
+    const [recentlySent, setRecentlySent] = useState(false);
+    const recentlySentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const markRecentlySent = useCallback(() => {
+        setRecentlySent(true);
+        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
+        recentlySentTimer.current = setTimeout(() => setRecentlySent(false), 20000);
+    }, []);
+    useEffect(() => () => {
+        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
+    }, []);
+    const [message, setMessage] = useState<{ kind: "info" | "error"; text: string; field?: MessageField } | null>(
         justRegistered ? { kind: "info", text: "Account created. Log in to continue." } : null,
     );
+    // Indicator visibility — only show the underline while the user actually
+    // has a field focused, so it doesn't jump to a default position on mount
+    // or after a submit-blur and look like a stray marker.
+    const [isFocused, setIsFocused] = useState(false);
 
     const emailWrapRef = useRef<HTMLDivElement>(null);
     const passwordWrapRef = useRef<HTMLDivElement>(null);
@@ -52,15 +68,17 @@ export function useLoginForm() {
             if (!res.ok || !body?.ok) {
                 setMessage({
                     kind: "error",
-                    text: body?.error?.message ?? "Could not send OTP. Please try again.",
+                    text: body?.error?.message ?? "Could not send Code. Please try again.",
                 });
+                return;
             }
+            markRecentlySent();
         } catch {
-            setMessage({ kind: "error", text: "Network error sending OTP." });
+            setMessage({ kind: "error", text: "Network error sending Code." });
         } finally {
             setSendingOtp(false);
         }
-    }, [sendingOtp]);
+    }, [sendingOtp, markRecentlySent]);
 
     const handleVerify = async () => {
         if (submitting) return;
@@ -96,7 +114,7 @@ export function useLoginForm() {
             });
             const body = await res.json().catch(() => null);
             if (!res.ok || !body?.ok) {
-                setMessage({ kind: "error", text: body?.error?.message ?? "Email or Password was incorrect" });
+                setMessage({ kind: "error", text: body?.error?.message ?? "Incorrect email or password." });
                 return;
             }
             const token: string = body.data.pendingMfaToken;
@@ -115,7 +133,7 @@ export function useLoginForm() {
         if (submitting) return;
         const otpCode = otp.join("");
         if (otpCode.length !== 4) {
-            setMessage({ kind: "error", text: "Enter the 4-digit OTP." });
+            setMessage({ kind: "error", text: "Enter the 4-digit Code." });
             return;
         }
         if (!pendingMfaToken) {
@@ -132,20 +150,21 @@ export function useLoginForm() {
                 redirect: false,
             });
             if (!res || res.error || !res.ok) {
-                // Token consumed on failure — must restart from password
-                setPendingMfaToken(null);
+                // Backend peeks the pendingMfaToken now — wrong OTP doesn't
+                // consume it. Clear the code field, keep the token + stage so
+                // the user can retry or Resend without re-entering password.
                 setOtp(["", "", "", ""]);
-                setStage("credentials");
-                setActiveField("email");
-                setMessage({ kind: "error", text: "Incorrect OTP. Please enter your password again." });
+                setActiveField("otp");
+                setFocusedOtpIdx(0);
+                setTimeout(() => document.getElementById("login-otp-digit-0")?.focus(), 10);
+                setMessage({ kind: "error", text: "Incorrect Code.", field: "otp" });
                 return;
             }
             router.push(callbackUrl);
         } catch {
-            setPendingMfaToken(null);
             setOtp(["", "", "", ""]);
-            setStage("credentials");
-            setActiveField("email");
+            setActiveField("otp");
+            setFocusedOtpIdx(0);
             setMessage({ kind: "error", text: "Network error. Please try again." });
         } finally {
             setSubmitting(false);
@@ -174,11 +193,17 @@ export function useLoginForm() {
         }
     };
 
-    const handleFocus = useCallback((field: ActiveField) => setActiveField(field), []);
+    const handleFocus = useCallback((field: ActiveField) => {
+        setActiveField(field);
+        setIsFocused(true);
+    }, []);
+    // Don't reset activeField on blur — that caused the indicator to jump back
+    // to "email" whenever focus moved out (incl. on submit-click). Just hide
+    // the indicator via isFocused; activeField is updated again on next focus.
     const handleBlur = useCallback(() => {
-        setActiveField(stage === "otp" ? "otp" : "email");
+        setIsFocused(false);
         setFocusedOtpIdx(-1);
-    }, [stage]);
+    }, []);
 
     const refMap: Record<ActiveField, React.RefObject<HTMLDivElement | null>> = {
         email: emailWrapRef,
@@ -193,9 +218,15 @@ export function useLoginForm() {
     const isOtp = stage === "otp";
     const otpCode = otp.join("");
 
+    // Strip whitespace at input — Password schema (register/reset/change)
+    // already rejects whitespace, and dev environment has no legacy accounts
+    // with space-containing passwords to preserve.
+    const setPasswordNoSpace = useCallback((v: string) => setPassword(v.replace(/\s/g, "")), []);
+    const setEmailNoSpace = useCallback((v: string) => setEmail(v.replace(/\s/g, "")), []);
+
     return {
-        email, setEmail,
-        password, setPassword,
+        email, setEmail: setEmailNoSpace,
+        password, setPassword: setPasswordNoSpace,
         otp,
         pendingMfaToken,
         stage,
@@ -217,5 +248,7 @@ export function useLoginForm() {
         indicatorTop,
         isOtp,
         otpCode,
+        recentlySent,
+        isFocused,
     };
 }

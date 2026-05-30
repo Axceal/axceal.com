@@ -33,6 +33,11 @@ export const users = pgTable("users", {
     .$onUpdate(() => new Date()),
 });
 
+// F15.5 — phone fields removed from user_profiles. Verified phone lives on
+// `users.phone` (written by /api/account/phone/verify). The legacy
+// phoneCountryCode/phone/phoneSign columns were never reachable as writes
+// after F8.3 stripped them from UpdateProfileRequest, so the schema now
+// matches the actual write path.
 export const userProfiles = pgTable(
   "user_profiles",
   {
@@ -43,9 +48,6 @@ export const userProfiles = pgTable(
     lastName: text("last_name"),
     birthday: date("birthday"),
     gender: text("gender"),
-    phoneCountryCode: text("phone_country_code"),
-    phone: text("phone"),
-    phoneSign: text("phone_sign").default("+"),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull()
@@ -55,10 +57,6 @@ export const userProfiles = pgTable(
     check(
       "user_profiles_gender_check",
       sql`${t.gender} is null or ${t.gender} in ('female','male','private')`,
-    ),
-    check(
-      "user_profiles_phone_sign_check",
-      sql`${t.phoneSign} is null or ${t.phoneSign} in ('+','-')`,
     ),
   ],
 );

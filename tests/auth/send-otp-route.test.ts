@@ -55,20 +55,25 @@ describe("POST /api/auth/send-otp", () => {
     );
   });
 
-  it("register flow + existing email → 200 silent no-op (anti-enumeration)", async () => {
+  it("register flow + existing email → 200, OTP sent (existing-account UX bridge)", async () => {
     const ip = uniqueIp();
     const user = await createTestUser();
     cleanups.push(() => user.cleanup());
     rlKeys.push(`otp:send-rate:${user.email}`, `otp:send-rate-ip:${ip}`);
+    otpKeys.push(`otp:${user.email}`);
 
     const res = await POST(postReq({ email: user.email, flow: "register" }, ip));
     expect(res.status).toBe(200);
     const body = await readJson<OkBody>(res);
     expect(body.data.sent).toBe(true);
 
+    // OTP IS sent for existing emails so the user can verify, then the
+    // create-account UI switches to the Login / Forgot Password pathway via
+    // verify-otp's `accountExists` flag. Anti-enumeration still holds — the
+    // response is identical to the "no account" branch.
     const stored = await redis.get(`otp:${user.email}`);
-    expect(stored).toBeNull();
-    expect(emailProviderMock.sendOtp).not.toHaveBeenCalled();
+    expect(stored).toBeTruthy();
+    expect(emailProviderMock.sendOtp).toHaveBeenCalledOnce();
   });
 
   it("reset-pw flow + existing email → 200, OTP sent (forgot-password)", async () => {

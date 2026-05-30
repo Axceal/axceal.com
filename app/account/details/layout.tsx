@@ -4,7 +4,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { AccountDetailsProvider, useAccountDetails } from "./context";
 import { apiFetch } from "@/lib/http/client";
-import { SvgText } from "../../components/SvgText";
+import { SvgText } from "../../components/text/SvgText";
+import { sessionKeys, readSessionString, clearSession } from "@/lib/sessionKeys";
 import { SPRING, STEP_SEGMENTS, STEP_ROUTES, MONTHS_FULL } from "./constants";
 import { ordinal } from "./helpers";
 
@@ -28,7 +29,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         firstName, lastName,
         selDay, selMonth, yearPrefix, yearSuffix,
         gender,
-        country, phone, phoneSign,
+        phone,
         phoneOtpSent, setPhoneOtpSent,
         phoneOtp,
         onSendPhoneOtp, onVerifyPhoneOtp,
@@ -99,15 +100,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             if (!mapped) return null;
             return { gender: mapped };
         }
-        if (stepIndex === 3) {
-            if (!phone.every(d => d !== "")) return null;
-            const code = country.code.replace(/\D/g, "");
-            return {
-                phoneCountryCode: code,
-                phone: phone.join(""),
-                phoneSign,
-            };
-        }
+        // Step 3 no longer builds a profile patch — see F15.5 in handleNext.
         return null;
     };
 
@@ -122,34 +115,27 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 const sent = await onSendPhoneOtp.current?.();
                 if (sent) setPhoneOtpSent(true);
             } catch {
-                setErrorMsg("Could not send OTP. Please try again.");
+                setErrorMsg("Could not send Code. Please try again.");
             } finally {
                 setSubmitting(false);
             }
             return;
         }
 
-        // Step 3 — "Proceed": verify OTP, save phone, redirect
+        // Step 3 — "Proceed": verify OTP via Twilio (route writes the
+        // verified phone to `users.phone`), then redirect.
+        // F15.5 — the prior PUT /api/account/profile call here was a no-op:
+        // F8.3 removed phone fields from UpdateProfileRequest, so the patch
+        // built by buildStepPatch (phone-only) is stripped by Zod and saves
+        // nothing. The verified phone is already persisted by phone/verify.
         if (stepIndex === 3 && phoneOtpSent) {
             setSubmitting(true);
             setErrorMsg(null);
             try {
                 const verified = await onVerifyPhoneOtp.current?.();
                 if (!verified) return;
-                const patch = buildStepPatch();
-                if (!patch) return;
-                const res = await apiFetch("/api/account/profile", {
-                    method: "PUT",
-                    headers: { "content-type": "application/json" },
-                    body: JSON.stringify(patch),
-                });
-                const body = await res.json().catch(() => null);
-                if (!res.ok || !body?.ok) {
-                    setErrorMsg(body?.error?.message ?? "Could not save. Please try again.");
-                    return;
-                }
-                const from = sessionStorage.getItem("signupFrom") ?? "";
-                sessionStorage.removeItem("signupFrom");
+                const from = readSessionString(sessionKeys.signupFrom) ?? "";
+                clearSession(sessionKeys.signupFrom);
                 router.push(from === "order" ? "/order/units" : "/");
             } catch {
                 setErrorMsg("Network error. Please try again.");
@@ -204,8 +190,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                             <div className="w-[2.5px] h-8 bg-[#0000f4] pt-2 gap-5 rounded-full shrink-0" />
                             <SvgText
                                 text={item.text}
+                                maxWidth={Infinity}
                                 weight="600" height={16}
-                                className="text-[#aaaaaa] group-hover:text-[#1e1e1e] transition-colors"
+
+                                className="text-[#aaaaaa] group-hover:text-[#1e1e1e] transition-colors shrink-0"
                             />
                         </motion.button>
                     ))}
@@ -214,7 +202,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
                 {/* ── Main content ── */}
                 <div className="flex flex-col items-center gap-2 w-full max-w-[400px] px-4 sm:px-0">
-                    <SvgText text="Account Details" weight="600" height={20} className="text-[#1e1e1e] mt-[10px]" />
+                    <div className="flex items-center gap-3 mt-[10px]">
+                        <div className="w-[8px] h-[8px] bg-[#aaaaaa] rounded-full shrink-0" aria-hidden />
+                        <SvgText text="Account Details" weight="600" height={20} className="text-[#1e1e1e]" />
+                    </div>
 
                     {/* Animated step content */}
                     <div className="relative overflow-visible w-full" style={{ height: 400 }}>
@@ -237,7 +228,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     {/* Spacer / error */}
                     <div className="h-6 flex items-center justify-center text-center">
                         {errorMsg && (
-                            <SvgText text={errorMsg} weight="600" height={12} className="text-[#e11d48]" />
+                            <SvgText text={errorMsg} weight="600" height={12} className="text-[#ff0000]" />
                         )}
                     </div>
 
@@ -259,6 +250,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                                 <SvgText
                                     text={submitting ? "Saving..." : stepIndex === 3 ? (phoneOtpSent ? "Proceed" : "Send") : "Next"}
                                     weight="600" height={16}
+                                    maxWidth={400}
                                 />
                             </motion.div>
                         </motion.button>

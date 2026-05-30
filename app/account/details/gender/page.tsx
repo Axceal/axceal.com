@@ -1,8 +1,9 @@
 "use client";
 import { motion } from "framer-motion";
-import { SvgText } from "../../../components/SvgText";
+import { SvgText } from "../../../components/text/SvgText";
 import { useAccountDetails } from "../context";
 import { SPRING } from "../constants";
+import { Squircle } from "../../../components/layout/Squircle";
 
 export default function GenderPage() {
     const { firstName, gender, setGender } = useAccountDetails();
@@ -17,22 +18,25 @@ export default function GenderPage() {
                 {["Female", "Male", "Keep it Private"].map(g => {
                     const active = gender === g;
                     return (
-                        <motion.button
+                        <Squircle
+                            as={motion.button}
+                            borderRadius={16}
+                            smoothing={50}
                             key={g}
                             onClick={() => setGender(g)}
                             initial={{ backgroundColor: "#f1f1f1" }}
                             animate={{ backgroundColor: active ? "#0000f4" : "#f1f1f1" }}
                             transition={SPRING}
-                            className="rounded-[16px] px-8 py-5 cursor-pointer flex items-center justify-center"
+                            className="px-10 py-5 cursor-pointer flex items-center justify-center"
                         >
                             <motion.div
                                 animate={{ color: active ? "#ffffff" : "#1e1e1e" }}
                                 transition={SPRING}
                                 className="flex items-center justify-center text-center"
                             >
-                                <SvgText text={g} weight="600" height={16} />
+                                <SvgText text={g} weight="600" height={16} maxWidth={120} />
                             </motion.div>
-                        </motion.button>
+                        </Squircle>
                     );
                 })}
             </div>

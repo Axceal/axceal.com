@@ -1,8 +1,14 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, count, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { addresses, type Address as AddressRow } from "@/lib/db/schema";
 import type { Address, AddressResponse } from "@/lib/contracts/address";
 import { AppError, ErrorCode } from "@/lib/http/errors";
+
+// S12 — cap active addresses per user. Without a cap, an authenticated user
+// can spam POST /api/addresses (rate-limited 20/hr ≈ 175k/year) and bloat the
+// `addresses` table indefinitely. Soft-deletes also leave rows around. 50 is
+// well above realistic usage (multi-property buyers, gifts, etc.).
+const MAX_ACTIVE_ADDRESSES = 50;
 
 function rowToResponse(row: AddressRow): AddressResponse {
   return {
@@ -26,6 +32,19 @@ export async function createAddress(
   userId: string,
   input: Address,
 ): Promise<AddressResponse> {
+  const [{ value }] = await db
+    .select({ value: count(addresses.id) })
+    .from(addresses)
+    .where(and(eq(addresses.userId, userId), isNull(addresses.deletedAt)));
+
+  if (value >= MAX_ACTIVE_ADDRESSES) {
+    throw new AppError(
+      ErrorCode.CONFLICT,
+      `Address limit reached (max ${MAX_ACTIVE_ADDRESSES}). Delete an existing address before adding a new one.`,
+      409,
+    );
+  }
+
   const [row] = await db
     .insert(addresses)
     .values({ userId, ...input })

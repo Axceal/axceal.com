@@ -7,4 +7,10 @@ export const consoleProvider: EmailProvider = {
     // eslint-disable-next-line no-console
     console.log(`\n[dev-email] OTP for ${to}: ${code}\n`);
   },
+  async sendLoginAlert(to, ctx) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `\n[dev-email] login alert for ${to}: ip=${ctx.ip} ua=${ctx.userAgent} at=${ctx.occurredAt.toISOString()}\n`,
+    );
+  },
 };

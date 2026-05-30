@@ -2,13 +2,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { SvgText } from "../../components/SvgText";
-import { Stepper, type Step } from "../../components/Stepper";
+import { SvgText } from "../../components/text/SvgText";
+import { Stepper, type Step } from "../../components/feedback/Stepper";
 import { useAuthGate } from "@/app/hooks/useAuthGate";
-import { AeroIcon } from "../../components/icons/AeroIcon";
+import { AeroIcon } from "../../components/icons/brand/AeroIcon";
+import { Squircle } from "../../components/layout/Squircle";
 
 const STEPS: Step[] = [
-    { label: "Order", state: "current", href: "/order/units" },
+    { label: "Units", state: "current", href: "/order/units" },
     { label: "Billing & Shipping", state: "upcoming", href: "/order/billing-shipping" },
     { label: "Payment", state: "upcoming", href: "/order/payment" },
 ];
@@ -45,13 +46,16 @@ export default function OrderUnitsPage() {
         <main className="flex-1 flex flex-col items-center pt-4 pb-4">
 
             {/* ── Progress stepper ── */}
-            <Stepper steps={STEPS} className="mb-10" />
+            <Stepper steps={STEPS} className="mb-16" />
 
             {/* ── Content ── */}
             <div className="flex flex-col gap-4 items-center sm:items-start w-full sm:w-fit px-4 sm:px-0">
 
                 {/* "Units" heading */}
-                <SvgText text="Units" weight="600" height={18} className="text-[#1e1e1e] sm:ml-[10px]" />
+                <div className="flex items-center gap-3 w-[320px] sm:w-auto justify-start mb-1 sm:mb-0">
+                    <div className="w-[8px] h-[8px] bg-[#aaaaaa] rounded-full shrink-0" aria-hidden />
+                    <SvgText text="Units" weight="600" height={18} className="text-[#1e1e1e]" />
+                </div>
 
                 {/* Card + desktop drum picker in one relative container */}
                 <div
@@ -59,9 +63,9 @@ export default function OrderUnitsPage() {
                     onWheel={handleWheel}
                     style={{ touchAction: "none" }}
                 >
-                    <div className="bg-[#f1f1f1] rounded-[20px] w-full h-full flex items-center justify-center">
+                    <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-full h-full flex items-center justify-center">
                         <AeroIcon alt="Aero x1" className="w-[60%] sm:w-[200px]" />
-                    </div>
+                    </Squircle>
 
                     {/* Desktop drum picker: absolute, floats right of card */}
                     <motion.div

@@ -45,6 +45,11 @@ export const logger = pino({
       // need to be listed individually — `token` does not match `pendingMfaToken`.
       "pendingMfaToken",
       "signupSessionToken",
+      // F14.6 — fields added by S16 (currentPassword) and F13.1
+      // (loginToken). Exact-name match means future log calls would silently
+      // leak them without these explicit entries.
+      "currentPassword",
+      "loginToken",
       "*.password",
       "*.passwordHash",
       "*.otp",
@@ -53,6 +58,8 @@ export const logger = pino({
       "*.otpToken",
       "*.pendingMfaToken",
       "*.signupSessionToken",
+      "*.currentPassword",
+      "*.loginToken",
       "req.headers.authorization",
       "req.headers.cookie",
     ],

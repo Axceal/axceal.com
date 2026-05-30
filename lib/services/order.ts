@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { addresses, orders, users, type Order as OrderRow } from "@/lib/db/schema";
+import { orders, users, type Order as OrderRow } from "@/lib/db/schema";
 import { AERO } from "@/lib/product";
 import { AppError, ErrorCode } from "@/lib/http/errors";
 import { logger } from "@/lib/logger";
@@ -35,19 +35,11 @@ export async function createOrder(
   const existing = await findByIdempotencyKey(userId, input.idempotencyKey);
   if (existing) return rowToResponse(existing);
 
-  const [billingRow] = await db
-    .insert(addresses)
-    .values({ userId, ...input.billingAddress })
-    .returning();
-
-  let shippingRowId: string | null = null;
-  if (input.shippingAddress) {
-    const [s] = await db
-      .insert(addresses)
-      .values({ userId, ...input.shippingAddress })
-      .returning();
-    shippingRowId = s.id;
-  }
+  // F13.3 — orders no longer insert into `addresses`. The JSONB snapshot
+  // columns are the source of truth for billing/shipping on past orders, and
+  // bypassing the S12 address-cap via order-driven inserts is closed by
+  // dropping the inserts entirely. `billingAddressId`/`shippingAddressId`
+  // remain nullable for backward-compatibility with older rows.
 
   const unitPricePaise = AERO.priceInPaise;
   const totalPaise = unitPricePaise * input.quantity;
@@ -62,8 +54,8 @@ export async function createOrder(
         unitPricePaise,
         totalPaise,
         status: "pending",
-        billingAddressId: billingRow.id,
-        shippingAddressId: shippingRowId,
+        billingAddressId: null,
+        shippingAddressId: null,
         billingAddressSnapshot: input.billingAddress,
         shippingAddressSnapshot: input.shippingAddress ?? null,
         idempotencyKey: input.idempotencyKey,

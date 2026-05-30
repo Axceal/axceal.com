@@ -1,20 +1,19 @@
 import { AppError, ErrorCode } from "@/lib/http/errors";
 import { env } from "@/lib/env";
 
+// S10 — read only the configured trusted header (env.TRUSTED_IP_HEADER).
+// Reading multiple headers (x-real-ip, x-forwarded-for, x-vercel-forwarded-for)
+// silently fails open if any of them gets through unstripped from a misconfig.
+// Pin one source per deployment, document it, fail closed if absent in prod.
 export function getClientIp(req: Request): string {
-  // x-real-ip is set by Vercel/nginx to the actual client IP and is not
-  // user-spoofable; prefer it over x-forwarded-for.
-  const realIp = req.headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
-  // Take the rightmost entry — appended by the trusted proxy, not the client.
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) {
-    const parts = xff.split(",");
+  const raw = req.headers.get(env.TRUSTED_IP_HEADER);
+  if (raw) {
+    // x-forwarded-for-style headers can carry "client, proxy1, proxy2".
+    // Take the rightmost entry (appended by the trusted proxy itself).
+    const parts = raw.split(",");
     return parts[parts.length - 1].trim();
   }
-  // No trusted IP source. In production this means a misconfigured deploy:
-  // collapsing all traffic into a single "unknown" rate-limit bucket would let
-  // one attacker fill the bucket and DoS every other user. Fail closed.
+
   if (env.NODE_ENV === "production") {
     throw new AppError(
       ErrorCode.INTERNAL,

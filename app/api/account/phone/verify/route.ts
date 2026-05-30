@@ -9,7 +9,11 @@ import { verifyPhoneOtp } from "@/lib/twilio/verify";
 import { AppError, ErrorCode } from "@/lib/http/errors";
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
+import { redis } from "@/lib/redis";
 import { logger } from "@/lib/logger";
+
+// S13 — must match the key set in /api/account/phone/send.
+const phoneBindKey = (userId: string) => `phone-pending:${userId}`;
 
 function isUniqueViolation(err: unknown): boolean {
   return (
@@ -27,9 +31,21 @@ export const POST = withHandler({
     const session = await requireSession();
     await rateLimit(`phone-verify:${session.userId}`, { limit: 5, windowSec: 3600 });
 
+    // S13 — assert the phone the client is verifying matches the phone the
+    // OTP was actually sent to in the same session. Blocks the
+    // session-hijack-then-relink-phone path.
+    const boundPhone = await redis.get<string>(phoneBindKey(session.userId));
+    if (!boundPhone || boundPhone !== input.phone) {
+      throw new AppError(
+        ErrorCode.UNAUTHENTICATED,
+        "No pending phone verification for this number. Please request a new code.",
+        400,
+      );
+    }
+
     const approved = await verifyPhoneOtp(input.phone, input.code);
     if (!approved) {
-      throw new AppError(ErrorCode.INVALID_OTP, "Incorrect OTP.", 400);
+      throw new AppError(ErrorCode.INVALID_OTP, "Incorrect Code.", 400);
     }
 
     const now = new Date();
@@ -51,6 +67,10 @@ export const POST = withHandler({
       }
       throw err;
     }
+
+    // Burn the binding on success so a verified phone can't be re-bound by
+    // a stale stored value.
+    await redis.del(phoneBindKey(session.userId));
 
     logger.info({ userId: session.userId }, "phone verified");
     return { verified: true as const };
