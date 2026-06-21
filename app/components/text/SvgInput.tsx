@@ -12,6 +12,8 @@ export interface SvgInputProps {
     weight?: FontWeight;
     /** Desired render height in px — same unit as SvgText's `height` prop */
     height?: number;
+    /** Extra letter spacing between characters in px */
+    letterSpacing?: number;
     /** Tailwind/CSS classes applied to the outer pill container */
     className?: string;
     id?: string;
@@ -63,6 +65,7 @@ export function SvgInput({
     type = "text",
     weight = "600",
     height = 16,
+    letterSpacing = 0,
     className = "",
     id,
     required,
@@ -96,12 +99,13 @@ export function SvgInput({
     const hasBullet = !!glyphs[BULLET];
     const display = type === "password" ? BULLET.repeat(value.length) : value;
 
-    // ── Glyph geometry ────────────────────────────────────────────────────────
-    const { paths, xPositions, totalWidth } = buildGlyphs(display, glyphs, kern);
-    const { paths: phPaths, totalWidth: phWidth } = buildGlyphs(placeholder, glyphs, kern);
-
     // scale: font-units → CSS pixels
     const scale = height / BASE;
+    const letterSpacingFU = letterSpacing / scale;
+
+    // ── Glyph geometry ────────────────────────────────────────────────────────
+    const { paths, xPositions, totalWidth } = buildGlyphs(display, glyphs, kern, letterSpacingFU);
+    const { paths: phPaths, totalWidth: phWidth } = buildGlyphs(placeholder, glyphs, kern, 0);
 
     // ── Password bullet fallback sizes (font-space units) ────────────────────
     const BULLET_R_PX = height * 0.22;

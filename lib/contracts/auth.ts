@@ -43,10 +43,15 @@ export const OtpLoginRequest = z.object({
 });
 export const OtpLoginResponse = z.object({ pendingMfaToken: UUID });
 
+// W6 — `intent` lets the create-account flow declare a post-signup action.
+// "waitlist" means the user signed up from the queue popup; the route inserts
+// a waitlist row and the client redirects to `/?joined=1`. Optional so the
+// normal signup flow is unaffected.
 export const RegisterRequest = z.object({
   email: Email,
   password: Password,
   otpToken: z.string(),
+  intent: z.enum(["waitlist"]).optional(),
 });
 export const RegisterResponse = z.object({ userId: UUID, signupSessionToken: UUID });
 

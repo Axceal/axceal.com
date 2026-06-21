@@ -7,7 +7,14 @@ import { Squircle } from "../components/layout/Squircle";
 import { AxcealLogo } from "../components/icons/brand/AxcealLogo";
 import { sessionKeys, readSession, writeSession, clearSession } from "@/lib/sessionKeys";
 
-type Pending = { signupSessionToken: string; from: string; issuedAt?: number };
+type Pending = {
+    signupSessionToken: string;
+    from: string;
+    issuedAt?: number;
+    // W6 — waitlist signups skip the safety-details prompt entirely; the
+    // landing page is `/?joined=1` which triggers the status popup.
+    intent?: "waitlist";
+};
 
 // F15.7 — server-side TTL is 5 min on signupSessionToken
 // (issuePendingMfaToken). Bail a hair earlier client-side so the user sees a
@@ -47,6 +54,29 @@ export default function AccountReadyPage() {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setPending(parsed);
     }, [router]);
+
+    // W6 — waitlist signup: auto-sign-in and redirect to `/?joined=1` so the
+    // home page opens the status popup. No UI prompt for safety details.
+    useEffect(() => {
+        if (!pending || pending.intent !== "waitlist") return;
+        let cancelled = false;
+        (async () => {
+            const result = await signIn("credentials-signup", {
+                signupSessionToken: pending.signupSessionToken,
+                redirect: false,
+            });
+            if (cancelled) return;
+            if (!result || result.error || !result.ok) {
+                setError("Could not sign in. Please log in manually.");
+                return;
+            }
+            clearSession(sessionKeys.pendingSignup);
+            router.replace("/?joined=1");
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [pending, router]);
 
     const signInWithCreds = async (): Promise<boolean> => {
         if (!pending) return false;
@@ -100,28 +130,32 @@ export default function AccountReadyPage() {
                         className="text-[#aaaaaa] leading-[1.6]"
                     />
                 </Squircle>
-                <div className="bg-[#f1f1f1] rounded-full p-1">
-                    <div className="flex items-center justify-center gap-3">
-                        <button
-                            type="button"
-                            onClick={handleSkip}
-                            disabled={submitting}
-                            className="bg-[#0000f4] rounded-full flex items-center justify-center px-8 py-4 cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                            <SvgText text="Skip" weight="600" height={16} className="text-white" />
-                        </button>
-                        <span
-                            className="block w-[10px] aspect-square rounded-full bg-[#aaaaaa]"
-                            aria-hidden
-                        />
-                        <button
-                            type="button"
-                            onClick={handleAddDetails}
-                            disabled={submitting}
-                            className="bg-[#0000f4] rounded-full flex items-center justify-center px-8 py-4 cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                            <SvgText text="Add safety details" weight="600" height={16} className="text-white" />
-                        </button>
+                <div className="bg-[#f1f1f1] rounded-full p-[5px] w-full">
+                    <div className="flex items-center w-full !gap-0">
+                        <div className="w-[40%] flex items-center justify-evenly">
+                            <button
+                                type="button"
+                                onClick={handleSkip}
+                                disabled={submitting}
+                                className="flex items-center justify-center pl-4 py-3 cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                <SvgText text="Skip" weight="600" height={16} className="text-[#0000f4]" />
+                            </button>
+                            <span
+                                className="block w-[8px] aspect-square rounded-full bg-[#aaaaaa] shrink-0"
+                                aria-hidden
+                            />
+                        </div>
+                        <div className="w-[60%]">
+                            <button
+                                type="button"
+                                onClick={handleAddDetails}
+                                disabled={submitting}
+                                className="w-full bg-[#0000f4] rounded-full flex items-center justify-center py-4 cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                <SvgText text="Add safety details" weight="600" height={16} className="text-white" />
+                            </button>
+                        </div>
                     </div>
                 </div>
 

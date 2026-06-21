@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import ReactDOM from "react-dom";
 import { HomeClient } from "./HomeClient";
 import { jsonLdScript, productLd } from "@/lib/seo/jsonld";
 
 export const metadata: Metadata = {
-  title: "Aero x1 — Axceal",
+  title: "Aero x1 by Axceal",
   description:
-    "Aero x1 by Axceal. Precision pocket companion with battery, sense, navigation, cues, and feather modes. Order direct with secure checkout.",
+    "Aero x1 by Axceal. Order direct with secure checkout.",
   alternates: { canonical: "/" },
   openGraph: {
     url: "/",
-    title: "Aero x1 — Axceal",
+    title: "Aero x1 Axceal",
     description:
       "Aero x1 by Axceal. Precision pocket companion. Order direct with secure checkout.",
   },
@@ -29,7 +30,13 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={jsonLdScript(productLd())}
       />
-      <HomeClient />
+      {/* W9 debug — HomeClient calls useSearchParams (for the ?joined=1
+          waitlist redirect). Next 15 requires a Suspense boundary around any
+          client subtree that reads search params, or the page silently opts
+          out of static generation and `next build` errors. */}
+      <Suspense fallback={null}>
+        <HomeClient />
+      </Suspense>
     </>
   );
 }

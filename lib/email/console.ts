@@ -13,4 +13,8 @@ export const consoleProvider: EmailProvider = {
       `\n[dev-email] login alert for ${to}: ip=${ctx.ip} ua=${ctx.userAgent} at=${ctx.occurredAt.toISOString()}\n`,
     );
   },
+  async sendWaitlistJoined(to, position) {
+    // eslint-disable-next-line no-console
+    console.log(`\n[dev-email] waitlist joined: ${to} at #${position}\n`);
+  },
 };

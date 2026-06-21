@@ -14,6 +14,8 @@ export const ErrorCode = {
   RATE_LIMITED: "RATE_LIMITED",
   INTERNAL: "INTERNAL",
   UPSTREAM_FAILED: "UPSTREAM_FAILED",
+  SALES_DISABLED: "SALES_DISABLED",
+  GONE: "GONE",
 } as const;
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 

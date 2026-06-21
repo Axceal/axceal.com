@@ -149,7 +149,7 @@ function LoginPageInner() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -4 }}
                                 transition={SPRING}
-                                className="w-full flex flex-col gap-5 pt-1"
+                                className="w-full flex flex-col gap-5 pt-2"
                             >
                                 <SvgText
                                     text="Check your Email for code"
@@ -172,8 +172,8 @@ function LoginPageInner() {
                                         {otp.map((digit, i) => (
                                             <div
                                                 key={`login-otp-${i}`}
-                                                onClick={() => document.getElementById(`login-otp-digit-${i}`)?.focus()}
-                                                className={`w-10 h-10 rounded-full bg-white flex shrink-0 transition-all cursor-text ${focusedOtpIdx === i ? "ring-2 ring-[#0000f4]" : ""}`}
+                                                onClick={() => !submitting && document.getElementById(`login-otp-digit-${i}`)?.focus()}
+                                                className={`w-10 h-10 rounded-full bg-white flex shrink-0 transition-all ${submitting ? "cursor-not-allowed opacity-60" : "cursor-text"} ${focusedOtpIdx === i && !submitting ? "ring-2 ring-[#0000f4]" : ""}`}
                                             >
                                                 <SvgInput
                                                     id={`login-otp-digit-${i}`}
@@ -182,10 +182,11 @@ function LoginPageInner() {
                                                     onKeyDown={(e) => handleOtpKeyDown(i, e)}
                                                     onFocus={() => { handleFocus("otp"); setFocusedOtpIdx(i); }}
                                                     onBlur={handleBlur}
+                                                    readOnly={submitting}
                                                     height={18}
                                                     weight="600"
                                                     align="center"
-                                                    className="text-[#1e1e1e] w-full"
+                                                    className={`text-[#1e1e1e] w-full ${submitting ? "cursor-not-allowed" : ""}`}
                                                 />
                                             </div>
                                         ))}

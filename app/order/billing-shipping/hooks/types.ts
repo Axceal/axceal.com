@@ -15,10 +15,8 @@ export interface AddressFormState {
     phone2: string; setPhone2: (v: string) => void;
     code: string[]; setCode: Dispatch<SetStateAction<string[]>>;
     sign: string; setSign: Dispatch<SetStateAction<string>>;
-    countryCode: string; setCountryCode: (v: string) => void;
-    countryFocused: boolean; setCountryFocused: (v: boolean) => void;
-    stateFocused: boolean; setStateFocused: (v: boolean) => void;
-    zipError: string | null; setZipError: (v: string | null) => void;
+    countryCode: string; setCountryCode: Dispatch<SetStateAction<string>>;
+    zipError: string | null; setZipError: Dispatch<SetStateAction<string | null>>;
     fieldErrors: FieldErrorMap;
     clearFieldError: (field: keyof FieldErrorMap) => void;
     firstRef: RefObject<HTMLDivElement | null>;
@@ -32,8 +30,6 @@ export interface AddressFormState {
     pos: { top: number; left: number } | null;
     onFocus: (f: string) => void;
     onBlur: () => void;
-    countrySuggestions: string[];
-    stateSuggestions: string[];
 }
 
 export type AddressPayload = {

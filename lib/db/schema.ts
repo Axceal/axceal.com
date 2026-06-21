@@ -132,6 +132,45 @@ export const orders = pgTable(
   ],
 );
 
+// W2 — waitlist queue. Position is a stable integer pulled from
+// `waitlist_position_seq` (START 1001). The sequence is the source of truth;
+// `position` carries `DEFAULT nextval(...)` so Drizzle inserts omit the
+// column and let Postgres assign atomically. ON DELETE CASCADE drops the
+// waitlist row with the user; the sequence keeps climbing so retired
+// positions are never reissued.
+export const waitlist = pgTable(
+  "waitlist",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    position: integer("position")
+      .notNull()
+      .default(sql`nextval('waitlist_position_seq')`),
+    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    invitedAt: timestamp("invited_at", { withTimezone: true }),
+    // W9 backend-review — `set null` so deleting a fulfilled order does not
+    // either block (`restrict`) or orphan a stale id. Conversion history is
+    // recorded for funnel analytics; losing the id once the order is gone
+    // is acceptable.
+    convertedOrderId: uuid("converted_order_id").references(() => orders.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [
+    // W9 backend-review — defense-in-depth UNIQUE on position. The sequence
+    // already guarantees uniqueness during normal inserts, but an admin tool
+    // / manual fixup could otherwise dupe. UNIQUE creates the index we need
+    // for ORDER BY position scans (notify-waitlist batch), so this replaces
+    // the prior `waitlist_position_idx`.
+    unique("waitlist_position_unique").on(t.position),
+  ],
+);
+
 export const paymentEvents = pgTable("payment_events", {
   id: uuid("id").primaryKey().defaultRandom(),
   orderId: uuid("order_id").references(() => orders.id),
@@ -151,3 +190,5 @@ export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 export type PaymentEvent = typeof paymentEvents.$inferSelect;
 export type NewPaymentEvent = typeof paymentEvents.$inferInsert;
+export type Waitlist = typeof waitlist.$inferSelect;
+export type NewWaitlist = typeof waitlist.$inferInsert;

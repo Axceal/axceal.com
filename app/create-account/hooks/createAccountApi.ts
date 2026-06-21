@@ -53,9 +53,16 @@ export async function apiOtpLogin(email: string, otpToken: string): Promise<ApiR
     }
 }
 
-export async function apiRegister(email: string, password: string, otpToken: string): Promise<ApiResult<{ signupSessionToken: string }>> {
+export async function apiRegister(
+    email: string,
+    password: string,
+    otpToken: string,
+    intent?: "waitlist",
+): Promise<ApiResult<{ signupSessionToken: string }>> {
     try {
-        const { res, body } = await postJson("/api/auth/register", { email, password, otpToken });
+        const payload: Record<string, unknown> = { email, password, otpToken };
+        if (intent) payload.intent = intent;
+        const { res, body } = await postJson("/api/auth/register", payload);
         if (!res.ok || !(body as { ok?: boolean })?.ok) return fail(body, "Could not create account.");
         return { ok: true, data: (body as { data: { signupSessionToken: string } }).data };
     } catch {

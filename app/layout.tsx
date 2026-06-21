@@ -17,11 +17,11 @@ const BING_VERIFY = process.env.NEXT_PUBLIC_BING_VERIFICATION;
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Axceal — Aero x1",
-    template: "%s — Axceal",
+    default: "Axceal Aero x1",
+    template: "%s Axceal",
   },
   description:
-    "Axceal builds Aero x1 — a precision pocket companion. Order direct from Axceal with secure checkout.",
+    "Axceal Aero x1. Order direct from Axceal with secure checkout.",
   applicationName: "Axceal",
   authors: [{ name: "Axceal" }],
   generator: "Next.js",
@@ -33,9 +33,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Axceal",
-    title: "Axceal — Aero x1",
+    title: "Axceal Aero x1",
     description:
-      "Aero x1 by Axceal. Precision pocket companion. Order direct with secure checkout.",
+      "Aero x1 by Axceal. Order direct with secure checkout.",
     url: SITE_URL,
     locale: "en_IN",
     images: [
@@ -43,15 +43,15 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Axceal — Aero x1",
+        alt: "Axceal Aero x1",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Axceal — Aero x1",
+    title: "Axceal Aero x1",
     description:
-      "Aero x1 by Axceal. Precision pocket companion. Order direct with secure checkout.",
+      "Aero x1 by Axceal. Order direct with secure checkout.",
     images: ["/opengraph-image"],
   },
   robots: {

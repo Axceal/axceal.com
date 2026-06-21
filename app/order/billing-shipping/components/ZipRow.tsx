@@ -23,12 +23,13 @@ export function ZipRow({
                 <SvgInput
                     value={form.zip}
                     onChange={v => {
-                        form.setZip(v.replace(/[a-zA-Z]/g, ""));
+                        form.setZip(v.replace(/[a-zA-Z]/g, "").slice(0, 10)); // max 10 length
                         setCorrectedFields(f => { const n = new Set(f); n.delete(zipKey); return n; });
                         form.setZipError(null);
                         form.clearFieldError("zip");
                     }}
                     placeholder="zipcode/pincode"
+                    letterSpacing={8} // 8px visual spacing between digits
                     weight="600"
                     height={14}
                     align="center"

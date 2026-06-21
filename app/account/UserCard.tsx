@@ -41,7 +41,7 @@ export async function UserCard() {
     const descriptionTail = "Includes Name, Phone Number,\nGender and Birthday";
 
     return (
-        <div className="bg-[#f1f1f1] rounded-3xl p-8 w-[300px] h-[300px] flex flex-col gap-6">
+        <div className="bg-[#f1f1f1] rounded-[24px] p-8 w-[300px] h-[300px] flex flex-col gap-6 relative z-10">
             <div className="flex items-center gap-4">
                 <div className="w-[52px] h-[52px] rounded-full pb-[2px] bg-[#0000f4] flex items-center justify-center shrink-0">
                     <UserIcon className="w-[24px] h-[24px] text-white stroke-[#0000f4]" />
@@ -54,15 +54,16 @@ export async function UserCard() {
 
             <SvgText
                 text={`${createdLine}\n${descriptionTail}`}
-                weight="500"
+                weight="600"
                 height={14}
                 className="text-[#aaaaaa] leading-[1.5]"
             />
 
-            <div className="flex flex-col gap-6 items-center mt-auto mb-2">
+            <div className="flex flex-col gap-6 items-center mt-auto relative">
                 <Link href="/account/view-details" className="focus:outline-none">
                     <SvgText text="Details" weight="600" height={16} className="text-[#1e1e1e] hover:text-[#0000f4] transition-colors" />
                 </Link>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full bg-[#aaaaaa]" />
                 <Link href="/account/change-password" className="focus:outline-none">
                     <SvgText text="Change Password" weight="600" height={16} className="text-[#1e1e1e] hover:text-[#0000f4] transition-colors" />
                 </Link>

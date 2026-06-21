@@ -30,6 +30,7 @@ interface OtpSectionProps {
     // prevents the underline from sitting under "otp" on mount or jumping
     // back here after a submit-click blur.
     isFocused?: boolean;
+    disabled?: boolean;
 }
 
 export function OtpSection({
@@ -52,6 +53,7 @@ export function OtpSection({
     otpWrapRef,
     recentlySent = false,
     isFocused = true,
+    disabled = false,
 }: OtpSectionProps) {
     return (
         <AnimatePresence>
@@ -81,8 +83,8 @@ export function OtpSection({
                             {otp.map((digit, i) => (
                                 <div
                                     key={`${otpKeyPrefix}-${i}`}
-                                    onClick={() => document.getElementById(`${otpIdPrefix}-${i}`)?.focus()}
-                                    className={`w-10 h-10 rounded-full bg-white flex shrink-0 transition-all cursor-text ${focusedOtpIdx === i ? "ring-2 ring-[#0000f4]" : ""}`}
+                                    onClick={() => !disabled && document.getElementById(`${otpIdPrefix}-${i}`)?.focus()}
+                                    className={`w-10 h-10 rounded-full bg-white flex shrink-0 transition-all ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text"} ${focusedOtpIdx === i && !disabled ? "ring-2 ring-[#0000f4]" : ""}`}
                                 >
                                     <SvgInput
                                         id={`${otpIdPrefix}-${i}`}
@@ -91,10 +93,11 @@ export function OtpSection({
                                         onKeyDown={(e) => handleOtpKeyDown(i, e)}
                                         onFocus={() => onDigitFocus(i)}
                                         onBlur={onDigitBlur}
+                                        readOnly={disabled}
                                         height={18}
                                         weight="600"
                                         align="center"
-                                        className="text-[#1e1e1e] w-full"
+                                        className={`text-[#1e1e1e] w-full ${disabled ? "cursor-not-allowed" : ""}`}
                                     />
                                 </div>
                             ))}
@@ -104,7 +107,7 @@ export function OtpSection({
                     <button
                         type="button"
                         onClick={handleSendOtp}
-                        disabled={sendingOtp || !email || recentlySent}
+                        disabled={sendingOtp || !email || recentlySent || disabled}
                         className="cursor-pointer disabled:cursor-not-allowed focus:outline-none self-center"
                         aria-label="Resend Code"
                     >

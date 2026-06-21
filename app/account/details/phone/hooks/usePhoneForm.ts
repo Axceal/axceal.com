@@ -113,7 +113,7 @@ export function usePhoneForm() {
         firstName,
         country, setCountry,
         countrySearch, setCountrySearch,
-        setShowSearch,
+        showSearch, setShowSearch,
         phone,
         sign, setSign,
         phoneOtp,

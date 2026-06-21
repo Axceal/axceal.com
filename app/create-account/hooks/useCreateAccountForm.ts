@@ -22,6 +22,11 @@ export function useCreateAccountForm() {
     const searchParams = useSearchParams();
     // Open-redirect guard: reject absolute URLs and protocol-relative paths.
     const from = safeInternalPath(searchParams.get("from"));
+    // W6 — popup-1 routes here with `?intent=waitlist`; flag is forwarded to
+    // the register endpoint so the server-side waitlist join runs in the same
+    // request, and persisted into pendingSignup so /account-ready can route
+    // the user back home with `?joined=1` instead of the safety-details flow.
+    const intent = searchParams.get("intent") === "waitlist" ? "waitlist" : undefined;
 
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState(["", "", "", ""]);
@@ -228,11 +233,14 @@ export function useCreateAccountForm() {
         setSubmitting(true);
         setMessage(null);
         try {
-            const result = await apiRegister(email, password, otpToken);
+            const result = await apiRegister(email, password, otpToken, intent);
             if (!result.ok) { setMessage({ kind: "error", text: result.message }); return; }
             writeSession(sessionKeys.pendingSignup, {
                 signupSessionToken: result.data.signupSessionToken,
                 from: from ?? "",
+                // W6 — intent carried forward so /account-ready knows to skip
+                // the safety-details prompt and bounce home with ?joined=1.
+                intent,
                 // F15.7 — issuedAt lets /account-ready bail with a clear
                 // "session expired" message instead of a generic signin
                 // failure once the server-side 5-min TTL elapses.

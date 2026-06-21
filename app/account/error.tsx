@@ -27,33 +27,33 @@ export default function AccountError({
 
     if (retries >= 2) {
         return (
-            <main className="flex-1 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-6">
-                    <SvgText text="Something went wrong." weight="600" height={16} className="text-[#1e1e1e]" />
-                    <button
-                        type="button"
-                        onClick={() => signOut({ callbackUrl: "/auth" })}
-                        className="rounded-full px-6 py-3 bg-[#ff0000] cursor-pointer focus:outline-none focus-visible:outline-none flex items-center"
-                    >
-                        <SvgText text="Sign out and try again" weight="600" height={14} className="text-white" />
-                    </button>
-                </div>
+            <main className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[60vh]">
+                <img src="/assets/error%20svg.svg" alt="Error" className="w-[24px] h-[24px]" />
+                
+                <button
+                    type="button"
+                    onClick={() => signOut({ callbackUrl: "/auth" })}
+                    className="bg-[#f1f1f1] rounded-full px-[20px] py-3 flex items-center justify-center gap-1 cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus-visible:outline-none"
+                >
+                    <SvgText text="Wrong Landing," weight="600" height={14} className="text-[#1e1e1e]" />
+                    <SvgText text="back to Home" weight="600" height={14} className="text-[#0000f4]" />
+                </button>
             </main>
         );
     }
 
     return (
-        <main className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-6">
-                <SvgText text="Something went wrong." weight="600" height={16} className="text-[#1e1e1e]" />
-                <button
-                    type="button"
-                    onClick={handleReset}
-                    className="rounded-full px-6 py-3 bg-[#0000f4] focus:outline-none focus-visible:outline-none"
-                >
-                    <SvgText text="Try again" weight="600" height={14} className="text-white" />
-                </button>
-            </div>
+        <main className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[60vh]">
+            <img src="/assets/error%20svg.svg" alt="Error" className="w-[24px] h-[24px]" />
+            
+            <button
+                type="button"
+                onClick={handleReset}
+                className="bg-[#f1f1f1] rounded-full px-[20px] py-3 flex items-center justify-center gap-1 cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus-visible:outline-none"
+            >
+                <SvgText text="Wrong Landing," weight="600" height={14} className="text-[#1e1e1e]" />
+                <SvgText text="Try again" weight="600" height={14} className="text-[#0000f4]" />
+            </button>
         </main>
     );
 }

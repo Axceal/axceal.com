@@ -48,6 +48,12 @@ const EnvSchema = z.object({
     .string()
     .url()
     .default("https://axceal.com"),
+
+  // W1 — sales mode flag. See lib/featureFlags.ts. Default `waitlist` matches
+  // pre-launch posture. `dev-live` is rejected in production builds below.
+  NEXT_PUBLIC_SALES_MODE: z
+    .enum(["waitlist", "live", "dev-live"])
+    .default("waitlist"),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
@@ -70,6 +76,19 @@ if (
 ) {
   throw new Error(
     "NEXT_PUBLIC_DEV_SKIP_AUTH_GATES=true is forbidden when NODE_ENV=production",
+  );
+}
+
+// W1 — `dev-live` is a dev-only override that mirrors `live` behaviour without
+// affecting the production posture. NEXT_PUBLIC_* is build-time inlined, so a
+// stray `dev-live` value in a prod build would silently disable the waitlist
+// gate site-wide. Fail-closed at boot.
+if (
+  parsed.data.NODE_ENV === "production"
+  && parsed.data.NEXT_PUBLIC_SALES_MODE === "dev-live"
+) {
+  throw new Error(
+    "NEXT_PUBLIC_SALES_MODE=dev-live is forbidden when NODE_ENV=production",
   );
 }
 

@@ -92,9 +92,11 @@ export default function ChangePasswordPage() {
                             placeholder="Current Password"
                             value={currentPassword}
                             onChange={setCurrentPassword}
-                            weight="500"
+                            weight="600"
                             height={14}
-                            className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1"
+                            align="center"
+                            readOnly={otpVerified}
+                            className={`w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1 ${otpVerified ? "opacity-60 cursor-not-allowed" : ""}`}
                             onFocus={() => focusField("current")}
                             onBlur={blurField}
                             rightSlot={
@@ -130,8 +132,8 @@ export default function ChangePasswordPage() {
                                         {otp.map((digit, i) => (
                                             <div
                                                 key={`change-pw-otp-${i}`}
-                                                onClick={() => document.getElementById(`change-pw-otp-digit-${i}`)?.focus()}
-                                                className={`w-10 h-10 rounded-full bg-white flex shrink-0 transition-all cursor-text ${focusedOtpIdx === i ? "ring-2 ring-[#0000f4]" : ""}`}
+                                                onClick={() => !otpVerified && document.getElementById(`change-pw-otp-digit-${i}`)?.focus()}
+                                                className={`w-10 h-10 rounded-full bg-white flex shrink-0 transition-all ${otpVerified ? "cursor-not-allowed opacity-60" : "cursor-text"} ${focusedOtpIdx === i && !otpVerified ? "ring-2 ring-[#0000f4]" : ""}`}
                                             >
                                                 <SvgInput
                                                     id={`change-pw-otp-digit-${i}`}
@@ -140,10 +142,11 @@ export default function ChangePasswordPage() {
                                                     onKeyDown={(e) => handleOtpKeyDown(i, e)}
                                                     onFocus={() => { focusField("otp"); setFocusedOtpIdx(i); }}
                                                     onBlur={blurField}
+                                                    readOnly={otpVerified}
                                                     height={18}
                                                     weight="600"
                                                     align="center"
-                                                    className="text-[#1e1e1e] w-full"
+                                                    className={`text-[#1e1e1e] w-full ${otpVerified ? "cursor-not-allowed" : ""}`}
                                                 />
                                             </div>
                                         ))}
@@ -158,7 +161,7 @@ export default function ChangePasswordPage() {
                             <button
                                 type="button"
                                 onClick={sendOtp}
-                                disabled={sendingOtp || recentlySent}
+                                disabled={sendingOtp || recentlySent || otpVerified}
                                 className="cursor-pointer disabled:cursor-not-allowed focus:outline-none self-center"
                             >
                                 <SvgText
@@ -192,6 +195,7 @@ export default function ChangePasswordPage() {
                                         onChange={setPassword}
                                         weight="500"
                                         height={14}
+                                        align="center"
                                         className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1"
                                         onFocus={() => focusField("password")}
                                         onBlur={blurField}
@@ -210,7 +214,7 @@ export default function ChangePasswordPage() {
 
                 {/* Password constraints */}
                 <AnimatePresence initial={false}>
-                    {otpVerified && activeField === "password" && hasAnyConstraint && (
+                    {otpVerified && (
                         <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
@@ -218,6 +222,7 @@ export default function ChangePasswordPage() {
                             className="flex flex-col items-center w-full mt-[-10px] overflow-hidden"
                         >
                             <PasswordConstraints
+                                passwordLength={password.length}
                                 isLengthValid={isLengthValid}
                                 hasSpecialChar={hasSpecialChar}
                                 hasUpper={hasUpper}
@@ -246,6 +251,7 @@ export default function ChangePasswordPage() {
                                         onChange={setRePassword}
                                         weight="500"
                                         height={14}
+                                        align="center"
                                         className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1"
                                         onFocus={() => focusField("repassword")}
                                         onBlur={blurField}
@@ -263,7 +269,7 @@ export default function ChangePasswordPage() {
                 </AnimatePresence>
 
                 {/* General (network/server) errors only */}
-                <div className="h-[20px] flex items-center justify-center">
+                <div className="flex items-center justify-center text-center empty:hidden min-h-[16px]">
                     {message && !message.field && (
                         <SvgText
                             text={message.text}
@@ -285,14 +291,14 @@ export default function ChangePasswordPage() {
                                 ? (verifyingOtp || otp.join("").length !== 4)
                                 : submitting
                     }
-                    className="bg-[#0000f4] rounded-full px-12 py-4 focus:outline-none cursor-pointer transition-colors  disabled:cursor-not-allowed flex items-center justify-center"
+                    className="bg-[#0000f4] rounded-full px-10 py-4 focus:outline-none cursor-pointer transition-colors  disabled:cursor-not-allowed flex items-center justify-center"
                 >
                     <SvgText
                         text={
                             !currentPasswordVerified
                                 ? (verifyingCurrentPassword ? "Verifying..." : "Verify")
                                 : !otpVerified
-                                    ? (verifyingOtp ? "Verifying..." : "Verify Code")
+                                    ? (verifyingOtp ? "Verifying..." : "Verify")
                                     : (submitting ? "Saving..." : "Save")
                         }
                         weight="600"

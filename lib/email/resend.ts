@@ -5,6 +5,7 @@ import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { AppError, ErrorCode } from "@/lib/http/errors";
 import { OtpEmail } from "@/lib/email/templates/otp";
+import { WaitlistJoinedEmail } from "@/lib/email/templates/waitlist";
 
 const client = new Resend(env.RESEND_API_KEY);
 
@@ -55,6 +56,29 @@ export const resendProvider: EmailProvider = {
     });
     if (result.error) {
       logger.error({ err: result.error, to: maskEmail(to) }, "resend login-alert failed");
+    }
+  },
+  async sendWaitlistJoined(to, position) {
+    const html = await render(WaitlistJoinedEmail({ position }));
+    const positionLabel = `#${position.toLocaleString("en-IN")}`;
+    const text = [
+      `You're in the Aero queue at ${positionLabel}.`,
+      "",
+      "Thanks for joining the waitlist. We'll be in touch when it's your turn to order.",
+    ].join("\n");
+
+    const result = await client.emails.send({
+      from: env.EMAIL_FROM,
+      to,
+      subject: `You're in the Aero queue (${positionLabel})`,
+      html,
+      text,
+    });
+    if (result.error) {
+      logger.error(
+        { err: result.error, to: maskEmail(to) },
+        "resend waitlist-joined failed",
+      );
     }
   },
 };

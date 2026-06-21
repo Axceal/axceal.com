@@ -28,15 +28,29 @@ const AERO_SLIDES: { Icon: SlideIcon; className: string }[] = [
 ];
 
 interface Props {
-  // Resolved on mount: "/order/units" if authed, "/auth?from=order" otherwise
-  getOneHref: string;
+  // Destination when the CTA is a link (live sales mode). Ignored when
+  // `ctaIsButton` is true.
+  ctaHref: string;
+  // Sub-label rendered next to the blue "Get One" pill. Driven by sales
+  // mode: "Queue Me Up" / "#1,247" / "₹9,999".
+  ctaSubLabel: string;
+  // Waitlist mode renders the CTA as a button (opens dialog). Live mode
+  // renders as a Link to `ctaHref`.
+  ctaIsButton: boolean;
+  onCtaClick?: (e: React.MouseEvent) => void;
   isSessionLoading?: boolean;
 }
 
 // Mobile layout — simple vertical scroll through all three sections.
 // Scroll-snap and Framer Motion animations are desktop-only; mobile gets a plain
 // linear flow so the OS scroll behaviour feels native.
-export function MobileHome({ getOneHref, isSessionLoading = false }: Props) {
+export function MobileHome({
+  ctaHref,
+  ctaSubLabel,
+  ctaIsButton,
+  onCtaClick,
+  isSessionLoading = false,
+}: Props) {
   const footerRef = useRef<HTMLDivElement>(null);
   const [footerVisible, setFooterVisible] = useState(false);
   const [aeroSlide, setAeroSlide] = useState(0);
@@ -203,18 +217,43 @@ export function MobileHome({ getOneHref, isSessionLoading = false }: Props) {
         animate={{ y: footerVisible ? -80 : 0 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
       >
-        <Link
-          href={getOneHref}
-          onClick={(e) => { if (isSessionLoading) e.preventDefault(); }}
-          aria-disabled={isSessionLoading}
-          className="flex items-center gap-3 bg-[#f1f1f1] rounded-full p-[5px] pr-[30px] cursor-pointer hover:opacity-90 transition-opacity"
-        >
-          <div className="px-8 py-4 bg-[#0000f4] rounded-full flex items-center justify-center">
-            <SvgText text="Get One" weight="600" height={18} className="text-white" />
-          </div>
-          {/* <div className="w-[8px] h-[8px] rounded-full bg-[#aaaaaa] shrink-0" /> */}
-          <SvgText text="Queue Me Up" weight="500" height={18} className="text-[#aaaaaa]" />
-        </Link>
+        {ctaIsButton ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              if (isSessionLoading) {
+                e.preventDefault();
+                return;
+              }
+              onCtaClick?.(e);
+            }}
+            aria-disabled={isSessionLoading}
+            className="flex items-center gap-3 bg-[#f1f1f1] rounded-full p-[5px] pr-[30px] cursor-pointer hover:opacity-90 transition-opacity"
+          >
+            <div className="px-8 py-4 bg-[#0000f4] rounded-full flex items-center justify-center">
+              <SvgText text="Get One" weight="600" height={18} className="text-white" />
+            </div>
+            <SvgText text={ctaSubLabel} weight="600" height={18} className="text-[#aaaaaa]" />
+          </button>
+        ) : (
+          <Link
+            href={ctaHref}
+            onClick={(e) => {
+              if (isSessionLoading) {
+                e.preventDefault();
+                return;
+              }
+              onCtaClick?.(e);
+            }}
+            aria-disabled={isSessionLoading}
+            className="flex items-center gap-3 bg-[#f1f1f1] rounded-full p-[5px] pr-[30px] cursor-pointer hover:opacity-90 transition-opacity"
+          >
+            <div className="px-8 py-4 bg-[#0000f4] rounded-full flex items-center justify-center">
+              <SvgText text="Get One" weight="600" height={18} className="text-white" />
+            </div>
+            <SvgText text={ctaSubLabel} weight="600" height={18} className="text-[#aaaaaa]" />
+          </Link>
+        )}
       </motion.div>
 
       {/* Section 3: What's inside the box */}

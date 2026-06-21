@@ -1,3 +1,16 @@
+// W5 — paise → "₹9,999" (no decimals; INR display elsewhere on the site
+// is always whole rupees). `en-IN` locale for the Indian comma grouping
+// (1,00,000 not 100,000).
+export function formatINR(paise: number): string {
+  const rupees = Math.round(paise / 100);
+  return `₹${rupees.toLocaleString("en-IN")}`;
+}
+
+// W5 — position display, e.g. 1247 → "#1,247". Same locale grouping.
+export function formatPosition(position: number): string {
+  return `#${position.toLocaleString("en-IN")}`;
+}
+
 // Truncate an email when its local part (everything before @) exceeds
 // maxLocalLen. Domain is preserved in full. Strategy: keep the first
 // maxLocalLen chars of the local part, append "…", then the original domain.

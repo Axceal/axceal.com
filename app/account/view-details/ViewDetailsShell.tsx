@@ -35,7 +35,7 @@ export function ViewDetailsShell({ initial, phone: initialPhone }: { initial: Pr
                 </div>
 
                 {/* Card */}
-                <div className="bg-[#f1f1f1] rounded-[24px] w-full px-6 pt-[45px] pb-[35px] flex flex-col gap-6">
+                <div className="bg-[#f1f1f1] rounded-[24px] w-full px-6 pt-[35px] pb-[35px] flex flex-col gap-6">
                     <DetailRow label="First Name" value={firstName} innerRef={firstNameRef} />
                     <DetailRow label="Last Name" value={lastName} innerRef={lastNameRef} />
                     <DetailRow label="Birthday" value={birthday} innerRef={birthdayRef} />
@@ -82,7 +82,7 @@ function DetailRow({ label, value, innerRef }: DetailRowProps) {
     return (
         <div ref={innerRef} className="flex items-center gap-4">
             <div className="flex-1 flex justify-end">
-                <SvgText text={label} weight="600" height={14} className="text-[#aaaaaa]" />
+                <SvgText text={label} weight="600" height={16} className="text-[#aaaaaa]" />
             </div>
             <div className="flex-1 min-w-0 flex items-center">
                 {value ? (

@@ -12,6 +12,8 @@ import { db } from "@/lib/db/client";
 import { users, userProfiles } from "@/lib/db/schema";
 import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/http/rate-limit";
+import { isWaitlist } from "@/lib/featureFlags";
+import { joinWaitlist } from "@/lib/services/waitlist";
 
 export const POST = withHandler({
   input: RegisterRequest,
@@ -19,7 +21,7 @@ export const POST = withHandler({
   handler: async ({ input, req }) => {
     const ip = getClientIp(req);
     await rateLimit(`register:ip:${ip}`, { limit: 10, windowSec: 3600 });
-    const { email, password, otpToken } = input;
+    const { email, password, otpToken, intent } = input;
 
     const tokenEmail = await consumeOtpToken(otpToken, "email-verify");
     if (tokenEmail !== email) {
@@ -61,6 +63,21 @@ export const POST = withHandler({
       await db.delete(users).where(eq(users.id, userRow.id));
       logger.error({ err, userId: userRow.id }, "profile insert failed; user rolled back");
       throw new AppError(ErrorCode.INTERNAL, "Failed to create user profile.", 500);
+    }
+
+    // W6 — best-effort waitlist join on `intent=waitlist`. Failure is
+    // logged but does not roll back the user record; the status route's
+    // auto-join hook will catch the user on their next /api/waitlist/status
+    // request, so eventual consistency is guaranteed.
+    if (intent === "waitlist" && isWaitlist()) {
+      try {
+        await joinWaitlist(userRow.id);
+      } catch (err) {
+        logger.error(
+          { err, userId: userRow.id },
+          "waitlist join after signup failed; auto-join will retry on next status fetch",
+        );
+      }
     }
 
     const ua = req.headers.get("user-agent") ?? "";

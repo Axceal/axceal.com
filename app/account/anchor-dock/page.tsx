@@ -27,8 +27,8 @@ export default async function AnchorDockPage() {
 
     return (
         <main className="flex-1 flex items-center justify-center">
-            <div className="flex-col">
-                <Squircle borderRadius={24} smoothing={50} className="bg-[#f1f1f1] p-8 w-[300px] h-[300px] flex flex-col gap-6">
+            <div className="flex flex-col items-center">
+                <Squircle borderRadius={24} smoothing={50} className="bg-[#f1f1f1] relative z-10 p-8 w-[300px] h-[300px] flex flex-col gap-6">
                     <div className="flex items-center gap-4">
                         <div className="w-[52px] h-[52px] rounded-full bg-[#0000f4] flex items-center justify-center shrink-0">
                             <AnchorDockIcon className="text-white" />
@@ -38,28 +38,27 @@ export default async function AnchorDockPage() {
 
                     <SvgText
                         text={`Connect ${elideEmail(user.email)}\nto Dock for persistent Aero\nconnection.`}
-                        weight="500"
+                        weight="600"
                         height={14}
                         className="text-[#aaaaaa] leading-[1.5]"
                     />
 
                     <div className="flex items-center justify-center gap-2 mt-auto mb-2">
                         <Link href="/account/anchor-dock/signed" className="flex items-center gap-2">
-                            <DownloadIcon className="text-[#0000f4] w-[24px] h-[26px]" />
-                            <SvgText text="Get or Update Dock" weight="600" height={16} className="text-[#0000f4]" />
+                            <SvgText text={"Get or Update Dock Application"} weight="600" align="center" maxWidth={200} height={16} className="text-[#0000f4]" />
                         </Link>
                     </div>
                 </Squircle>
 
-                <div className="mt-[20px] flex justify-center">
+                <Squircle borderRadius={24} smoothing={50} className="bg-[#0000f4] relative z-0 w-[300px] -mt-[40px] pt-[60px] pb-[25px] flex justify-center items-center">
                     <SvgText
                         text={"To Connect, open Dock\nApplication"}
                         weight="600"
                         height={14}
                         align="center"
-                        className="text-[#1e1e1e]"
+                        className="text-white"
                     />
-                </div>
+                </Squircle>
             </div>
         </main>
     );

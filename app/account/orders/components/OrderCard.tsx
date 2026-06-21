@@ -235,11 +235,11 @@ export function OrderCard({ order, orderNumber }: { order: Order; orderNumber: n
                     </div>
 
                     {/* Request Assistance */}
-                    {order.status !== "failed" && (
+                    {/* {order.status !== "failed" && (
                         <Squircle as="button" borderRadius={15} smoothing={50} onClick={() => setShowAssistModal(true)} className="bg-[#f1f1f1] w-full h-[70px] flex items-center justify-center cursor-pointer focus:outline-none">
                             <SvgText text="Request Assistance" weight="600" height={14} className="text-[#0000f4]" />
                         </Squircle>
-                    )}
+                    )} */}
 
                     {/* Order Id and See Details */}
                     {order.status === "failed" ? (

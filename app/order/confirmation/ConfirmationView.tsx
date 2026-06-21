@@ -11,6 +11,9 @@ import { Squircle } from "../../components/layout/Squircle";
 import { apiFetch } from "@/lib/http/client";
 import type { OrderDetailResponse } from "@/lib/contracts/order";
 import { elideEmail } from "@/lib/format";
+import { DetailRow } from "../../account/orders/components/DetailRow";
+import { formatDateOrdinal } from "../../account/orders/utils/formatters";
+import { AssistanceModal } from "../../account/orders/components/AssistanceModal";
 
 const SPRING = { type: "spring", stiffness: 280, damping: 28 } as const;
 const POLL_INTERVAL_MS = 3000;
@@ -29,6 +32,7 @@ function formatOrderId(id: string, len = 9): string {
 
 export function ConfirmationView({ initial }: { initial: OrderDetailResponse }) {
     const [expanded, setExpanded] = useState(false);
+    const [showAssistModal, setShowAssistModal] = useState(false);
     const [status, setStatus] = useState(initial.status);
     const [isDesktop, setIsDesktop] = useState(true);
 
@@ -63,17 +67,21 @@ export function ConfirmationView({ initial }: { initial: OrderDetailResponse }) 
     const shipping = initial.shippingAddressSnapshot;
 
     return (
-        <main className="flex-1 flex flex-col items-center pt-[20px] pb-[20px]">
-            <motion.div layout transition={SPRING} className="flex flex-col items-center gap-5 w-full px-6">
-                <motion.div layout="position" transition={SPRING} className="flex flex-col items-center gap-3">
-                    <OrderPlacedIcon className="text-[#0000f4]" />
-                    <SvgText
-                        text="Order Placed"
-                        weight="600"
-                        height={14}
-                        className="text-[#0000f4]"
-                    />
-                </motion.div>
+        <>
+            <AnimatePresence>
+                {showAssistModal && <AssistanceModal onClose={() => setShowAssistModal(false)} />}
+            </AnimatePresence>
+            <main className="flex-1 flex flex-col items-center pt-[20px] pb-[20px]">
+                <motion.div layout transition={SPRING} className="flex flex-col items-center gap-5 w-full px-6">
+                    <motion.div layout="position" transition={SPRING} className="flex flex-col items-center gap-3">
+                        <OrderPlacedIcon className="text-[#0000f4]" />
+                        <SvgText
+                            text="Order Placed"
+                            weight="600"
+                            height={14}
+                            className="text-[#0000f4]"
+                        />
+                    </motion.div>
 
                 <motion.div layout transition={SPRING} className="flex flex-col md:flex-row items-center md:items-stretch gap-5 w-full max-w-[500px] md:max-w-none justify-center">
                     <motion.div layout="position" transition={SPRING} className="flex flex-col justify-between gap-3 w-[320px] md:w-[300px] shrink-0">
@@ -98,9 +106,11 @@ export function ConfirmationView({ initial }: { initial: OrderDetailResponse }) 
                         )}
 
                         <div className="flex gap-2 h-[100px]">
-                            <Squircle borderRadius={15} smoothing={50} className="bg-[#f1f1f1] w-[100px] h-[100px] flex flex-col items-center justify-center gap-1 shrink-0">
-                                <SvgText text="Unit" weight="500" height={14} className="text-[#aaaaaa] self-start ml-[20px] -mt-[20px] mb-[10px]" />
-                                <SvgText text={String(initial.quantity)} weight="600" height={20} className="text-[#1e1e1e] self-center" />
+                            <Squircle borderRadius={15} smoothing={50} className="bg-[#f1f1f1] w-[100px] h-[100px] flex flex-col p-5 shrink-0">
+                                <SvgText text="Unit" weight="500" height={14} className="text-[#aaaaaa]" />
+                                <div className="flex-1 flex items-center justify-center">
+                                    <SvgText text={String(initial.quantity)} weight="600" height={20} className="text-[#1e1e1e]" />
+                                </div>
                             </Squircle>
                             <Squircle
                                 as={motion.button}
@@ -123,144 +133,104 @@ export function ConfirmationView({ initial }: { initial: OrderDetailResponse }) 
                             </Squircle>
                         </div>
                     </motion.div>
-
-                    <AnimatePresence initial={false}>
-                        {expanded && (
-                            <Squircle
-                                as={motion.div}
-                                borderRadius={20}
-                                smoothing={50}
-                                id="order-details-panel"
-                                key="details"
-                                initial={isDesktop ? { opacity: 0, x: 40, width: 0 } : { opacity: 0, height: 0 }}
-                                animate={isDesktop ? { opacity: 1, x: 0, width: "auto" } : { opacity: 1, height: "auto" }}
-                                exit={isDesktop ? { opacity: 0, x: 40, width: 0 } : { opacity: 0, height: 0 }}
-                                transition={SPRING}
-                                className="bg-[#f1f1f1] overflow-hidden shrink-0 w-[320px] md:w-auto"
-                            >
-                                <div className="p-7 w-[320px] md:w-[480px]">
-                                    <div className="flex flex-col gap-5 mb-6">
-                                        <div className="flex items-center md:items-center gap-[15px] md:gap-6">
-                                            <div className="w-[75px] md:w-[120px] flex items-center justify-end shrink-0">
-                                                <SvgText
-                                                    text="Order Details"
-                                                    weight="600"
-                                                    height={14}
-                                                    className="text-[#aaaaaa] text-right"
-                                                    align="right"
-                                                />
-                                            </div>
-                                            <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                                                <SvgText
-                                                    text="Order Id"
-                                                    weight="600"
-                                                    height={14}
-                                                    maxWidth={Infinity}
-                                                    className="text-[#1e1e1e]"
-                                                />
-                                                <SvgText
-                                                    text={`#${formatOrderId(initial.id)}`}
-                                                    weight="600"
-                                                    height={14}
-                                                    maxWidth={Infinity}
-                                                    className="text-[#1e1e1e]"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col gap-5">
-                                        <DetailRow label="Transaction ID" value={initial.razorpayPaymentId ?? ""} />
-                                        <DetailRow label="Order Status" value={initial.status} />
-                                        <DetailRow label="E-Mail Address" value={elideEmail(initial.email)} />
-                                        <DetailRow
-                                            label="Billing Address"
-                                            valueLines={[
-                                                `${billing.firstName} ${billing.lastName}`,
-                                                billing.line1,
-                                                `${billing.state}, ${billing.zip}, ${billing.country}`,
-                                            ]}
-                                        />
-                                        {shipping && (
-                                            <DetailRow
-                                                label="Shipping Address"
-                                                valueLines={[
-                                                    `${shipping.firstName} ${shipping.lastName}`,
-                                                    shipping.line1,
-                                                    `${shipping.state}, ${shipping.zip}, ${shipping.country}`,
-                                                ]}
-                                            />
-                                        )}
-                                    </div>
-                                </div>
-                            </Squircle>
-                        )}
-                    </AnimatePresence>
                 </motion.div>
 
                 <Link
                     href="/"
-                    className="bg-[#f1f1f1] rounded-full px-2 md:px-[40px] py-4 cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus-visible:outline-none flex justify-center w-[160px] md:w-auto"
+                    className="bg-[#f1f1f1] rounded-full px-2 md:px-[30px] py-4 cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus-visible:outline-none flex justify-center w-[160px] md:w-auto mt-6"
                 >
                     <SvgText text="Back to Store" weight="600" height={14} className="text-[#0000f4]" />
                 </Link>
             </motion.div>
-        </main>
-    );
-}
 
-type DetailRowProps =
-    | { label: string; value: string; valueLines?: never }
-    | { label: string; value?: never; valueLines: string[] };
+            <AnimatePresence>
+                {expanded && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4"
+                    >
+                        <div className="absolute inset-0 bg-black/40" onClick={() => setExpanded(false)} />
+                        <motion.div
+                            layout
+                            initial={{ opacity: 0, y: 300 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 400 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                            className="relative z-10 w-[360px] lg:w-[480px] flex flex-col gap-[10px]"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex lg:hidden w-full">
+                                <Squircle as="button" borderRadius={20} smoothing={50} onClick={() => setShowAssistModal(true)} className="bg-[#f1f1f1] w-full h-[75px] flex items-center justify-center cursor-pointer focus:outline-none">
+                                    <SvgText text="Request Assistance" weight="600" height={14} className="text-[#0000f4]" />
+                                </Squircle>
+                            </div>
 
-function DetailRow({ label, value, valueLines }: DetailRowProps) {
-    const PLACEHOLDER_HEIGHT = 14;
-    return (
-        <div className="flex items-center gap-[15px] md:gap-6">
-            <div className={`w-[75px] md:w-[120px] flex justify-end shrink-0 ${valueLines ? "self-start" : ""}`}>
-                <SvgText
-                    text={label}
-                    weight="600"
-                    height={14}
-                    className="text-[#aaaaaa] text-right"
-                    align="right"
-                />
-            </div>
-            <div className="flex-1 min-w-0">
-                {valueLines ? (
-                    <div className="flex flex-col items-start gap-1 min-h-[14px]">
-                        {valueLines.map((line, i) =>
-                            line ? (
-                                <SvgText
-                                    key={i}
-                                    text={line}
-                                    weight="500"
-                                    height={PLACEHOLDER_HEIGHT}
-                                    className="text-[#1e1e1e]"
-                                />
-                            ) : (
-                                <span
-                                    key={i}
-                                    style={{ height: PLACEHOLDER_HEIGHT }}
-                                    aria-hidden
-                                />
-                            ),
-                        )}
-                    </div>
-                ) : value ? (
-                    <SvgText
-                        text={value}
-                        weight="500"
-                        height={PLACEHOLDER_HEIGHT}
-                        className="text-[#1e1e1e]"
-                    />
-                ) : (
-                    <span
-                        style={{ height: PLACEHOLDER_HEIGHT }}
-                        aria-hidden
-                    />
+                            <div className="hidden lg:flex flex-row gap-[10px] w-full">
+                                <Squircle borderRadius={15} smoothing={50} className="bg-[#f1f1f1] relative w-[100px] shrink-0 h-[100px] flex items-center justify-center">
+                                    <div className="absolute top-4 left-4 flex items-center h-[14px]">
+                                        <SvgText text="Unit" weight="500" height={14} className="text-[#aaaaaa]" maxWidth={Infinity} />
+                                    </div>
+                                    <SvgText text={String(initial.quantity)} weight="600" height={20} className="text-[#1e1e1e]" />
+                                </Squircle>
+                                <Squircle borderRadius={15} smoothing={50} className="bg-[#f1f1f1] relative w-[180px] shrink-0 h-[100px] flex items-center justify-center">
+                                    <div className="absolute top-4 left-4 flex items-center h-[14px]">
+                                        <SvgText text="On" weight="500" height={14} className="text-[#aaaaaa]" maxWidth={Infinity} />
+                                    </div>
+                                    <SvgText text={formatDateOrdinal(initial.createdAt)} weight="600" height={16} className="text-[#1e1e1e]" />
+                                </Squircle>
+                                <Squircle as="button" borderRadius={15} smoothing={50} onClick={() => setShowAssistModal(true)} className="bg-[#f1f1f1] w-[180px] shrink-0 h-[100px] flex items-center justify-center cursor-pointer focus:outline-none">
+                                    <SvgText text="Request Assistance" weight="600" height={14} className="text-[#0000f4]" />
+                                </Squircle>
+                            </div>
+
+                            <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] px-6 py-[30px] lg:p-7 w-full">
+                                <div className="flex items-center justify-between mb-8 gap-[15px] md:gap-6">
+                                    <div className="w-[75px] md:w-[120px] flex justify-end shrink-0">
+                                        <SvgText text="Order Details" weight="600" height={14} className="text-[#aaaaaa] text-right" />
+                                    </div>
+                                    <div className="flex-1 flex flex-col items-center gap-1 shrink-0">
+                                        <SvgText text="Order Id" weight="600" height={12} className="text-[#1e1e1e]" maxWidth={Infinity} />
+                                        <SvgText text={`#${formatOrderId(initial.id)}`} weight="600" height={12} className="text-[#1e1e1e]" maxWidth={Infinity} />
+                                    </div>
+                                    <div className="flex justify-end shrink-0 pr-3">
+                                        <button type="button" onClick={() => setExpanded(false)} className="focus:outline-none cursor-pointer shrink-0">
+                                            <SvgText text="Show less" weight="600" height={14} className="text-[#0000f4]" maxWidth={Infinity} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-5">
+                                    <DetailRow label="Transaction ID" value={initial.razorpayPaymentId ?? ""} />
+                                    <DetailRow label="Order Status" value={initial.status} />
+                                    <DetailRow label="E-Mail Address" value={elideEmail(initial.email)} />
+                                    <DetailRow
+                                        label="Billing Address"
+                                        valueLines={[
+                                            `${billing.firstName} ${billing.lastName}`,
+                                            billing.line1,
+                                            `${billing.state}, ${billing.zip}, ${billing.country}`,
+                                        ]}
+                                    />
+                                    {shipping && (
+                                        <DetailRow
+                                            label="Shipping Address"
+                                            valueLines={[
+                                                `${shipping.firstName} ${shipping.lastName}`,
+                                                shipping.line1,
+                                                `${shipping.state}, ${shipping.zip}, ${shipping.country}`,
+                                            ]}
+                                        />
+                                    )}
+                                </div>
+                            </Squircle>
+                        </motion.div>
+                    </motion.div>
                 )}
-            </div>
-        </div>
+            </AnimatePresence>
+        </main>
+        </>
     );
 }

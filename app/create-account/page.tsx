@@ -85,7 +85,9 @@ function CreateAccountForm() {
                             onChange={setEmail}
                             weight="600"
                             height={16}
-                            className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-[5px] py-1 transition-all"
+                            align="center"
+                            readOnly={otpVerified}
+                            className={`w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-[5px] py-1 transition-all ${otpVerified ? "opacity-60 cursor-not-allowed" : ""}`}
                             onFocus={() => handleFocus("email")}
                             onBlur={handleBlur}
                             rightSlot={
@@ -93,7 +95,7 @@ function CreateAccountForm() {
                                     type="button"
                                     id="send-otp-btn"
                                     onClick={handleSendOtp}
-                                    disabled={sendingOtp}
+                                    disabled={sendingOtp || otpVerified}
                                     className="bg-[#0000f4] rounded-full aspect-square h-[42px] cursor-pointer hover:opacity-90 transition-opacity shrink-0 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[#aaaaaa]"
                                 >
                                     <RightArrow className="text-white ml-1 w-[10px] h-auto" />
@@ -126,6 +128,7 @@ function CreateAccountForm() {
                     otpWrapRef={otpWrapRef}
                     recentlySent={recentlySent}
                     isFocused={isFocused}
+                    disabled={otpVerified}
                 />
                 {message?.field === "otp" && (
                     <SvgText text={message.text} align="center" weight="500" height={14} className="text-[#ff0000] self-center -mt-3" />
@@ -163,13 +166,13 @@ function CreateAccountForm() {
                                     className="text-white"
                                 />
                             </button>
-                            <span className="w-[10px] aspect-square rounded-full bg-[#aaaaaa]" aria-hidden />
+                            <span className="w-[10px] aspect-square rounded-full bg-[#aaaaaa] translate-x-2" aria-hidden />
                             <button
                                 type="button"
                                 onClick={handleForgotPassword}
-                                className="bg-[#0000f4] rounded-full px-7 py-4 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
+                                className="pl-4 pr-8 py-4 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
                             >
-                                <SvgText text="Forgot Password" weight="600" height={16} className="text-white" />
+                                <SvgText text="Forgot Password" weight="600" height={16} className="text-[#0000f4]" />
                             </button>
                         </div>
                     </div>
@@ -198,7 +201,7 @@ function CreateAccountForm() {
 
                     {/* Password constraints */}
                     <AnimatePresence initial={false}>
-                        {otpVerified && activeField === "password" && hasAnyConstraint && (
+                        {otpVerified && (
                             <motion.div
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
@@ -206,6 +209,7 @@ function CreateAccountForm() {
                                 className="flex flex-col items-center w-full mt-[-10px] overflow-hidden"
                             >
                                 <PasswordConstraints
+                                    passwordLength={password.length}
                                     isLengthValid={isLengthValid}
                                     hasSpecialChar={hasSpecialChar}
                                     hasUpper={hasUpper}
@@ -236,7 +240,7 @@ function CreateAccountForm() {
                     )}
 
                     {/* General (network/server) errors only */}
-                    <div className="h-[40px] flex items-center justify-center text-center">
+                    <div className="flex items-center justify-center text-center empty:hidden min-h-[16px]">
                         {message && !message.field && (
                             <SvgText
                                 text={message.text}

@@ -17,7 +17,7 @@ export function NameRow({
     fieldPrefix: "b" | "s";
 }) {
     return (
-        <div className="w-full flex items-start gap-3">
+        <div className="w-full flex items-center gap-3">
             <SvgText
                 text={nameLabel}
                 weight="600"

@@ -48,11 +48,11 @@ export function AssistanceModal({ onClose }: { onClose: () => void }) {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="w-[30%] shrink-0 bg-transparent rounded-full py-4.5 cursor-pointer focus:outline-none focus-visible:outline-none flex items-center justify-center hover:opacity-70 transition-opacity"
+                            className="w-[30%] shrink-0 bg-transparent rounded-full py-4.5 cursor-pointer focus:outline-none focus-visible:outline-none flex items-center justify-end hover:opacity-70 transition-opacity mr-4"
                         >
-                            <SvgText text="Cancel" weight="600" height={14} className="text-[#ff0000] ml-4" />
+                            <SvgText text="Cancel" weight="600" height={14} className="text-[#ff0000]" />
                         </button>
-                        <span className="block w-[8px] aspect-square rounded-full bg-[#aaaaaa] shrink-0 mr-4" aria-hidden />
+                        <span className="block w-[8px] aspect-square rounded-full bg-[#aaaaaa] shrink-0 mr-2" aria-hidden />
                         <button
                             type="button"
                             onClick={onClose}

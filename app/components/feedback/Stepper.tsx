@@ -51,7 +51,7 @@ export function Stepper({
                         </button>
                         {i < steps.length - 1 && (
                             <span
-                                className={`block w-[8px] aspect-square rounded-full ${steps[i + 1].state === "upcoming"
+                                className={`block w-[6px] aspect-square rounded-full ${steps[i + 1].state === "upcoming"
                                     ? "bg-[#aaaaaa]"
                                     : "bg-[#0000f4]"
                                     }`}

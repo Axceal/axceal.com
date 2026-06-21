@@ -25,7 +25,7 @@ export function useAddressSide(prefix: "b" | "s") {
     const [zip, setZip] = useState("");
     const [phone1, setPhone1] = useState("");
     const [phone2, setPhone2] = useState("");
-    const [code, setCode] = useState(["9", "1", ""]);
+    const [code, setCode] = useState(["9", "1"]);
     const [sign, setSign] = useState("+");
     const [countryCode, setCountryCode] = useState("");
     const [countryFocused, setCountryFocused] = useState(false);
@@ -60,13 +60,6 @@ export function useAddressSide(prefix: "b" | "s") {
         setFieldErrors(e => { const n = { ...e }; delete n[field]; return n; });
     }, []);
 
-    const countrySuggestions = countryFocused && country.length > 0
-        ? COUNTRIES.filter(c => c.name.toLowerCase().startsWith(country.toLowerCase())).slice(0, 6).map(c => c.name)
-        : [];
-    const stateSuggestions = stateFocused && countryCode
-        ? (STATES[countryCode] ?? []).filter(s => s.toLowerCase().startsWith(state.toLowerCase())).slice(0, 6)
-        : [];
-
     const formState: AddressFormState = {
         first, setFirst,
         last, setLast,
@@ -79,15 +72,12 @@ export function useAddressSide(prefix: "b" | "s") {
         code, setCode,
         sign, setSign,
         countryCode, setCountryCode,
-        countryFocused, setCountryFocused,
-        stateFocused, setStateFocused,
         zipError, setZipError,
         fieldErrors, clearFieldError,
         firstRef, lastRef, addressRef, countryRef, stateRef, zipRef, phoneRef,
         activeField,
         pos,
         onFocus, onBlur,
-        countrySuggestions, stateSuggestions,
     };
 
     const buildPayload = (): AddressPayload => ({

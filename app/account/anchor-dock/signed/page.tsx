@@ -38,7 +38,7 @@ export default async function AnchorDockSignedPage() {
 
                     <SvgText
                         text={`${elideEmail(user.email)} is\nconnected to Dock and can\nsetup persistent Aero connection.`}
-                        weight="500"
+                        weight="600"
                         height={14}
                         className="text-[#aaaaaa] leading-[1.5]"
                     />
@@ -52,8 +52,8 @@ export default async function AnchorDockSignedPage() {
 
                 <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-[300px] h-[90px] mt-[10px]">
                     <div className="w-full h-full flex items-center justify-center gap-3">
-                        <DownloadIcon className="text-[#0000f4] w-[24px] h-[26px]" />
-                        <SvgText text="Get or Update Dock" weight="600" height={16} className="text-[#0000f4]" />
+                        <DownloadIcon className="text-[#0000f4] w-[26px] h-[30px]" />
+                        <SvgText text="Update Dock Application" weight="600" height={16} align="left" maxWidth={200} className="text-[#0000f4]" />
                     </div>
                 </Squircle>
             </div>

@@ -1,4 +1,3 @@
-import { motion, AnimatePresence } from "framer-motion";
 import { SvgText } from "../text/SvgText";
 
 interface PasswordConstraintsProps {
@@ -6,39 +5,42 @@ interface PasswordConstraintsProps {
     hasSpecialChar: boolean;
     hasUpper: boolean;
     hasDigit: boolean;
+    passwordLength: number;
 }
 
-export function PasswordConstraints({ isLengthValid, hasSpecialChar, hasUpper, hasDigit }: PasswordConstraintsProps) {
+export function PasswordConstraints({ hasSpecialChar, hasUpper, hasDigit, passwordLength }: PasswordConstraintsProps) {
+    const circles = Array.from({ length: 8 });
+    const isFullLength = passwordLength >= 8;
+
     return (
-        <AnimatePresence initial={false}>
-            {!isLengthValid && (
-                <motion.div key="c-len" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
-                    <div className="flex justify-center py-2">
-                        <SvgText text="Must be of 8 to 64 characters long" weight="500" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
-                    </div>
-                </motion.div>
-            )}
-            {!hasSpecialChar && (
-                <motion.div key="c-spec" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
-                    <div className="flex justify-center py-2">
-                        <SvgText text="Include a special character (!,@,#,$,&)" weight="500" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
-                    </div>
-                </motion.div>
-            )}
-            {!hasUpper && (
-                <motion.div key="c-up" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
-                    <div className="flex justify-center py-2">
-                        <SvgText text="One or more uppercase letters (A-Z)" weight="500" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
-                    </div>
-                </motion.div>
-            )}
-            {!hasDigit && (
-                <motion.div key="c-num" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
-                    <div className="flex justify-center py-2">
-                        <SvgText text="One or more numeric digits(0-9)" weight="500" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
-                    </div>
-                </motion.div>
-            )}
-        </AnimatePresence>
+        <div className="flex flex-col items-center gap-4 py-4 w-full">
+            {/* Circles */}
+            <div className="flex items-center gap-[8px]">
+                {circles.map((_, i) => {
+                    const isFilled = i < passwordLength;
+                    const strokeColor = isFullLength ? "#0000f4" : "#aaaaaa";
+                    const fillColor = isFullLength ? "#0000f4" : (isFilled ? "#aaaaaa" : "transparent");
+
+                    return (
+                        <div
+                            key={i}
+                            className="w-[18px] h-[18px] rounded-full transition-colors duration-200"
+                            style={{
+                                border: `1.5px solid ${strokeColor}`,
+                                backgroundColor: fillColor,
+                            }}
+                        />
+                    );
+                })}
+            </div>
+
+            {/* Constraints Text */}
+            <div className="flex flex-row items-center gap-2">
+                <SvgText text="Must have" weight="500" height={14} className="text-[#aaaaaa]" />
+                <SvgText text="(A-Z)" weight="500" height={14} className={hasUpper ? "text-[#0000f4]" : "text-[#ff0000]"} />
+                <SvgText text="(0-9)" weight="500" height={14} className={hasDigit ? "text-[#0000f4]" : "text-[#ff0000]"} />
+                <SvgText text="(!,@,#,$,&)" weight="500" height={14} className={hasSpecialChar ? "text-[#0000f4]" : "text-[#ff0000]"} />
+            </div>
+        </div>
     );
 }

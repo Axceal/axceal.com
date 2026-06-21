@@ -12,6 +12,27 @@ const { auth } = NextAuth(authConfig);
 
 const PROTECTED_PAGE = [/^\/account(\/|$)/, /^\/order(\/|$)/];
 
+// W4 — when SALES_MODE=waitlist, all purchase flows are disabled. Pages
+// redirect home, APIs return 403 SALES_DISABLED. Middleware also reads the
+// env var directly (not via lib/featureFlags) so the edge bundle stays
+// dependency-free. The default branch matches isWaitlist() — anything other
+// than "live" / "dev-live" gates as waitlist mode.
+const SALES_MODE_ENV = process.env.NEXT_PUBLIC_SALES_MODE;
+const IS_WAITLIST_MODE =
+  SALES_MODE_ENV !== "live" && SALES_MODE_ENV !== "dev-live";
+
+const WAITLIST_BLOCKED_PAGE = [/^\/order(\/|$)/];
+const WAITLIST_BLOCKED_API = [
+  /^\/api\/orders(\/|$)/,
+  /^\/api\/payments\/(initiate|verify)(\/|$)/,
+  /^\/api\/addresses(\/|$)/,
+  // W9 sec-review — `/api/validate-address` is part of the checkout flow and
+  // touches the paid Google Address Validation API. Blocking it in waitlist
+  // mode closes the only authenticated, paid-upstream endpoint that the
+  // checkout block above doesn't already cover.
+  /^\/api\/validate-address(\/|$)/,
+];
+
 // Mirror of the client-side flag — lets developers bypass the server-side
 // redirect without changing code. Set NEXT_PUBLIC_DEV_SKIP_AUTH_GATES=true
 // in .env.local. NODE_ENV guard is load-bearing: NEXT_PUBLIC_* vars are baked
@@ -79,6 +100,27 @@ export default auth((req) => {
   const isApi = path.startsWith("/api/");
   const isMutating = MUTATING_METHODS.has(method);
   const isCsrfExempt = CSRF_EXEMPT.some((r) => r.test(path));
+
+  // W4 — waitlist gate runs before auth so blocked routes never reveal
+  // whether the user was logged in. Pages bounce home; APIs return 403.
+  if (IS_WAITLIST_MODE) {
+    if (!isApi && WAITLIST_BLOCKED_PAGE.some((r) => r.test(path))) {
+      const homeUrl = new URL("/", req.url);
+      return ensureCsrfCookie(req, NextResponse.redirect(homeUrl));
+    }
+    if (isApi && WAITLIST_BLOCKED_API.some((r) => r.test(path))) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: {
+            code: "SALES_DISABLED",
+            message: "Purchase flow disabled while waitlist is active",
+          },
+        },
+        { status: 403 },
+      );
+    }
+  }
 
   if (isApi && isMutating && !isCsrfExempt) {
     const cookieToken = req.cookies.get(CSRF_COOKIE)?.value;

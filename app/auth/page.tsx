@@ -23,43 +23,41 @@ function AuthChoiceContent() {
                 {/* Choices */}
                 <div className="flex flex-col gap-5">
                     {/* Login Choice */}
-                    <div className="w-[340px] bg-[#f1f1f1] rounded-full pl-8 pr-1 py-1 flex items-center justify-between group">
+                    <Link href={`/login${suffix}`} className="w-[340px] bg-[#f1f1f1] rounded-full cursor-pointer pl-8 pr-1 py-1 flex items-center justify-between group">
                         <SvgText
                             text="Already have a account"
                             weight="600"
                             height={16}
-                            className="text-[#1e1e1e]"
+                            className="text-[#0000f4]"
                         />
-                        <Link
-                            href={`/login${suffix}`}
+                        <div
                             className="bg-[#0000f4] rounded-full w-[100px] py-4 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
                         >
                             <SvgText text="Login" weight="600" height={16} className="text-white" />
-                        </Link>
-                    </div>
+                        </div>
+                    </Link>
                     <span
                         className="block w-[10px] self-center aspect-square rounded-full bg-[#aaaaaa] -mt-[5px] -mb-[5px]"
                         aria-hidden
                     />
                     {/* Create Choice */}
-                    <div className="w-[340px] bg-[#f1f1f1] rounded-full pl-8 pr-1 py-1 flex items-center justify-between group">
+                    <Link href={`/create-account${suffix}`} className="w-[340px] bg-[#f1f1f1] rounded-full pl-8 pr-1 py-1 flex items-center cursor-pointer justify-between group">
                         <SvgText
                             text="New to Axceal account"
                             weight="600"
                             height={16}
-                            className="text-[#1e1e1e]"
+                            className="text-[#0000f4]"
                         />
-                        <Link
-                            href={`/create-account${suffix}`}
+                        <div
                             className="bg-[#0000f4] rounded-full w-[100px] py-4 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
                         >
                             <SvgText text="Create" weight="600" height={16} className="text-white" />
-                        </Link>
-                    </div>
+                        </div>
+                    </Link>
                     <div className="w-[140px] mt-6 self-center">
                         <Link
                             href="/"
-                            className="bg-[#f1f1f1] rounded-full px-[30px] py-3 cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus-visible:outline-none flex justify-center"
+                            className="bg-[#f1f1f1] rounded-full px-4 py-4 cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus-visible:outline-none flex justify-center w-[160px] md:w-auto mt-6"
                         >
                             <SvgText text="Back to Store" weight="600" height={14} className="text-[#0000f4]" />
                         </Link>
