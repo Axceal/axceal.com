@@ -24,6 +24,10 @@ const EnvSchema = z.object({
 
   GOOGLE_ADDRESS_VALIDATION_API_KEY: z.string().optional().transform(v => v || undefined),
 
+  // Scheduled DB backup — the target Neon instance + Vercel cron auth
+  BACKUP_DATABASE_URL: z.string().url().optional(),
+  CRON_SECRET: z.string().min(1).optional(),
+
   // S10 — single source of truth for the trusted client-IP header. Default
   // matches Vercel ("x-real-ip") but a non-Vercel deploy must set this
   // explicitly (e.g. "cf-connecting-ip" for Cloudflare). Reading any other
