@@ -43,3 +43,14 @@ next-env.d.ts
 
 # markdown
 *.md
+
+# tool / analysis artifacts
+.claude/
+graphify-out/
+strix_runs/
+
+# temp utility scripts & data
+backup.ts
+restore_db.ts
+db_backup.json
+test-twilio.ts
