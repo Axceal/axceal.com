@@ -2,32 +2,64 @@ import {
   Body,
   Container,
   Head,
-  Heading,
   Html,
   Preview,
   Section,
   Text,
+  Img,
+  Link,
 } from "@react-email/components";
+import * as React from "react";
 
 type OtpEmailProps = { code: string };
 
-export function OtpEmail({ code }: OtpEmailProps) {
+export function OtpEmail({ code = "0000" }: OtpEmailProps) {
+  const spacedCode = code.split('').join('   ');
+  
   return (
     <Html>
       <Head />
       <Preview>Your Axceal verification code is {code}</Preview>
-      <Body style={body}>
+      <Body style={main}>
         <Container style={container}>
-          <Heading style={heading}>Verify your email</Heading>
-          <Text style={paragraph}>
-            Use the code below to finish creating your Axceal account. It expires in 10 minutes.
-          </Text>
-          <Section style={codeBox}>
-            <Text style={codeText}>{code}</Text>
+          <Section style={contentSection}>
+            <Text style={greeting}>
+              <strong>Hi User,</strong>
+            </Text>
+            <Text style={text}>
+              To complete your authentication, please enter the following verification code:
+            </Text>
+
+            <Section style={codeContainer}>
+              <Text style={codeText}>{spacedCode}</Text>
+            </Section>
+
+            <Text style={expireText}>
+              <strong>T</strong>his code will expire in 180 Seconds, better be quick with it!
+            </Text>
+
+            <Text style={text}>
+              If you did not request this code, please ignore this email or contact our support team immediately at <Link href="mailto:contact@axceal.com" style={link}>contact@axceal.com</Link> to secure your account.
+            </Text>
+
+            <Text style={text}>
+              Thanks, Axceal
+            </Text>
           </Section>
-          <Text style={footer}>
-            If you didn&apos;t request this, you can safely ignore this email.
-          </Text>
+
+          <Section style={footer}>
+            <Img 
+              src="https://ljnfarynjpnrbrwmesjombj9terggazvam5gufvfasa.canva-cdn.email/7a7a6d3b9c12ef03a8a4c0ae3fa9d0f7.png" 
+              width="56" 
+              height="35" 
+              alt="Axceal" 
+              style={logo}
+            />
+            <Text style={footerText}>
+              © 2026 Axceal (Aectex Technologies Private Limited)<br />
+              All rights reserved
+            </Text>
+          </Section>
         </Container>
       </Body>
     </Html>
@@ -36,47 +68,79 @@ export function OtpEmail({ code }: OtpEmailProps) {
 
 export default OtpEmail;
 
-const body: React.CSSProperties = {
-  backgroundColor: "#f1f1f1",
-  fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-  margin: 0,
+const main = {
+  backgroundColor: "#f0f1f5",
+  fontFamily: "Arial, Helvetica, sans-serif",
+  margin: "0",
   padding: "40px 0",
 };
-const container: React.CSSProperties = {
+
+const container = {
   backgroundColor: "#ffffff",
-  borderRadius: 20,
   margin: "0 auto",
-  maxWidth: 480,
-  padding: 32,
+  maxWidth: "600px",
 };
-const heading: React.CSSProperties = {
-  color: "#1e1e1e",
-  fontSize: 22,
-  fontWeight: 600,
-  margin: 0,
+
+const contentSection = {
+  padding: "24px",
 };
-const paragraph: React.CSSProperties = {
-  color: "#1e1e1e",
-  fontSize: 15,
-  lineHeight: 1.5,
-  marginTop: 16,
-};
-const codeBox: React.CSSProperties = {
-  backgroundColor: "#f1f1f1",
-  borderRadius: 12,
-  margin: "24px 0",
-  padding: "20px 0",
-  textAlign: "center",
-};
-const codeText: React.CSSProperties = {
-  color: "#0000f4",
-  fontSize: 36,
-  fontWeight: 700,
-  letterSpacing: "0.4em",
-  margin: 0,
-};
-const footer: React.CSSProperties = {
+
+const greeting = {
   color: "#aaaaaa",
-  fontSize: 13,
-  marginTop: 24,
+  fontSize: "13.3px",
+  lineHeight: "17.9px",
+  margin: "0 0 16px 0",
+};
+
+const text = {
+  color: "#aaaaaa",
+  fontSize: "13.3px",
+  lineHeight: "17.9px",
+  margin: "0 0 16px 0",
+};
+
+const codeContainer = {
+  padding: "40px 0",
+  textAlign: "center" as const,
+};
+
+const codeText = {
+  color: "#121212",
+  fontSize: "53.3px",
+  fontWeight: "600",
+  lineHeight: "1.4",
+  letterSpacing: "-0.01em",
+  margin: "0",
+  textAlign: "center" as const,
+};
+
+const expireText = {
+  color: "#aaaaaa",
+  fontSize: "13.3px",
+  textAlign: "center" as const,
+  margin: "0 0 16px 0",
+};
+
+const link = {
+  color: "#aaaaaa",
+  textDecoration: "none",
+};
+
+const footer = {
+  backgroundColor: "#0000f4",
+  padding: "16px",
+  textAlign: "center" as const,
+};
+
+const logo = {
+  display: "block",
+  margin: "0 auto 16px auto",
+};
+
+const footerText = {
+  color: "#ffffff",
+  fontSize: "10.7px",
+  lineHeight: "1.4",
+  margin: "0",
+  textAlign: "center" as const,
 };

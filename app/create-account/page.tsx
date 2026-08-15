@@ -47,7 +47,7 @@ function CreateAccountForm() {
         handleOtpLogin,
         handleForgotPassword,
         otpLoginInProgress,
-        recentlySent,
+        resendCountdown,
         isFocused,
     } = useCreateAccountForm();
 
@@ -83,7 +83,7 @@ function CreateAccountForm() {
                             placeholder="Email"
                             value={email}
                             onChange={setEmail}
-                            weight="600"
+                            weight="500"
                             height={16}
                             align="center"
                             readOnly={otpVerified}
@@ -126,7 +126,7 @@ function CreateAccountForm() {
                     otpKeyPrefix="otp"
                     gapClass="gap-2 sm:gap-2"
                     otpWrapRef={otpWrapRef}
-                    recentlySent={recentlySent}
+                    resendCountdown={resendCountdown}
                     isFocused={isFocused}
                     disabled={otpVerified}
                 />
@@ -136,17 +136,17 @@ function CreateAccountForm() {
 
                 {emailExists && (
                     <div className="w-full flex flex-col items-stretch gap-[10px] mt-2">
-                        <Squircle borderRadius={20} smoothing={50} className="w-full bg-[#f1f1f1] py-8 px-6 flex flex-col items-center gap-2">
+                        <Squircle borderRadius={15} smoothing={50} className="w-full bg-[#f1f1f1] py-8 px-6 flex flex-col items-center gap-2">
                             <SvgText
                                 text="Account already exists for"
-                                weight="500"
+                                weight="600"
                                 height={16}
                                 maxWidth={Infinity}
-                                className="text-[#aaaaaa]"
+                                className="text-[#1e1e1e]"
                             />
                             <SvgText
                                 text={elideEmail(emailExistsFor)}
-                                weight="500"
+                                weight="600"
                                 height={16}
                                 maxWidth={Infinity}
                                 className="text-[#0000f4]"
@@ -262,7 +262,7 @@ function CreateAccountForm() {
                                 text={
                                     !otpVerified
                                         ? (verifyingOtp ? "Verifying..." : "Verify")
-                                        : (submitting ? "Saving..." : "Save")
+                                        : (submitting ? "Saving..." : "Create Account")
                                 }
                                 weight="600"
                                 height={16}

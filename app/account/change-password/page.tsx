@@ -44,7 +44,7 @@ export default function ChangePasswordPage() {
         handleOtpKeyDown,
         handleSave,
         indicatorTop,
-        recentlySent,
+        resendCountdown,
         isFocused,
         focusField,
         blurField,
@@ -55,23 +55,13 @@ export default function ChangePasswordPage() {
 
     return (
         <main className="flex-1 flex items-center justify-center">
-            <div className="relative flex flex-col items-center gap-4 w-full px-6 lg:px-0 lg:w-[300px] max-w-[400px]">
-                {/* Mobile Back Button */}
-                <div className="flex lg:hidden w-full items-center justify-start mb-[5px]">
-                    <Link href="/account" className="flex items-center w-fit shrink-0 whitespace-nowrap">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e] " />
+            <div className="relative flex flex-col items-center gap-4 w-[min(100vw-2rem,320px)]">
+                <div className="flex w-full items-center justify-start gap-[15px] mb-2 lg:mb-0">
+                    <Link href="/account" className="flex items-center w-fit shrink-0 whitespace-nowrap hover:opacity-80 transition-opacity">
+                        <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e]" />
                     </Link>
-                </div>
-
-                {/* Header row wrapper for mobile */}
-                <div className="relative flex items-center justify-center w-full mb-2 lg:mb-0">
-                    {/* Desktop Back Button */}
-                    <Link href="/account" className="hidden lg:flex absolute right-full mr-[30px] top-[22px] whitespace-nowrap">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e] " />
-                    </Link>
-                    <Squircle smoothing={60} borderRadius={15} className="bg-[#0000f4] w-full py-5 flex items-center justify-center">
-                        <SvgText text="Change Password" weight="600" height={14} className="text-white" />
-                    </Squircle>
+                    <div className="w-[8px] h-[8px] rounded-full bg-[#0000f4] shrink-0" aria-hidden />
+                    <SvgText text="Change Password" weight="600" height={20} className="text-[#1e1e1e]" />
                 </div>
 
                 {/* Active indicator */}
@@ -92,8 +82,8 @@ export default function ChangePasswordPage() {
                             placeholder="Current Password"
                             value={currentPassword}
                             onChange={setCurrentPassword}
-                            weight="600"
-                            height={14}
+                            weight="500"
+                            height={16}
                             align="center"
                             readOnly={otpVerified}
                             className={`w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1 ${otpVerified ? "opacity-60 cursor-not-allowed" : ""}`}
@@ -109,6 +99,31 @@ export default function ChangePasswordPage() {
                     )}
                 </div>
 
+                {/* Forgot Password (hidden after verification) */}
+                <div className="w-full flex flex-col items-center mt-2">
+                    <AnimatePresence>
+                        {!currentPasswordVerified && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="flex flex-col items-center w-full overflow-hidden"
+                            >
+                                <Link
+                                    href="/forgot-password"
+                                    className="hover:opacity-90 transition-opacity py-1"
+                                >
+                                    <SvgText
+                                        text="Forgot Password"
+                                        weight="600"
+                                        height={14}
+                                        className="text-[#0000f4]"
+                                    />
+                                </Link>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
 
                 {/* OTP section — shown only after current password verified */}
                 <AnimatePresence>
@@ -123,55 +138,71 @@ export default function ChangePasswordPage() {
 
                             {/* OTP box */}
                             <div className="w-full flex flex-col gap-2">
-                                <div
-                                    ref={otpWrapRef}
-                                    className="bg-[#f1f1f1] rounded-[15px] h-[72px] px-5 py-3 flex items-center justify-between w-full"
-                                >
-                                    <SvgText text="Verify" weight="600" height={14} className="text-[#aaaaaa]" />
-                                    <div className="flex gap-2">
-                                        {otp.map((digit, i) => (
-                                            <div
-                                                key={`change-pw-otp-${i}`}
-                                                onClick={() => !otpVerified && document.getElementById(`change-pw-otp-digit-${i}`)?.focus()}
-                                                className={`w-10 h-10 rounded-full bg-white flex shrink-0 transition-all ${otpVerified ? "cursor-not-allowed opacity-60" : "cursor-text"} ${focusedOtpIdx === i && !otpVerified ? "ring-2 ring-[#0000f4]" : ""}`}
-                                            >
-                                                <SvgInput
-                                                    id={`change-pw-otp-digit-${i}`}
-                                                    value={digit}
-                                                    onChange={(val) => handleOtpChange(i, val)}
-                                                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                                                    onFocus={() => { focusField("otp"); setFocusedOtpIdx(i); }}
-                                                    onBlur={blurField}
-                                                    readOnly={otpVerified}
-                                                    height={18}
-                                                    weight="600"
-                                                    align="center"
-                                                    className={`text-[#1e1e1e] w-full ${otpVerified ? "cursor-not-allowed" : ""}`}
-                                                />
-                                            </div>
-                                        ))}
+                                <div ref={otpWrapRef} className="relative w-full pt-6 pb-6 px-6 flex flex-col gap-4">
+                                    <Squircle
+                                        borderRadius={20}
+                                        smoothing={60}
+                                        className="absolute inset-0 bg-[#f1f1f1] -z-10"
+                                    />
+                                    <div className="flex justify-between items-center w-full px-1">
+                                        <SvgText text="Verify Code" weight="600" height={16} className="text-[#aaaaaa]" />
+                                        <div className="flex items-center gap-1">
+                                            {resendCountdown > 0 ? (
+                                                <>
+                                                    <SvgText text="Wait," weight="600" height={16} className="text-[#1e1e1e]" />
+                                                    <SvgText text={`${resendCountdown}s`} weight="600" height={16} className="text-[#0000f4]" />
+                                                </>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={sendOtp}
+                                                    disabled={sendingOtp || otpVerified}
+                                                    className="cursor-pointer disabled:cursor-not-allowed focus:outline-none"
+                                                >
+                                                    <SvgText
+                                                        text={sendingOtp ? "Sending..." : "Resend"}
+                                                        weight="600"
+                                                        height={16}
+                                                        className="text-[#0000f4]"
+                                                    />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between w-full gap-1">
+                                        {otp.map((digit, i) => {
+                                            const isActive = focusedOtpIdx === i || digit;
+                                            return (
+                                                <div
+                                                    key={`change-pw-otp-${i}`}
+                                                    onClick={() => !otpVerified && document.getElementById(`change-pw-otp-digit-${i}`)?.focus()}
+                                                    className={`w-[56px] h-[56px] rounded-full bg-white flex items-center justify-center shrink-0 transition-all overflow-hidden ${otpVerified ? "cursor-not-allowed opacity-60" : "cursor-text"} ${isActive && !otpVerified ? "border-[2px] border-[#0000f4]" : ""}`}
+                                                >
+                                                    <SvgInput
+                                                        id={`change-pw-otp-digit-${i}`}
+                                                        value={digit}
+                                                        onChange={(val) => handleOtpChange(i, val)}
+                                                        onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                                                        onFocus={() => { focusField("otp"); setFocusedOtpIdx(i); }}
+                                                        onBlur={blurField}
+                                                        readOnly={otpVerified}
+                                                        height={18}
+                                                        weight="600"
+                                                        align="center"
+                                                        cursorHeightScale={1.5}
+                                                        cursorColor="#0000f4"
+                                                        className={`text-[#1e1e1e] w-full text-center bg-transparent ${otpVerified ? "cursor-not-allowed" : ""}`}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                                 {message?.field === "otp" && (
                                     <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center" />
                                 )}
                             </div>
-
-                            {/* Resend */}
-                            <button
-                                type="button"
-                                onClick={sendOtp}
-                                disabled={sendingOtp || recentlySent || otpVerified}
-                                className="cursor-pointer disabled:cursor-not-allowed focus:outline-none self-center"
-                            >
-                                <SvgText
-                                    text={recentlySent ? "Code sent" : sendingOtp ? "Sending..." : "Resend"}
-                                    weight="600"
-                                    height={14}
-                                    maxWidth={Infinity}
-                                    className={recentlySent ? "text-[#aaaaaa]" : "text-[#0000f4]"}
-                                />
-                            </button>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -194,7 +225,7 @@ export default function ChangePasswordPage() {
                                         value={password}
                                         onChange={setPassword}
                                         weight="500"
-                                        height={14}
+                                        height={16}
                                         align="center"
                                         className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1"
                                         onFocus={() => focusField("password")}
@@ -250,7 +281,7 @@ export default function ChangePasswordPage() {
                                         value={rePassword}
                                         onChange={setRePassword}
                                         weight="500"
-                                        height={14}
+                                        height={18}
                                         align="center"
                                         className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1"
                                         onFocus={() => focusField("repassword")}
@@ -291,7 +322,7 @@ export default function ChangePasswordPage() {
                                 ? (verifyingOtp || otp.join("").length !== 4)
                                 : submitting
                     }
-                    className="bg-[#0000f4] rounded-full px-10 py-4 focus:outline-none cursor-pointer transition-colors  disabled:cursor-not-allowed flex items-center justify-center"
+                    className="bg-[#f1f1f1] rounded-full px-10 py-4 focus:outline-none mt-40 cursor-pointer transition-colors  disabled:cursor-not-allowed flex items-center justify-center"
                 >
                     <SvgText
                         text={
@@ -299,11 +330,11 @@ export default function ChangePasswordPage() {
                                 ? (verifyingCurrentPassword ? "Verifying..." : "Verify")
                                 : !otpVerified
                                     ? (verifyingOtp ? "Verifying..." : "Verify")
-                                    : (submitting ? "Saving..." : "Save")
+                                    : (submitting ? "Saving..." : "Change Password")
                         }
                         weight="600"
                         height={16}
-                        className="text-white"
+                        className="text-[#0000f4]"
                     />
                 </button>
             </div>

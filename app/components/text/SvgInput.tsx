@@ -1,5 +1,6 @@
 "use client";
 import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import fustatData from "./fustat-data.json";
 import { type FontWeight, type GlyphMap, type KernMap, BASE, BLINK_MS, buildGlyphs } from "./svgInputHelpers";
 import { PlaceholderLayer, TextLayer } from "./SvgInputLayers";
@@ -28,6 +29,12 @@ export interface SvgInputProps {
     /** Called when the hidden input loses focus */
     onBlur?: () => void;
     onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    /** Custom typing indicator height scale. Default is 1.0 (matches font height) */
+    cursorHeightScale?: number;
+    /** Custom typing indicator stroke width. Default is 1.5 */
+    cursorWidth?: number;
+    /** Custom typing indicator color. Default is "currentColor" */
+    cursorColor?: string;
 }
 
 // Tracks the clip element's pixel width via ResizeObserver. Pulled out so the
@@ -76,6 +83,9 @@ export function SvgInput({
     onFocus: onFocusProp,
     onBlur: onBlurProp,
     onKeyDown: onKeyDownProp,
+    cursorHeightScale = 1.0,
+    cursorWidth = 1.5,
+    cursorColor = "currentColor",
 }: SvgInputProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const clipRef = useRef<HTMLDivElement>(null);
@@ -249,19 +259,24 @@ export function SvgInput({
             <div
                 ref={clipRef}
                 className="relative flex-1 pointer-events-none"
-                style={{ height: `${height}px`, clipPath: `inset(0 0 -30px 0)` }}
+                style={{ height: `${height}px`, clipPath: `inset(-10px 0 -30px 0)` }}
             >
                 {value.length === 0 && placeholder && (
-                    <PlaceholderLayer
-                        phPaths={phPaths}
-                        phAlignOffset={phAlignOffset}
-                        alignOffset={alignOffset}
-                        viewWidth={viewWidth}
-                        height={height}
-                        scale={scale}
-                        focused={focused}
-                        blink={blink}
-                    />
+                    <div className="absolute inset-0 pointer-events-none origin-center">
+                        <PlaceholderLayer
+                            phPaths={phPaths}
+                            phAlignOffset={phAlignOffset}
+                            alignOffset={alignOffset}
+                            viewWidth={viewWidth}
+                            height={height}
+                            scale={scale}
+                            focused={focused}
+                            blink={blink}
+                            cursorHeightScale={cursorHeightScale}
+                            cursorWidth={cursorWidth}
+                            cursorColor={cursorColor}
+                        />
+                    </div>
                 )}
                 {(value.length > 0 || (focused && value.length === 0 && !placeholder)) && (
                     <TextLayer
@@ -279,6 +294,9 @@ export function SvgInput({
                         scale={scale}
                         focused={focused}
                         blink={blink}
+                        cursorHeightScale={cursorHeightScale}
+                        cursorWidth={cursorWidth}
+                        cursorColor={cursorColor}
                     />
                 )}
             </div>

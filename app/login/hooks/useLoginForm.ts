@@ -29,16 +29,24 @@ export function useLoginForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [sendingOtp, setSendingOtp] = useState(false);
-    const [recentlySent, setRecentlySent] = useState(false);
-    const recentlySentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [resendCountdown, setResendCountdown] = useState(0);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const markRecentlySent = useCallback(() => {
-        setRecentlySent(true);
-        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
-        recentlySentTimer.current = setTimeout(() => setRecentlySent(false), 20000);
+        setResendCountdown(60);
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+            setResendCountdown((prev) => {
+                if (prev <= 1) {
+                    if (timerRef.current) clearInterval(timerRef.current);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
     }, []);
     useEffect(() => () => {
-        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
+        if (timerRef.current) clearInterval(timerRef.current);
     }, []);
     const [message, setMessage] = useState<{ kind: "info" | "error"; text: string; field?: MessageField } | null>(
         justRegistered ? { kind: "info", text: "Account created. Log in to continue." } : null,
@@ -248,7 +256,7 @@ export function useLoginForm() {
         indicatorTop,
         isOtp,
         otpCode,
-        recentlySent,
+        resendCountdown,
         isFocused,
     };
 }

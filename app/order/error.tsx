@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { SvgText } from "../components/text/SvgText";
+import { ErrorIcon } from "../components/icons/state/ErrorIcon";
 
 export default function OrderError({
     error,
@@ -27,7 +28,7 @@ export default function OrderError({
     if (retries >= 2) {
         return (
             <main className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[60vh]">
-                <img src="/assets/error%20svg.svg" alt="Error" className="w-[24px] h-[24px]" />
+                <ErrorIcon className="w-[24px] h-[24px]" />
                 
                 <div className="flex gap-4">
                     <button
@@ -52,7 +53,7 @@ export default function OrderError({
 
     return (
         <main className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[60vh]">
-            <img src="/assets/error%20svg.svg" alt="Error" className="w-[24px] h-[24px]" />
+            <ErrorIcon className="w-[24px] h-[24px]" />
             
             <div className="flex gap-4">
                 <button

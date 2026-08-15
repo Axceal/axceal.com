@@ -48,8 +48,8 @@ export function useCreateAccountForm() {
     const [otpToken, setOtpToken] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [otpLoginInProgress, setOtpLoginInProgress] = useState(false);
-    const [recentlySent, setRecentlySent] = useState(false);
-    const recentlySentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [resendCountdown, setResendCountdown] = useState(0);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [message, setMessage] = useState<Message | null>(null);
     const [isFocused, setIsFocused] = useState(false);
 
@@ -63,12 +63,20 @@ export function useCreateAccountForm() {
     useEffect(() => { forceUpdate(n => n + 1); }, []);
 
     const markRecentlySent = useCallback(() => {
-        setRecentlySent(true);
-        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
-        recentlySentTimer.current = setTimeout(() => setRecentlySent(false), 20000);
+        setResendCountdown(60);
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+            setResendCountdown((prev) => {
+                if (prev <= 1) {
+                    if (timerRef.current) clearInterval(timerRef.current);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
     }, []);
     useEffect(() => () => {
-        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
+        if (timerRef.current) clearInterval(timerRef.current);
     }, []);
 
     // Clear emailExists when the user edits the email — the alt UI references a
@@ -294,7 +302,7 @@ export function useCreateAccountForm() {
         handleOtpLogin,
         handleForgotPassword,
         otpLoginInProgress,
-        recentlySent,
+        resendCountdown,
         handleFocus,
         handleBlur,
         isFocused,

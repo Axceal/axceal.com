@@ -15,15 +15,23 @@ export function PlaceholderLayer(props: {
     scale: number;
     focused: boolean;
     blink: boolean;
+    cursorHeightScale: number;
+    cursorWidth: number;
+    cursorColor: string;
 }) {
-    const { phPaths, phAlignOffset, alignOffset, viewWidth, height, scale, focused, blink } = props;
+    const { phPaths, phAlignOffset, alignOffset, viewWidth, height, scale, focused, blink, cursorHeightScale, cursorWidth, cursorColor } = props;
+
+    // Calculate vertical bounds based on cursorHeightScale, centered around BASE / 2
+    const y1 = (BASE / 2) - (BASE * cursorHeightScale / 2);
+    const y2 = (BASE / 2) + (BASE * cursorHeightScale / 2);
+
     return (
         <svg
             viewBox={`0 0 ${Math.max(viewWidth, 1)} ${BASE}`}
             height={height}
             width={Math.max(viewWidth, 1) * scale}
             preserveAspectRatio="xMinYMid meet"
-            className="fill-current opacity-40"
+            className={`fill-current transition-opacity ${focused ? 'opacity-20' : 'opacity-40'}`}
             aria-hidden="true"
             style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}
         >
@@ -34,11 +42,10 @@ export function PlaceholderLayer(props: {
             </g>
             {focused && blink && (
                 <line
-                    x1={alignOffset} y1={1} x2={alignOffset} y2={BASE - 1}
-                    stroke="currentColor"
-                    strokeWidth={1.5 / scale}
+                    x1={alignOffset} y1={y1} x2={alignOffset} y2={y2}
+                    stroke={cursorColor}
+                    strokeWidth={cursorWidth / scale}
                     strokeLinecap="round"
-                    opacity={0.6}
                 />
             )}
         </svg>
@@ -60,11 +67,20 @@ export function TextLayer(props: {
     scale: number;
     focused: boolean;
     blink: boolean;
+    cursorHeightScale: number;
+    cursorWidth: number;
+    cursorColor: string;
 }) {
     const {
         paths, type, hasBullet, value, bulletSpacingFU, bulletRadiusFU,
         cursorXFU, alignOffset, viewLeft, viewWidth, height, scale, focused, blink,
+        cursorHeightScale, cursorWidth, cursorColor,
     } = props;
+
+    // Calculate vertical bounds based on cursorHeightScale, centered around BASE / 2
+    const y1 = (BASE / 2) - (BASE * cursorHeightScale / 2);
+    const y2 = (BASE / 2) + (BASE * cursorHeightScale / 2);
+
     return (
         <svg
             // viewBox scrolls horizontally: left edge starts at scrollUnits,
@@ -97,10 +113,10 @@ export function TextLayer(props: {
                 {/* Cursor line — same coordinate space as the glyphs */}
                 {focused && blink && (
                     <line
-                        x1={cursorXFU} y1={1}
-                        x2={cursorXFU} y2={BASE - 1}
-                        stroke="currentColor"
-                        strokeWidth={1.5 / scale}
+                        x1={cursorXFU} y1={y1}
+                        x2={cursorXFU} y2={y2}
+                        stroke={cursorColor}
+                        strokeWidth={cursorWidth / scale}
                         strokeLinecap="round"
                     />
                 )}

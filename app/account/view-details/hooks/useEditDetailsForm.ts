@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { signOut } from "next-auth/react";
-import { ordinal } from "../../details/helpers";
+import { ordinal } from "../../details-unified/helpers";
 import { apiFetch } from "@/lib/http/client";
 import type { Profile } from "@/lib/contracts/profile";
 

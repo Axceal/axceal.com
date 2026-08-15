@@ -23,7 +23,7 @@ export function HomeFooter({ section }: Props) {
           <AxcealLogo className="h-3 w-auto text-[#aaaaaa]" />
           <SvgText text="Axceal" weight="600" height={12} className="text-[#aaaaaa]" />
         </div>
-        <SvgText text="All intellectual property belongs to Axceal Pvt. Ltd." weight="500" height={12} maxWidth={Infinity} className="text-[#aaaaaa]" />
+        <SvgText text="All intellectual property belongs to Aectex Technologies Pvt. Ltd." weight="500" height={12} maxWidth={Infinity} className="text-[#aaaaaa]" />
       </div>
 
       {/* Right: contact label + details */}

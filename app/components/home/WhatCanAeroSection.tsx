@@ -95,14 +95,14 @@ export function WhatCanAeroSection({ section, subSlide, goSubSlide }: Props) {
           transition={SPRING}
         >
           {/* Portrait image — constrained by height to avoid overflow */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-[20%]">
-            <AeroSenseSlideIcon alt="Aero inside view" className="h-[clamp(280px,52vh,360px)] w-auto" />
+          <div className="absolute left-[47%] -translate-x-1/2 top-[30%]">
+            <AeroSenseSlideIcon alt="Aero inside view" className="h-[clamp(240px,52vh,240px)] w-auto" />
           </div>
           <div className="absolute right-[clamp(8rem,5vw,6rem)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-10">
             <div className="flex flex-col gap-10 items-end">
               <SvgText as="h2" text="Surround Sense" weight="600" height={16} maxWidth={Infinity} className="text-[#1e1e1e]" />
               <SvgText text={"Receive multi dimensional updates for Cues"} weight="600" height={16} className="text-[#1e1e1e]" align="right" />
-              <SvgText text="Aomni-Fit have on Softech design" weight="600" height={16} className="text-[#1e1e1e]" />
+              <SvgText text="Omni-Fit have on Softech design" weight="600" height={16} className="text-[#1e1e1e]" />
             </div>
             <SenseIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
           </div>
@@ -136,8 +136,8 @@ export function WhatCanAeroSection({ section, subSlide, goSubSlide }: Props) {
           transition={SPRING}
         >
           {/* Slim portrait image — constrained by height */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-[12%]">
-            <AeroBatterySlideIcon alt="Aero battery view" className="h-[clamp(280px,80vh,420px)] w-auto" />
+          <div className="absolute left-1/2 -translate-x-1/2 top-[25%]">
+            <AeroBatterySlideIcon alt="Aero battery view" className="h-[clamp(160px,80vh,140px)] w-auto" />
           </div>
           <div className="absolute right-[clamp(8rem,5vw,6rem)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-10">
             <div className="flex flex-col gap-10 items-end">

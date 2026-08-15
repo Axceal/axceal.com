@@ -15,16 +15,17 @@ import { AeroNavigationSlideIcon } from "../icons/slide/AeroNavigationSlideIcon"
 import { AeroSenseSlideIcon } from "../icons/slide/AeroSenseSlideIcon";
 import { AeroFeatherSlideIcon } from "../icons/slide/AeroFeatherSlideIcon";
 import { AeroBatterySlideIcon } from "../icons/slide/AeroBatterySlideIcon";
+import { Squircle } from "../layout/Squircle";
 
 type SlideIcon = (props: { className: string; alt: string }) => React.ReactElement;
 
 const AERO_SLIDES: { Icon: SlideIcon; className: string }[] = [
-  { Icon: AeroIcon, className: "w-full h-auto max-h-[320px] object-contain" },
-  { Icon: AeroCuesSlideIcon, className: "h-auto w-[300px] max-w-full object-contain" },
+  { Icon: AeroIcon, className: "w-full h-auto max-h-[300px] object-contain" },
+  { Icon: AeroCuesSlideIcon, className: "h-auto w-[360px] max-w-full object-contain" },
   { Icon: AeroNavigationSlideIcon, className: "h-[360px] w-auto max-w-full object-contain" },
-  { Icon: AeroSenseSlideIcon, className: "h-[300px] w-auto max-w-full object-contain" },
+  { Icon: AeroSenseSlideIcon, className: "h-[200px] w-auto max-w-full object-contain" },
   { Icon: AeroFeatherSlideIcon, className: "h-[360px] w-auto max-w-full object-contain" },
-  { Icon: AeroBatterySlideIcon, className: "h-[360px] w-auto max-w-full object-contain" },
+  { Icon: AeroBatterySlideIcon, className: "h-[160px] w-auto max-w-full object-contain" },
 ];
 
 interface Props {
@@ -105,7 +106,7 @@ export function MobileHome({
               className="absolute inset-0 pb-40 flex items-center justify-center"
             >
               {aeroSlide === 0 ? (
-                <div className="relative w-full max-w-[320px] mx-auto">
+                <div className="relative w-full max-w-[360px] mx-auto">
                   <AeroIcon alt="Aero x1" className={AERO_SLIDES[0].className} priority />
                   <div className="absolute left-[57%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
                     <AxcealLogo className="h-3 w-auto text-[#0000f4]" />
@@ -172,7 +173,7 @@ export function MobileHome({
             <div className="flex flex-col gap-4">
               <SvgText as="h3" text="Surround Sense" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
               <SvgText text={"Receive multi dimensional updates for Cues"} weight="600" maxWidth={Infinity} height={14} className="text-[#aaaaaa]" />
-              <SvgText text="Aomni-Fit have on Softech design" weight="600" height={14} className="text-[#aaaaaa]" />
+              <SvgText text="Omni-Fit have on Softech design" weight="600" height={14} className="text-[#aaaaaa]" />
             </div>
             <SenseIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
           </div>
@@ -214,7 +215,7 @@ export function MobileHome({
       {/* CTA — fixed at bottom-8, translates up when footer enters viewport */}
       <motion.div
         className="fixed bottom-8 left-0 right-0 z-50 flex justify-center"
-        animate={{ y: footerVisible ? -80 : 0 }}
+        animate={{ y: footerVisible ? -90 : 0 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
       >
         {ctaIsButton ? (
@@ -259,23 +260,38 @@ export function MobileHome({
       {/* Section 3: What's inside the box */}
       <div className="flex flex-col gap-12 mt-8">
         <SvgText as="h2" text={"What's inside\nthe Box"} weight="700" maxWidth={Infinity} className="text-[#1e1e1e] ml-2" height={26} />
+
+        <div className="flex flex-row items-center justify-center gap-4 w-full">
+          <Squircle borderRadius={20} className="w-[160px] h-[160px] bg-[#f1f1f1] flex items-center justify-center shrink-0">
+            <SvgText text="Aero x1" weight="600" height={14} className="text-[#1e1e1e]" />
+          </Squircle>
+          <Squircle borderRadius={20} className="w-[160px] h-[160px] bg-[#f1f1f1] flex items-center justify-center shrink-0">
+            <SvgText text="Dock-C Cable" weight="600" height={14} className="text-[#1e1e1e]" />
+          </Squircle>
+        </div>
       </div>
 
       {/* Spacer so fixed Get One button doesn't overlap footer content */}
-      <div className="h-50" />
+      <div className="h-[120px]" />
 
-      {/* Footer — full width, pushed to viewport bottom via mt-auto */}
-      <div ref={footerRef} className="-mx-6 bg-[#f1f1f1] px-6 py-5 flex flex-row items-center justify-between mt-auto">
-        <div className="flex flex-col gap-1">
-          <div className="flex flex-row items-center gap-2">
-            <AxcealLogo className="h-3 w-auto text-[#aaaaaa]" />
-            <SvgText text="Axceal" weight="600" height={12} className="text-[#aaaaaa]" />
-          </div>
-          <SvgText text="All Right Belongs to Axceal Pvt. Ltd." weight="500" height={10} className="text-[#aaaaaa]" />
+      <div ref={footerRef} className="mt-auto flex flex-col">
+        <div className="px-6 mb-[10px] flex justify-center">
+          <SvgText text="# Specific performance numbers may vary as Aero is still under development and evaluation." weight="500" height={12} align="center" className="text-[#aaaaaa]" />
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <SvgText text="Contact" weight="500" height={12} className="text-[#aaaaaa]" />
-          <SvgText text="contact@axceal.com | +91 88302-61513" weight="500" height={10} className="text-[#aaaaaa]" />
+
+        {/* Footer — full width */}
+        <div className="-mx-6 bg-[#f1f1f1] px-6 py-5 flex flex-row items-center justify-between">
+          <div className="flex flex-col gap-1">
+            <div className="flex flex-row items-center gap-2">
+              <AxcealLogo className="h-3 w-auto text-[#aaaaaa]" />
+              <SvgText text="Axceal" weight="600" height={12} className="text-[#aaaaaa]" />
+            </div>
+            <SvgText text="All Right Belongs to Axceal Pvt. Ltd." weight="500" height={10} className="text-[#aaaaaa]" />
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <SvgText text="Contact" weight="500" height={12} className="text-[#aaaaaa]" />
+            <SvgText text="contact@axceal.com | +91 88302-61513" weight="500" height={10} className="text-[#aaaaaa]" />
+          </div>
         </div>
       </div>
 

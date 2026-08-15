@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import { SvgText } from "../components/text/SvgText";
+import { ErrorIcon } from "../components/icons/state/ErrorIcon";
 
 export default function AccountError({
     error,
@@ -28,7 +29,7 @@ export default function AccountError({
     if (retries >= 2) {
         return (
             <main className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[60vh]">
-                <img src="/assets/error%20svg.svg" alt="Error" className="w-[24px] h-[24px]" />
+                <ErrorIcon className="w-[24px] h-[24px]" />
                 
                 <button
                     type="button"
@@ -44,7 +45,7 @@ export default function AccountError({
 
     return (
         <main className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[60vh]">
-            <img src="/assets/error%20svg.svg" alt="Error" className="w-[24px] h-[24px]" />
+            <ErrorIcon className="w-[24px] h-[24px]" />
             
             <button
                 type="button"

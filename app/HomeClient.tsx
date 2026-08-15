@@ -80,7 +80,7 @@ export function HomeClient() {
   const subLabel = waitlistMode
     ? waitlistStatus.kind === "in"
       ? `At ${formatPosition(waitlistStatus.position)} in Queue`
-      : "Queue Me Up"
+      : "Add me to Queue"
     : `INR ` + formatINR(AERO.priceInPaise);
 
   // Authed users in waitlist mode always see popup-2; the join popup is for
@@ -192,14 +192,14 @@ export function HomeClient() {
             )}
           </motion.div>
 
-          {/* Footnote ref 2 — left-aligned at nav margin, just above footer, fades in on S2 */}
+          {/* Footnote ref 2 — centered just above footer, fades in on S2 */}
           <motion.div
-            className="absolute left-[clamp(1.5rem,8vw,7.5rem)]"
+            className="absolute left-0 right-0 flex justify-center"
             initial={{ bottom: "90px", y: 80, opacity: 0 }}
             animate={{ bottom: "90px", y: section === 2 ? 0 : 80, opacity: section === 2 ? 1 : 0 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
           >
-            <SvgText text="2. Description" weight="500" height={12} className="text-[#aaaaaa] ml-10" />
+            <SvgText text="# Specific performance numbers may vary as Aero is still under development and evaluation." weight="500" height={12} align="center" className="text-[#aaaaaa]" />
           </motion.div>
 
           {/* Footer — slides up from below when S2 is active */}

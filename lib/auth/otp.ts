@@ -165,6 +165,50 @@ export async function verifyChangePasswordOtp(email: string, code: string): Prom
   await redis.del(aKey);
 }
 
+// Details-flow scoped OTPs — used when saving account details (phone etc.)
+// via email verification instead of SMS. Separate keys prevent cross-flow reuse.
+const detailsOtpKey         = (email: string) => `otp:details:${email}`;
+const detailsOtpAttemptsKey = (email: string) => `otp:details:attempts:${email}`;
+
+export async function storeDetailsOtp(email: string, code: string): Promise<void> {
+  const record: OtpRecord = { code };
+  await redis.set(detailsOtpKey(email), record, { ex: OTP_TTL_SEC });
+  await redis.del(detailsOtpAttemptsKey(email));
+}
+
+export async function verifyDetailsOtp(email: string, code: string): Promise<void> {
+  const key  = detailsOtpKey(email);
+  const aKey = detailsOtpAttemptsKey(email);
+
+  const record = (await redis.get<OtpRecord>(key)) ?? null;
+  if (!record) {
+    throw new AppError(
+      ErrorCode.OTP_EXPIRED,
+      "Code expired or not found. Please request a new one.",
+      400,
+    );
+  }
+
+  const attempts = await redis.incr(aKey);
+  if (attempts === 1) await redis.expire(aKey, OTP_TTL_SEC);
+
+  if (attempts > MAX_ATTEMPTS) {
+    await redis.del(key);
+    throw new AppError(
+      ErrorCode.INVALID_OTP,
+      "Too many incorrect attempts. Please request a new Code.",
+      400,
+    );
+  }
+
+  if (record.code !== code) {
+    throw new AppError(ErrorCode.INVALID_OTP, "Incorrect Code.", 400);
+  }
+
+  await redis.del(key);
+  await redis.del(aKey);
+}
+
 export async function consumeOtpToken(token: string, expectedFlow: TokenFlow): Promise<string> {
   const key = tokenKey(token);
   // Atomic GET+DEL — prevents two concurrent consumers from both passing the

@@ -7,6 +7,7 @@ import { SvgInput } from "../components/text/SvgInput";
 import { PasswordToggle } from "../components/form/PasswordToggle";
 import { useLoginForm } from "./hooks/useLoginForm";
 import { RightArrow } from "../components/icons/action/RightArrow";
+import { Squircle } from "../components/layout/Squircle";
 
 const SPRING = { type: "spring", stiffness: 280, damping: 28 } as const;
 
@@ -33,7 +34,7 @@ function LoginPageInner() {
         indicatorTop,
         isOtp,
         otpCode,
-        recentlySent,
+        resendCountdown,
         isFocused,
     } = useLoginForm();
 
@@ -70,7 +71,7 @@ function LoginPageInner() {
                         onChange={setEmail}
                         weight="500"
                         align="center"
-                        height={16}
+                        height={18}
                         readOnly={isOtp}
                         className={`w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full px-8 py-4 transition-all ${isOtp ? "opacity-70" : ""}`}
                         onFocus={() => handleFocus("email")}
@@ -90,7 +91,7 @@ function LoginPageInner() {
                         onChange={setPassword}
                         weight="500"
                         align="center"
-                        height={16}
+                        height={18}
                         readOnly={isOtp}
                         className={`w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1 transition-all ${isOtp ? "opacity-70" : ""}`}
                         onFocus={() => handleFocus("password")}
@@ -129,13 +130,26 @@ function LoginPageInner() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -4 }}
                                 transition={SPRING}
+                                className="flex flex-col items-center gap-3 w-full py-2"
                             >
                                 <Link
                                     href="/forgot-password"
-                                    className="rounded-full px-5 py-3 flex justify-center hover:opacity-90 transition-opacity"
+                                    className="hover:opacity-90 transition-opacity"
                                 >
                                     <SvgText
                                         text="Forgot Password"
+                                        weight="600"
+                                        height={14}
+                                        className="text-[#0000f4]"
+                                    />
+                                </Link>
+                                <div className="w-[8px] h-[8px] bg-[#aaaaaa] rounded-full shrink-0" aria-hidden />
+                                <Link
+                                    href="/create-account"
+                                    className="hover:opacity-90 transition-opacity"
+                                >
+                                    <SvgText
+                                        text="Create Axceal Account"
                                         weight="600"
                                         height={14}
                                         className="text-[#0000f4]"
@@ -158,38 +172,61 @@ function LoginPageInner() {
                                     className="text-[#aaaaaa] self-start pl-2 mt-[10px]"
                                 />
 
-                                <div
-                                    ref={otpWrapRef}
-                                    className="bg-[#f1f1f1] rounded-[15px] h-[72px] px-5 py-3 flex items-center justify-between w-full"
-                                >
-                                    <SvgText
-                                        text="Verify"
-                                        weight="600"
-                                        height={14}
-                                        className="text-[#aaaaaa]"
-                                    />
-                                    <div className="flex gap-1 sm:gap-2">
-                                        {otp.map((digit, i) => (
-                                            <div
-                                                key={`login-otp-${i}`}
-                                                onClick={() => !submitting && document.getElementById(`login-otp-digit-${i}`)?.focus()}
-                                                className={`w-10 h-10 rounded-full bg-white flex shrink-0 transition-all ${submitting ? "cursor-not-allowed opacity-60" : "cursor-text"} ${focusedOtpIdx === i && !submitting ? "ring-2 ring-[#0000f4]" : ""}`}
-                                            >
-                                                <SvgInput
-                                                    id={`login-otp-digit-${i}`}
-                                                    value={digit}
-                                                    onChange={(val) => handleOtpChange(i, val)}
-                                                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                                                    onFocus={() => { handleFocus("otp"); setFocusedOtpIdx(i); }}
-                                                    onBlur={handleBlur}
-                                                    readOnly={submitting}
-                                                    height={18}
-                                                    weight="600"
-                                                    align="center"
-                                                    className={`text-[#1e1e1e] w-full ${submitting ? "cursor-not-allowed" : ""}`}
-                                                />
-                                            </div>
-                                        ))}
+                                <div ref={otpWrapRef} className="relative w-full pt-6 pb-6 px-6 flex flex-col gap-4">
+                                    <Squircle borderRadius={20} smoothing={60} className="absolute inset-0 bg-[#f1f1f1] -z-10" />
+                                    <div className="flex justify-between items-center w-full px-1">
+                                        <SvgText text="Verify Code" weight="600" height={16} className="text-[#aaaaaa]" />
+                                        <div className="flex items-center gap-1">
+                                            {resendCountdown > 0 ? (
+                                                <>
+                                                    <SvgText text="Wait," weight="600" height={16} className="text-[#1e1e1e]" />
+                                                    <SvgText text={`${resendCountdown}s`} weight="600" height={16} className="text-[#0000f4]" />
+                                                </>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => sendOtp(pendingMfaToken!)}
+                                                    disabled={sendingOtp || submitting}
+                                                    className="cursor-pointer disabled:cursor-not-allowed focus:outline-none"
+                                                >
+                                                    <SvgText
+                                                        text={sendingOtp ? "Sending..." : "Resend"}
+                                                        weight="600"
+                                                        height={16}
+                                                        className="text-[#0000f4]"
+                                                    />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between w-full gap-1">
+                                        {otp.map((digit, i) => {
+                                            const isActive = focusedOtpIdx === i || digit;
+                                            return (
+                                                <div
+                                                    key={`login-otp-${i}`}
+                                                    onClick={() => !submitting && document.getElementById(`login-otp-digit-${i}`)?.focus()}
+                                                    className={`w-[56px] h-[56px] rounded-full bg-white flex items-center justify-center shrink-0 transition-all overflow-hidden ${submitting ? "cursor-not-allowed opacity-60" : "cursor-text"} ${isActive && !submitting ? "border-[2px] border-[#0000f4]" : ""}`}
+                                                >
+                                                    <SvgInput
+                                                        id={`login-otp-digit-${i}`}
+                                                        value={digit}
+                                                        onChange={(val) => handleOtpChange(i, val)}
+                                                        onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                                                        onFocus={() => { handleFocus("otp"); setFocusedOtpIdx(i); }}
+                                                        onBlur={handleBlur}
+                                                        readOnly={submitting}
+                                                        height={18}
+                                                        weight="600"
+                                                        align="center"
+                                                        cursorHeightScale={1.5}
+                                                        cursorColor="#0000f4"
+                                                        className={`text-[#1e1e1e] w-full text-center bg-transparent ${submitting ? "cursor-not-allowed" : ""}`}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -205,21 +242,7 @@ function LoginPageInner() {
                                     </div>
                                 )}
 
-                                <button
-                                    type="button"
-                                    onClick={() => pendingMfaToken && sendOtp(pendingMfaToken)}
-                                    disabled={sendingOtp || !pendingMfaToken || recentlySent}
-                                    className="cursor-pointer disabled:cursor-not-allowed focus:outline-none self-center"
-                                    aria-label="Resend Code"
-                                >
-                                    <SvgText
-                                        text={recentlySent ? "Code sent" : sendingOtp ? "Sending..." : "Resend"}
-                                        weight="600"
-                                        height={14}
-                                        maxWidth={Infinity}
-                                        className={recentlySent ? "text-[#aaaaaa]" : "text-[#0000f4]"}
-                                    />
-                                </button>
+
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -245,7 +268,7 @@ function LoginPageInner() {
                 </button>
             </form>
 
-            {!isOtp && (
+            {/* {!isOtp && (
                 <div className="absolute bottom-8 w-[min(100vw-2rem,320px)] bg-[#f1f1f1] rounded-full pl-8 pr-1 py-1 flex items-center justify-between group">
                     <SvgText
                         text="New to Axceal account"
@@ -260,7 +283,7 @@ function LoginPageInner() {
                         <RightArrow className="text-white ml-1 w-[10px] h-auto" />
                     </Link>
                 </div>
-            )}
+            )} */}
         </main>
     );
 }

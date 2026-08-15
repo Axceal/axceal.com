@@ -43,7 +43,7 @@ function ForgotPasswordForm() {
         otpVerified,
         passwordValid,
         prefilled,
-        recentlySent,
+        resendCountdown,
         isFocused,
     } = useForgotPasswordForm();
 
@@ -51,28 +51,14 @@ function ForgotPasswordForm() {
         <main className="flex-1 flex items-center justify-center">
             <form
                 onSubmit={handleSubmit}
-                className="relative flex flex-col items-center gap-5 w-[300px]"
+                className="relative flex flex-col items-center gap-5 w-[min(100vw-2rem,320px)]"
             >
-                {/* Mobile Back Button */}
-                <div className="flex lg:hidden w-full items-center justify-start mb-[5px]">
-                    <Link href="/login" className="flex items-center w-fit shrink-0 whitespace-nowrap">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e] " />
+                <div className="flex w-full items-center justify-start gap-[15px]">
+                    <Link href="/login" className="flex items-center w-fit shrink-0 whitespace-nowrap hover:opacity-80 transition-opacity">
+                        <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e]" />
                     </Link>
-                </div>
-
-                <div className="relative flex items-center justify-center w-full">
-                    {/* Desktop Back Button */}
-                    <Link href="/login" className="hidden lg:flex absolute right-full mr-[30px] top-[22px] whitespace-nowrap">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e] " />
-                    </Link>
-                    <Squircle
-                        smoothing={60}
-                        borderRadius={15}
-                        className="w-full bg-[#0000f4] px-10 py-5 flex justify-center"
-                        aria-hidden
-                    >
-                        <SvgText text="Forgot Password" weight="600" height={14} className="text-white" />
-                    </Squircle>
+                    <div className="w-[8px] h-[8px] rounded-full bg-[#0000f4] shrink-0" aria-hidden />
+                    <SvgText text="Forgot Password" weight="600" height={20} className="text-[#1e1e1e]" />
                 </div>
 
                 {!prefilled && (
@@ -105,8 +91,8 @@ function ForgotPasswordForm() {
                             value={email}
                             onChange={setEmail}
                             readOnly={prefilled || otpVerified}
-                            weight="600"
-                            height={prefilled ? 16 : 14}
+                            weight="500"
+                            height={prefilled ? 14 : 16}
                             align="center"
                             className={`w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-[5px] py-1 transition-all ${prefilled || otpVerified ? "opacity-60 cursor-not-allowed" : ""}`}
                             onFocus={() => handleFocus("email")}
@@ -149,7 +135,7 @@ function ForgotPasswordForm() {
                             layoutId={LAYOUT_ID}
                             otpIdPrefix="fp-otp-digit"
                             otpKeyPrefix="fp-otp"
-                            recentlySent={recentlySent}
+                            resendCountdown={resendCountdown}
                             isFocused={isFocused}
                             disabled={otpVerified}
                         />
@@ -247,7 +233,7 @@ function ForgotPasswordForm() {
                             text={
                                 !prefilled && !otpVerified
                                     ? (verifyingOtp ? "Verifying..." : "Verify")
-                                    : (submitting ? "Saving..." : "Save")
+                                    : (submitting ? "Saving..." : "Save Password")
                             }
                             weight="600"
                             height={16}

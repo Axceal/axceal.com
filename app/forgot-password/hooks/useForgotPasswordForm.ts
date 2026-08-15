@@ -28,16 +28,24 @@ export function useForgotPasswordForm() {
     const [otpToken, setOtpToken] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState<Message | null>(null);
-    const [recentlySent, setRecentlySent] = useState(false);
-    const recentlySentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [resendCountdown, setResendCountdown] = useState(0);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const markRecentlySent = useCallback(() => {
-        setRecentlySent(true);
-        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
-        recentlySentTimer.current = setTimeout(() => setRecentlySent(false), 20000);
+        setResendCountdown(60);
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+            setResendCountdown((prev) => {
+                if (prev <= 1) {
+                    if (timerRef.current) clearInterval(timerRef.current);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
     }, []);
     useEffect(() => () => {
-        if (recentlySentTimer.current) clearTimeout(recentlySentTimer.current);
+        if (timerRef.current) clearInterval(timerRef.current);
     }, []);
 
     const [, forceUpdate] = useState(0);
@@ -261,7 +269,7 @@ export function useForgotPasswordForm() {
         otpVerified,
         passwordValid,
         prefilled,
-        recentlySent,
+        resendCountdown,
         isFocused,
     };
 }

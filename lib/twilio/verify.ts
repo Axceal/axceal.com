@@ -1,5 +1,6 @@
 import twilio from "twilio";
 import { env } from "@/lib/env";
+import { AppError, ErrorCode } from "@/lib/http/errors";
 
 let _client: ReturnType<typeof twilio> | null = null;
 
@@ -13,12 +14,19 @@ function getClient(): [ReturnType<typeof twilio>, string] {
   if (!_client) _client = twilio(sid, token);
   return [_client, serviceSid];
 }
-
 export async function sendPhoneOtp(phone: string): Promise<void> {
   const [client, serviceSid] = getClient();
-  await client.verify.v2
-    .services(serviceSid)
-    .verifications.create({ to: phone, channel: "sms" });
+  try {
+    await client.verify.v2
+      .services(serviceSid)
+      .verifications.create({ to: phone, channel: "sms" });
+  } catch (err: any) {
+    throw new AppError(
+      ErrorCode.VALIDATION_FAILED,
+      err.message || "Could not send OTP. Please check the phone number.",
+      400
+    );
+  }
 }
 
 export async function verifyPhoneOtp(phone: string, code: string): Promise<boolean> {

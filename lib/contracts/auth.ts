@@ -86,9 +86,17 @@ export const SendPhoneResponse = z.object({ sent: z.literal(true) });
 
 export const VerifyPhoneRequest = z.object({
   phone: z.string().regex(/^\+\d{8,16}$/),
-  code: z.string().length(6),
+  code: z.string().length(4),
 });
 export const VerifyPhoneResponse = z.object({ verified: z.literal(true) });
+
+// Details-flow email OTP — verifies ownership of user's email before
+// persisting sensitive profile changes (e.g. phone number).
+export const DetailsVerifyOtpRequest = z.object({
+  code: Otp4,
+  phone: z.string().regex(/^\+\d{8,16}$/),
+});
+export const DetailsVerifyOtpResponse = z.object({ verified: z.literal(true) });
 
 export type VerifyPasswordRequest = z.infer<typeof VerifyPasswordRequest>;
 export type VerifyPasswordResponse = z.infer<typeof VerifyPasswordResponse>;
@@ -114,3 +122,5 @@ export type SendPhoneRequest = z.infer<typeof SendPhoneRequest>;
 export type SendPhoneResponse = z.infer<typeof SendPhoneResponse>;
 export type VerifyPhoneRequest = z.infer<typeof VerifyPhoneRequest>;
 export type VerifyPhoneResponse = z.infer<typeof VerifyPhoneResponse>;
+export type DetailsVerifyOtpRequest = z.infer<typeof DetailsVerifyOtpRequest>;
+export type DetailsVerifyOtpResponse = z.infer<typeof DetailsVerifyOtpResponse>;
