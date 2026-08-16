@@ -1,6 +1,6 @@
 export const runtime = "nodejs";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { withHandler } from "@/lib/http/handler";
 import { DetailsVerifyOtpRequest, DetailsVerifyOtpResponse } from "@/lib/contracts/auth";
 import { rateLimit } from "@/lib/http/rate-limit";
@@ -8,7 +8,7 @@ import { requireSession } from "@/lib/auth/session";
 import { verifyDetailsOtp } from "@/lib/auth/otp";
 import { AppError, ErrorCode } from "@/lib/http/errors";
 import { db } from "@/lib/db/client";
-import { users } from "@/lib/db/schema";
+import { users, userProfiles } from "@/lib/db/schema";
 import { logger } from "@/lib/logger";
 
 function isUniqueViolation(err: any): boolean {
@@ -37,13 +37,34 @@ export const POST = withHandler({
     // Verify the code against the details-scoped OTP stored in Redis
     await verifyDetailsOtp(user.email, input.code);
 
-    // Persist the phone number
+    // Persist the phone number and user profile details
     const now = new Date();
     try {
       await db
         .update(users)
         .set({ phone: input.phone, phoneVerifiedAt: now, updatedAt: now })
         .where(eq(users.id, session.userId));
+
+      await db
+        .insert(userProfiles)
+        .values({
+            userId: session.userId,
+            firstName: input.firstName ?? null,
+            lastName: input.lastName ?? null,
+            gender: input.gender ?? null,
+            birthday: input.birthday ?? null,
+            updatedAt: now,
+        })
+        .onConflictDoUpdate({
+            target: userProfiles.userId,
+            set: {
+                firstName: input.firstName === undefined ? sql`user_profiles.first_name` : input.firstName,
+                lastName: input.lastName === undefined ? sql`user_profiles.last_name` : input.lastName,
+                gender: input.gender === undefined ? sql`user_profiles.gender` : input.gender,
+                birthday: input.birthday === undefined ? sql`user_profiles.birthday` : input.birthday,
+                updatedAt: now,
+            }
+        });
     } catch (err) {
       if (isUniqueViolation(err)) {
         throw new AppError(

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Email, LoginPassword, Otp4, Password, UUID } from "@/lib/contracts/common";
+import { ProfileSchema } from "@/lib/contracts/profile";
 
 // Login uses LoginPassword (length-only) so existing credentials with any
 // composition are still accepted. Register/reset/change use the stricter
@@ -92,7 +93,7 @@ export const VerifyPhoneResponse = z.object({ verified: z.literal(true) });
 
 // Details-flow email OTP — verifies ownership of user's email before
 // persisting sensitive profile changes (e.g. phone number).
-export const DetailsVerifyOtpRequest = z.object({
+export const DetailsVerifyOtpRequest = ProfileSchema.partial().extend({
   code: Otp4,
   phone: z.string().regex(/^\+\d{8,16}$/),
 });

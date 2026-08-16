@@ -83,7 +83,7 @@ export default function ChangePasswordPage() {
                             value={currentPassword}
                             onChange={setCurrentPassword}
                             weight="500"
-                            height={16}
+                            height={18}
                             align="center"
                             readOnly={otpVerified}
                             className={`w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1 ${otpVerified ? "opacity-60 cursor-not-allowed" : ""}`}
@@ -225,7 +225,7 @@ export default function ChangePasswordPage() {
                                         value={password}
                                         onChange={setPassword}
                                         weight="500"
-                                        height={16}
+                                        height={18}
                                         align="center"
                                         className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1"
                                         onFocus={() => focusField("password")}

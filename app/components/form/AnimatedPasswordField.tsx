@@ -20,6 +20,7 @@ interface AnimatedPasswordFieldProps {
     // Hide indicator unless user actively has a field focused. Defaults true
     // for backward compat with callers that don't track focus state.
     isFocused?: boolean;
+    height?: number;
 }
 
 export function AnimatedPasswordField({
@@ -37,6 +38,7 @@ export function AnimatedPasswordField({
     layoutId,
     message,
     isFocused = true,
+    height = 18,
 }: AnimatedPasswordFieldProps) {
     return (
         <AnimatePresence>
@@ -62,7 +64,7 @@ export function AnimatedPasswordField({
                             value={value}
                             onChange={onChange}
                             weight="600"
-                            height={14}
+                            height={height}
                             align="center"
                             className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1 transition-all"
                             onFocus={onFocus}

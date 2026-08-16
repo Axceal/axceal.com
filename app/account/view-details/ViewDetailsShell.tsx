@@ -36,7 +36,7 @@ export function ViewDetailsShell({ initial, phone: initialPhone }: { initial: Pr
                     <DetailRow label="First Name" value={firstName} innerRef={firstNameRef} />
                     <DetailRow label="Last Name" value={lastName} innerRef={lastNameRef} />
                     <DetailRow label="Birthday" value={birthday} innerRef={birthdayRef} />
-                    <DetailRow label="Gender" value={gender} innerRef={genderRef} />
+                    <DetailRow label="Gender" value={gender === "private" ? "Keep it Private" : (gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : "")} innerRef={genderRef} />
                     <DetailRow label="Phone Number" value={phone} innerRef={phoneRef} />
                 </div>
 
@@ -105,8 +105,8 @@ function DetailRow({ label, value, innerRef }: DetailRowProps) {
     return (
         <div 
             ref={innerRef} 
-            onClick={() => { if (!value) router.push("/account/details-unified"); }}
-            className={`relative w-full h-[50px] bg-[#f1f1f1] rounded-full flex items-center justify-center px-4 ${!value ? "cursor-pointer" : ""}`}
+            onClick={() => router.push("/account/details-unified")}
+            className="relative w-full h-[50px] bg-[#f1f1f1] rounded-full flex items-center justify-center px-4 cursor-pointer"
         >
             {/* Left Icon (Absolute) */}
             <div className="absolute left-[12px] top-1/2 -translate-y-1/2 flex items-center justify-center w-[26px] h-[26px]">

@@ -1,5 +1,5 @@
 "use client";
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useLayoutEffect, useRef, useState, useEffect } from "react";
 import fustatData from "./fustat-data.json";
 import {
     BASE_FONT_SIZE,
@@ -81,6 +81,66 @@ export function SvgText({
 }: SvgTextProps) {
     const containerRef = useRef<HTMLElement>(null);
     const measuredWidth = useParentWidth(containerRef, maxWidth);
+    const [selection, setSelection] = useState<[number, number] | null>(null);
+
+    useEffect(() => {
+        const handleSelectionChange = () => {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0 || !containerRef.current) {
+                setSelection(null);
+                return;
+            }
+
+            const range = sel.getRangeAt(0);
+            if (!range.intersectsNode(containerRef.current)) {
+                setSelection(null);
+                return;
+            }
+
+            const span = containerRef.current.querySelector('span');
+            if (!span) return;
+
+            let start = 0;
+            let end = 0;
+
+            if (span.contains(range.startContainer)) {
+                const preSelectionRange = range.cloneRange();
+                preSelectionRange.selectNodeContents(span);
+                preSelectionRange.setEnd(range.startContainer, range.startOffset);
+                start = preSelectionRange.toString().length;
+            } else {
+                const pos = range.startContainer.compareDocumentPosition(span);
+                if (pos & Node.DOCUMENT_POSITION_FOLLOWING) {
+                    start = 0;
+                } else {
+                    start = span.textContent?.length || 0;
+                }
+            }
+
+            if (span.contains(range.endContainer)) {
+                const preSelectionRange = range.cloneRange();
+                preSelectionRange.selectNodeContents(span);
+                preSelectionRange.setEnd(range.endContainer, range.endOffset);
+                end = preSelectionRange.toString().length;
+            } else {
+                const pos = range.endContainer.compareDocumentPosition(span);
+                if (pos & Node.DOCUMENT_POSITION_FOLLOWING) {
+                    end = 0;
+                } else {
+                    end = span.textContent?.length || 0;
+                }
+            }
+
+            if (start !== end) {
+                setSelection([Math.min(start, end), Math.max(start, end)]);
+            } else {
+                setSelection(null);
+            }
+        };
+
+        document.addEventListener("selectionchange", handleSelectionChange);
+        return () => document.removeEventListener("selectionchange", handleSelectionChange);
+    }, []);
 
     const font = fustatData[weight];
 
@@ -115,62 +175,126 @@ export function SvgText({
     const { lineEntries, lineWidths, totalWidth, totalHeight, currentLineY, supGlyphs } =
         layoutGlyphs(chars, glyphMap, kerningTable, lineHeight, superscript);
 
-    // Render main glyphs with per-line alignment offsets
+    const highlightElements: React.ReactNode[] = [];
     const paths: React.ReactNode[] = [];
+    const [selStart, selEnd] = selection || [-1, -1];
+
+    let currentGlobalIdx = 0;
+
     lineEntries.forEach((line, li) => {
         const lineWidth = lineWidths[li];
         const isLastLine = li === lineEntries.length - 1;
+        const xOffset = lineOffset(align, totalWidth, lineWidth);
 
-        // Justify: widen inter-word gaps so line fills totalWidth. Skip last line
-        // (standard typographic convention — final line stays left-aligned).
+        let extra = 0;
         if (align === "justify" && !isLastLine && line.length > 1) {
             const spaceCount = line.reduce((n, e) => n + (e.char === " " ? 1 : 0), 0);
             if (spaceCount > 0 && totalWidth > lineWidth) {
-                const extra = (totalWidth - lineWidth) / spaceCount;
-                let spacesSeen = 0;
-                line.forEach(({ path, x, lineY, color, char }, gi) => {
-                    paths.push(
-                        <path
-                            key={`${li}-${gi}`}
-                            d={path}
-                            fill={color ?? undefined}
-                            transform={`translate(${x + spacesSeen * extra}, ${lineY})`}
-                        />
-                    );
-                    if (char === " ") spacesSeen++;
-                });
-                return;
+                extra = (totalWidth - lineWidth) / spaceCount;
             }
         }
 
-        const xOffset = lineOffset(align, totalWidth, lineWidth);
-        line.forEach(({ path, x, lineY, color }, gi) => {
+        let spacesSeen = 0;
+        let runStartX = -1;
+        let runEndX = -1;
+        let runLineY = 0;
+
+        line.forEach(({ path, x, lineY, color, char }, gi) => {
+            while (currentGlobalIdx < chars.length && (chars[currentGlobalIdx].char === '\n' || chars[currentGlobalIdx].char === '\r')) {
+                currentGlobalIdx++;
+            }
+            const globalIdx = currentGlobalIdx;
+            currentGlobalIdx++;
+
+            const isSelected = globalIdx >= selStart && globalIdx < selEnd;
+
+            const renderX = x + (align === "justify" && !isLastLine ? spacesSeen * extra : xOffset);
+            if (char === ' ') spacesSeen++;
+
+            let nextRenderX;
+            if (gi + 1 < line.length) {
+                const nextGlyph = line[gi + 1];
+                let nextSpacesSeen = spacesSeen;
+                nextRenderX = nextGlyph.x + (align === "justify" && !isLastLine ? nextSpacesSeen * extra : xOffset);
+            } else {
+                const g = glyphMap[char];
+                const w = g ? g.width : (glyphMap[" "]?.width || 6);
+                nextRenderX = renderX + w + (align === "justify" && !isLastLine && char === ' ' ? extra : 0);
+            }
+
+            if (isSelected) {
+                if (runStartX === -1) {
+                    runStartX = renderX;
+                    runLineY = lineY;
+                }
+                runEndX = nextRenderX;
+            } else {
+                if (runStartX !== -1) {
+                    highlightElements.push(
+                        <rect
+                            key={`hl-run-${li}-${gi}`}
+                            x={runStartX}
+                            y={runLineY}
+                            width={runEndX - runStartX}
+                            height={BASE_FONT_SIZE}
+                            fill="#1e1e1e"
+                            rx={4}
+                            ry={4}
+                        />
+                    );
+                    runStartX = -1;
+                }
+            }
+
             paths.push(
                 <path
                     key={`${li}-${gi}`}
                     d={path}
-                    fill={color ?? undefined}
-                    transform={`translate(${x + xOffset}, ${lineY})`}
+                    fill={isSelected ? "#ffffff" : (color ?? undefined)}
+                    transform={`translate(${renderX}, ${lineY})`}
                 />
             );
         });
+
+        if (runStartX !== -1) {
+            highlightElements.push(
+                <rect
+                    key={`hl-run-${li}-end`}
+                    x={runStartX}
+                    y={runLineY}
+                    width={runEndX - runStartX}
+                    height={BASE_FONT_SIZE}
+                    fill="#1e1e1e"
+                    rx={4}
+                    ry={4}
+                />
+            );
+        }
     });
 
-    // Superscript glyphs at 55% scale, sitting at the top of the last line.
-    if (supGlyphs.length > 0) {
+    if (superscript) {
         const lastLineIdx = lineEntries.length - 1;
         const lastLineWidth = lineWidths[lastLineIdx];
         const xOffset = lineOffset(align, totalWidth, lastLineWidth);
-        supGlyphs.forEach(({ path, relX }, i) => {
-            paths.push(
-                <path
-                    key={`sup-${i}`}
-                    d={path}
-                    fill={superscriptColor ?? undefined}
-                    transform={`translate(${relX + xOffset}, ${currentLineY}) scale(${SUP_SCALE})`}
-                />
-            );
-        });
+
+        for (let i = 0; i < superscript.length; i++) {
+            const supObj = supGlyphs[i];
+
+            if (supObj) {
+                const charChar = superscript[i];
+                const glyph = glyphMap[charChar];
+                const renderX = supObj.relX + xOffset;
+
+                paths.push(
+                    <path
+                        key={`sup-${i}`}
+                        d={supObj.path}
+                        fill={superscriptColor ?? undefined}
+                        transform={`translate(${renderX}, ${currentLineY}) scale(${SUP_SCALE})`}
+                    />
+                );
+            }
+        }
     }
 
     const scale = height / BASE_FONT_SIZE;
@@ -196,7 +320,7 @@ export function SvgText({
             }}
         >
             <span
-                className="opacity-0 absolute inset-0 select-text overflow-hidden z-10"
+                className="absolute inset-0 select-text overflow-hidden z-10 text-transparent selection:bg-transparent selection:text-transparent"
                 style={{ whiteSpace: 'pre-wrap' }}
             >
                 {plainText}{superscript}
@@ -209,6 +333,7 @@ export function SvgText({
                 className="fill-current pointer-events-none overflow-visible"
                 aria-hidden="true"
             >
+                {highlightElements}
                 {paths}
             </svg>
         </Tag>

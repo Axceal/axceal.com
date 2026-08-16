@@ -84,7 +84,7 @@ function CreateAccountForm() {
                             value={email}
                             onChange={setEmail}
                             weight="500"
-                            height={16}
+                            height={18}
                             align="center"
                             readOnly={otpVerified}
                             className={`w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-[5px] py-1 transition-all ${otpVerified ? "opacity-60 cursor-not-allowed" : ""}`}

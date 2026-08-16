@@ -9,7 +9,7 @@ import { apiFetch } from "@/lib/http/client";
 
 const COUNTDOWN_SECONDS = 120;
 
-export function OtpModal({ onClose, onSuccess, phone }: { onClose: () => void; onSuccess?: () => void; phone: string }) {
+export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gender, birthday }: { onClose: () => void; onSuccess?: () => void; phone: string; firstName?: string | null; lastName?: string | null; gender?: string | null; birthday?: string | null; }) {
     const [otp, setOtp] = useState(["", "", "", ""]);
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -97,7 +97,7 @@ export function OtpModal({ onClose, onSuccess, phone }: { onClose: () => void; o
             const res = await apiFetch("/api/account/details/verify-otp", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify({ phone: formattedPhone, code }),
+                body: JSON.stringify({ phone: formattedPhone, code, firstName, lastName, gender, birthday }),
             });
             const body = await res.json().catch(() => null);
             if (!res.ok || !body?.ok) {

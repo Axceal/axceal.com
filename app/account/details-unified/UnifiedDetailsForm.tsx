@@ -61,6 +61,20 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
     const [showOtp, setShowOtp] = useState(false);
     const [phoneError, setPhoneError] = useState(false);
 
+    const hasChanges =
+        firstName !== (initial.firstName || "") ||
+        lastName !== (initial.lastName || "") ||
+        gender !== (initial.gender || "") ||
+        birthdayIso !== (initial.birthday || "") ||
+        phone !== (initialPhone || "");
+
+    const isFullyEmpty = !firstName && !lastName && !gender && !birthdayIso && !phone;
+    const isFullyFilled = !!(firstName && lastName && gender && birthdayIso && phone);
+
+    let topButtonText = "Done for now";
+    if (isFullyEmpty) topButtonText = "Skip for now";
+    else if (isFullyFilled) topButtonText = "Done with details";
+
     const handleConfirm = () => {
         if (!phone || phone.replace(/\D/g, "").length < 8) {
             setPhoneError(true);
@@ -82,19 +96,17 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                         router.refresh();
                     }}
                     phone={phone}
+                    firstName={firstName || null}
+                    lastName={lastName || null}
+                    gender={gender || null}
+                    birthday={birthdayIso || null}
                 />
             )}
 
             {/* Top Navigation */}
-            <motion.div layout className="flex items-center justify-between w-full mb-5">
-                {/* Back Button */}
+            <motion.div layout className="flex items-center justify-center w-full mb-8">
                 <button type="button" onClick={() => router.back()} className="flex items-center whitespace-nowrap hover:opacity-80 transition-opacity">
-                    <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e] cursor-pointer" />
-                </button>
-
-                {/* Skip Button */}
-                <button type="button" onClick={() => router.back()} className="flex items-center whitespace-nowrap hover:opacity-80 transition-opacity">
-                    <SvgText text="Skip" weight="600" height={16} className="text-[#0000f4] cursor-pointer" />
+                    <SvgText text={topButtonText} weight="600" height={16} className="text-[#0000f4] cursor-pointer" maxWidth={400} />
                 </button>
             </motion.div>
 
@@ -237,7 +249,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                     onClick={() => setActiveRow("phone")}
                                     className="flex items-center justify-center cursor-pointer overflow-hidden"
                                 >
-                                    <SvgText text={phone ? formatPhoneSpaced(phone) : "Phone Number"} weight={phone ? "500" : "600"} height={20} className={phone ? "text-[#1e1e1e]" : phoneError ? "text-[#ff0000]" : "text-[#aaaaaa]"} />
+                                    <SvgText text={phone ? formatPhoneSpaced(phone) : "Phone Number"} weight={phone ? "600" : "500"} height={20} className={phone ? "text-[#1e1e1e]" : phoneError ? "text-[#ff0000]" : "text-[#aaaaaa]"} />
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -275,15 +287,25 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
             </Squircle>
 
             {/* Confirmation Button */}
-            <motion.div layout className="mt-8 flex justify-center w-full">
-                <button
-                    type="button"
-                    onClick={handleConfirm}
-                    className="group cursor-pointer w-[140px] h-[50px] rounded-full bg-[#f1f1f1] hover:bg-[#0000f4] flex items-center justify-center transition-colors duration-250"
-                >
-                    <ViewDetailsSaveIcon className="text-[#0000f4] group-hover:text-white transition-colors duration-250 w-[26px] h-[26px]" />
-                </button>
-            </motion.div>
+            <AnimatePresence>
+                {hasChanges && (
+                    <motion.div
+                        layout
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="mt-8 flex justify-center w-full"
+                    >
+                        <button
+                            type="button"
+                            onClick={handleConfirm}
+                            className="group cursor-pointer w-[140px] h-[50px] rounded-full bg-[#f1f1f1] hover:bg-[#0000f4] flex items-center justify-center transition-colors duration-250"
+                        >
+                            <ViewDetailsSaveIcon className="text-[#0000f4] group-hover:text-white transition-colors duration-250 w-[26px] h-[26px]" />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

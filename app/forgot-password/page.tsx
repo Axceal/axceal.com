@@ -92,7 +92,7 @@ function ForgotPasswordForm() {
                             onChange={setEmail}
                             readOnly={prefilled || otpVerified}
                             weight="500"
-                            height={prefilled ? 14 : 16}
+                            height={prefilled ? 14 : 18}
                             align="center"
                             className={`w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-[5px] py-1 transition-all ${prefilled || otpVerified ? "opacity-60 cursor-not-allowed" : ""}`}
                             onFocus={() => handleFocus("email")}
