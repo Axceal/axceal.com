@@ -51,7 +51,7 @@ export function NameEditor({ initialFirst, initialLast, onSave }: NameEditorProp
                         onFocus={() => handleFocus("first")}
                         onBlur={handleBlur}
                         align="center"
-                        weight="600"
+                        weight="500"
                         height={20}
                         className="w-full text-[#1e1e1e] bg-transparent"
                     />
@@ -71,7 +71,7 @@ export function NameEditor({ initialFirst, initialLast, onSave }: NameEditorProp
                         onChange={v => { const c = v.replace(/[^A-Za-z\-']/g, "").slice(0, 18); setLastName(c.charAt(0).toUpperCase() + c.slice(1)); onSave(firstName, c.charAt(0).toUpperCase() + c.slice(1)); }}
                         onFocus={() => handleFocus("last")}
                         onBlur={handleBlur}
-                        weight="600"
+                        weight="500"
                         height={20}
                         className="w-full text-[#1e1e1e] bg-transparent"
                     />

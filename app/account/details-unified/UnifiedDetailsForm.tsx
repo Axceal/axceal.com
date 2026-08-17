@@ -9,6 +9,7 @@ import { UserIcon } from "@/app/components/icons/account/UserIcon";
 import { ViewDetailsSaveIcon } from "@/app/components/icons/action/ViewDetailsSaveIcon";
 import { SvgText } from "@/app/components/text/SvgText";
 import { SvgInput } from "@/app/components/text/SvgInput";
+import { sessionKeys, readSession, clearSession } from "@/lib/sessionKeys";
 import type { Profile } from "@/lib/contracts/profile";
 import { ordinal } from "./helpers";
 import { MONTHS_FULL } from "./constants";
@@ -60,6 +61,17 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
     const [focusedField, setFocusedField] = useState<"first" | "last" | null>(null);
     const [showOtp, setShowOtp] = useState(false);
     const [phoneError, setPhoneError] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSkip = async () => {
+        if (submitting) return;
+        setSubmitting(true);
+        // Short visual delay as requested
+        await new Promise(r => setTimeout(r, 400));
+        const from = readSession<string>(sessionKeys.signupFrom, (v): v is string => typeof v === "string");
+        clearSession(sessionKeys.signupFrom);
+        router.push(from === "order" ? "/order/units" : "/");
+    };
 
     const hasChanges =
         firstName !== (initial.firstName || "") ||
@@ -71,9 +83,8 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
     const isFullyEmpty = !firstName && !lastName && !gender && !birthdayIso && !phone;
     const isFullyFilled = !!(firstName && lastName && gender && birthdayIso && phone);
 
-    let topButtonText = "Done for now";
+    let topButtonText: string | null = null;
     if (isFullyEmpty) topButtonText = "Skip for now";
-    else if (isFullyFilled) topButtonText = "Done with details";
 
     const handleConfirm = () => {
         if (!phone || phone.replace(/\D/g, "").length < 8) {
@@ -104,10 +115,17 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
             )}
 
             {/* Top Navigation */}
-            <motion.div layout className="flex items-center justify-center w-full mb-8">
-                <button type="button" onClick={() => router.back()} className="flex items-center whitespace-nowrap hover:opacity-80 transition-opacity">
-                    <SvgText text={topButtonText} weight="600" height={16} className="text-[#0000f4] cursor-pointer" maxWidth={400} />
-                </button>
+            <motion.div layout className="flex items-center justify-center w-full mb-8 min-h-[16px]">
+                {topButtonText && (
+                    <button
+                        type="button"
+                        onClick={handleSkip}
+                        disabled={submitting}
+                        className="flex items-center whitespace-nowrap hover:opacity-80 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        <SvgText text={topButtonText} weight="600" height={16} className="text-[#0000f4] cursor-pointer" maxWidth={400} />
+                    </button>
+                )}
             </motion.div>
 
             <Squircle as={motion.div} layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} borderRadius={20} smoothing={60} className="w-[360px] bg-[#f1f1f1] flex flex-col items-center pt-[30px] pb-[40px] relative overflow-hidden">
@@ -137,7 +155,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                     onFocus={() => { setFocusedField("first"); setActiveRow(null); }}
                                     onBlur={() => setFocusedField(null)}
                                     align="center"
-                                    weight="500"
+                                    weight={firstName ? "600" : "500"}
                                     height={20}
                                     cursorHeightScale={1.5}
                                     cursorColor="#0000f4"
@@ -153,7 +171,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                     onFocus={() => { setFocusedField("last"); setActiveRow(null); }}
                                     onBlur={() => setFocusedField(null)}
                                     align="center"
-                                    weight="500"
+                                    weight={lastName ? "600" : "500"}
                                     height={20}
                                     cursorHeightScale={1.5}
                                     cursorColor="#0000f4"
@@ -275,7 +293,6 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                         initialPhone={phone}
                                         onSave={async (p) => {
                                             setPhone(p);
-                                            setActiveRow(null);
                                         }}
                                     />
                                 </motion.div>
@@ -297,10 +314,30 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                 </motion.div>
             </Squircle>
 
-            {/* Confirmation Button */}
-            <AnimatePresence>
-                {hasChanges && (
+            {/* Action Buttons */}
+            <AnimatePresence mode="wait">
+                {hasChanges ? (
                     <motion.div
+                        key="verify-btn"
+                        layout
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="mt-8 flex justify-center w-full"
+                    >
+
+                        <button
+                            type="button"
+                            onClick={handleSkip}
+                            disabled={submitting}
+                            className="cursor-pointer bg-[#0000f4] rounded-full px-[40px] h-[50px] flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            <SvgText text="Confirm" weight="600" height={16} className="text-white" />
+                        </button>
+                    </motion.div>
+                ) : isFullyFilled ? (
+                    <motion.div
+                        key="continue-btn"
                         layout
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -309,13 +346,14 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                     >
                         <button
                             type="button"
-                            onClick={handleConfirm}
-                            className="group cursor-pointer w-[140px] h-[50px] rounded-full bg-[#f1f1f1] hover:bg-[#0000f4] flex items-center justify-center transition-colors duration-250"
+                            onClick={handleSkip}
+                            disabled={submitting}
+                            className="cursor-pointer bg-[#0000f4] rounded-full px-[40px] h-[50px] flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            <ViewDetailsSaveIcon className="text-[#0000f4] group-hover:text-white transition-colors duration-250 w-[26px] h-[26px]" />
+                            <SvgText text="Go to Account" weight="600" height={16} className="text-white" />
                         </button>
                     </motion.div>
-                )}
+                ) : null}
             </AnimatePresence>
         </div>
     );
