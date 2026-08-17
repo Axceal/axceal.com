@@ -110,7 +110,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                 </button>
             </motion.div>
 
-            <Squircle as={motion.div} layout borderRadius={20} smoothing={60} className="w-[360px] bg-[#f1f1f1] flex flex-col items-center pt-[30px] pb-[40px] relative overflow-hidden">
+            <Squircle as={motion.div} layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} borderRadius={20} smoothing={60} className="w-[360px] bg-[#f1f1f1] flex flex-col items-center pt-[30px] pb-[40px] relative overflow-hidden">
                 {/* Icon Circle */}
                 <motion.div layout className="w-[50px] h-[50px] rounded-full bg-[#0000f4] flex items-center justify-center shrink-0">
                     <UserIcon className="w-[24px] h-[24px] text-white stroke-[#0000f4]" />
@@ -164,15 +164,18 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                     </motion.div>
 
                     {/* Gender Row */}
-                    <motion.div layout className="flex flex-col">
-                        <AnimatePresence initial={false}>
-                            {activeRow !== "gender" && (
+                    <motion.div layout className="flex flex-col relative justify-center min-h-[60px]">
+                        <AnimatePresence initial={false} mode="popLayout">
+                            {activeRow !== "gender" ? (
                                 <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 60, opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
+                                    key="collapsed"
+                                    layout
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
                                     onClick={() => setActiveRow("gender")}
-                                    className="flex items-center justify-center cursor-pointer overflow-hidden"
+                                    className="h-[60px] w-full flex items-center justify-center cursor-pointer"
                                 >
                                     <SvgText
                                         text={gender === "private" ? "Keep it Private" : gender === "female" ? "Female" : gender === "male" ? "Male" : "Gender"}
@@ -181,15 +184,15 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                         className={gender ? "text-[#1e1e1e]" : "text-[#aaaaaa]"}
                                     />
                                 </motion.div>
-                            )}
-                        </AnimatePresence>
-                        <AnimatePresence initial={false}>
-                            {activeRow === "gender" && (
+                            ) : (
                                 <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden"
+                                    key="expanded"
+                                    layout
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="w-full flex flex-col justify-center"
                                 >
                                     <GenderEditor
                                         initialGender={gender === "private" ? "Keep it Private" : gender === "female" ? "Female" : gender === "male" ? "Male" : ""}
@@ -205,32 +208,36 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                     </motion.div>
 
                     {/* Birthday Row */}
-                    <motion.div layout className="flex flex-col">
-                        <AnimatePresence initial={false}>
-                            {activeRow !== "birthday" && (
+                    <motion.div layout className="flex flex-col relative justify-center min-h-[60px]">
+                        <AnimatePresence initial={false} mode="popLayout">
+                            {activeRow !== "birthday" ? (
                                 <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 60, opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
+                                    key="collapsed"
+                                    layout
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
                                     onClick={() => setActiveRow("birthday")}
-                                    className="flex items-center justify-center cursor-pointer overflow-hidden"
+                                    className="h-[60px] w-full flex items-center justify-center cursor-pointer"
                                 >
                                     <SvgText text={birthdayIso ? formatBirthday(birthdayIso) : "Birthday"} weight={birthdayIso ? "600" : "500"} height={20} className={birthdayIso ? "text-[#1e1e1e]" : "text-[#aaaaaa]"} />
                                 </motion.div>
-                            )}
-                        </AnimatePresence>
-                        <AnimatePresence initial={false}>
-                            {activeRow === "birthday" && (
+                            ) : (
                                 <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden"
+                                    key="expanded"
+                                    layout
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="w-full flex flex-col justify-center"
                                 >
                                     <BirthdayEditor
                                         initialBirthday={birthdayIso}
                                         onSave={async (iso) => {
                                             setBirthdayIso(iso);
+                                            setActiveRow(null);
                                         }}
                                     />
                                 </motion.div>
@@ -239,32 +246,36 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                     </motion.div>
 
                     {/* Phone Row */}
-                    <motion.div layout className="flex flex-col">
-                        <AnimatePresence initial={false}>
-                            {activeRow !== "phone" && (
+                    <motion.div layout className="flex flex-col relative justify-center min-h-[60px]">
+                        <AnimatePresence initial={false} mode="popLayout">
+                            {activeRow !== "phone" ? (
                                 <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 60, opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
+                                    key="collapsed"
+                                    layout
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
                                     onClick={() => setActiveRow("phone")}
-                                    className="flex items-center justify-center cursor-pointer overflow-hidden"
+                                    className="h-[60px] w-full flex items-center justify-center cursor-pointer"
                                 >
                                     <SvgText text={phone ? formatPhoneSpaced(phone) : "Phone Number"} weight={phone ? "600" : "500"} height={20} className={phone ? "text-[#1e1e1e]" : phoneError ? "text-[#ff0000]" : "text-[#aaaaaa]"} />
                                 </motion.div>
-                            )}
-                        </AnimatePresence>
-                        <AnimatePresence initial={false}>
-                            {activeRow === "phone" && (
+                            ) : (
                                 <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden"
+                                    key="expanded"
+                                    layout
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="w-full flex flex-col justify-center"
                                 >
                                     <PhoneEditor
                                         initialPhone={phone}
                                         onSave={async (p) => {
                                             setPhone(p);
+                                            setActiveRow(null);
                                         }}
                                     />
                                 </motion.div>

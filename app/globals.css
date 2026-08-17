@@ -13,9 +13,15 @@
   --color-blu: var(--blu);
   --color-off-white: var(--off-white);
 }
-html, body {
+
+html,
+body {
   overflow-x: clip;
   max-width: 100%;
+}
+
+html {
+  scrollbar-gutter: stable;
 }
 
 body {

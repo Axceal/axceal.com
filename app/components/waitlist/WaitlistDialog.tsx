@@ -184,7 +184,7 @@ function JoinDialog({
           <SvgText text="Cancel" weight="600" height={16} className="text-[#ff0000]" />
         </button>
         <div className="absolute left-[40%] -translate-x-1/2 top-1/2 -translate-y-1/2 pointer-events-none">
-          <span className="block w-[8px] aspect-square rounded-full bg-[#aaaaaa]" aria-hidden />
+          <span className="block w-[10px] aspect-square rounded-full bg-[#aaaaaa]" aria-hidden />
         </div>
         <button
           type="button"

@@ -25,7 +25,7 @@ function AuthChoiceContent() {
             <div className="flex flex-col items-center gap-[10px]">
 
                 {/* Squircle Rectangle */}
-                <Squircle borderRadius={15} smoothing={50} className="bg-[#f1f1f1] w-[320px] h-[340px] pt-[30px] px-[30px] pb-[25px] flex flex-col justify-between">
+                <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-[320px] h-[380px] pt-[30px] px-[30px] pb-[40px] flex flex-col justify-between">
                     {/* Header */}
                     <div className="flex items-center gap-3">
                         <AxcealLogo className="w-8 h-auto text-[#0000f4]" />
@@ -63,12 +63,16 @@ function AuthChoiceContent() {
                     </div>
 
                     {/* Footer Text */}
-                    <div className="text-center mt-3 flex flex-col items-center gap-0">
-                        <SvgText text="Your account is private and secured with" weight="500" height={12} className="text-[#aaaaaa]" />
-                        <div className="flex items-center">
-                            <SvgText text="Axceal. Take a look at" weight="500" height={12} className="text-[#aaaaaa]" />
-                            <Link href="/privacy" className="hover:opacity-80 transition-opacity">
-                                <SvgText text=" Privacy Policies" weight="600" height={12} maxWidth={400} className="text-[#0000f4]" />
+                    <div className="text-center mt-6 flex flex-col items-center gap-1">
+                        <SvgText text="By clicking 'Create Account', you acknowledge" weight="500" height={12} className="text-[#aaaaaa]" />
+                        <SvgText text="that you have read and agree to the" weight="500" height={12} className="text-[#aaaaaa]" />
+                        <div className="flex items-center gap-1 leading-none">
+                            <Link href="/terms" className="hover:opacity-80 transition-opacity flex items-center">
+                                <SvgText text="Terms of Service" weight="600" height={12} className="text-[#0000f4]" />
+                            </Link>
+                            <SvgText text="and" weight="500" height={12} className="text-[#aaaaaa]" />
+                            <Link href="/privacy" className="hover:opacity-80 transition-opacity flex items-center">
+                                <SvgText text="Privacy Policy." weight="600" height={12} className="text-[#0000f4]" />
                             </Link>
                         </div>
                     </div>
