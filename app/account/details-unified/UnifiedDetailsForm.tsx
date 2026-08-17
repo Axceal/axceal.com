@@ -114,19 +114,6 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                 />
             )}
 
-            {/* Top Navigation */}
-            <motion.div layout className="flex items-center justify-center w-full mb-8 min-h-[16px]">
-                {topButtonText && (
-                    <button
-                        type="button"
-                        onClick={handleSkip}
-                        disabled={submitting}
-                        className="flex items-center whitespace-nowrap hover:opacity-80 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                        <SvgText text={topButtonText} weight="600" height={16} className="text-[#0000f4] cursor-pointer" maxWidth={400} />
-                    </button>
-                )}
-            </motion.div>
 
             <Squircle as={motion.div} layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} borderRadius={20} smoothing={60} className="w-[360px] bg-[#f1f1f1] flex flex-col items-center pt-[30px] pb-[40px] relative overflow-hidden">
                 {/* Icon Circle */}
@@ -348,9 +335,27 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                             type="button"
                             onClick={handleSkip}
                             disabled={submitting}
-                            className="cursor-pointer bg-[#0000f4] rounded-full px-[40px] h-[50px] flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="cursor-pointer bg-[#0000f4] rounded-full px-[30px] h-[50px] flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             <SvgText text="Go to Account" weight="600" height={16} className="text-white" />
+                        </button>
+                    </motion.div>
+                ) : topButtonText ? (
+                    <motion.div
+                        key="skip-btn"
+                        layout
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="mt-8 flex justify-center w-full"
+                    >
+                        <button
+                            type="button"
+                            onClick={handleSkip}
+                            disabled={submitting}
+                            className="flex items-center whitespace-nowrap hover:opacity-80 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            <SvgText text={topButtonText} weight="600" height={16} className="text-[#0000f4] cursor-pointer" />
                         </button>
                     </motion.div>
                 ) : null}

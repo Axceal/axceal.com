@@ -27,6 +27,7 @@ export function AeroSection({ section }: Props) {
         <div className="absolute md:left-1/2 lg:left-[47%] md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 flex justify-center transition-all duration-500">
           <div className="relative w-[clamp(250px,50vw,350px)] lg:w-[450px] transition-all duration-500">
             <AeroIcon alt="Aero x1" className="w-full h-auto" priority />
+            {/* <img src="/assets/aero with hand top.png" alt="Aero x1" className="w-full h-auto scale-[3] translate-y-[-5%]" /> */}
             {/* Product label overlaid on the device image */}
             <div className="absolute left-[57%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
               <AxcealLogo className="h-[clamp(12px,3vw,16px)] w-auto text-[#0000f4]" />
