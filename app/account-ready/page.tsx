@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { SvgText } from "../components/text/SvgText";
 import { Squircle } from "../components/layout/Squircle";
 import { UserIcon } from "../components/icons/account/UserIcon";
@@ -124,7 +125,7 @@ export default function AccountReadyPage() {
         <main className="flex-1 flex flex-col items-center justify-center -mt-10">
             <div className="flex flex-col items-center gap-[10px] w-max max-w-full">
                 {/* Squircle Rectangle */}
-                <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-[320px] h-[360px] pt-[30px] px-[30px] pb-[40px] flex flex-col items-center">
+                <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-[320px] h-[400px] pt-[30px] px-[30px] pb-[40px] flex flex-col items-center">
                     {/* Header Icon */}
                     <div className="w-[50px] h-[50px] rounded-full bg-[#0000f4] flex items-center justify-center shrink-0">
                         <UserIcon className="w-[24px] h-[24px] text-white" stroke="#0000f4" />
@@ -160,6 +161,32 @@ export default function AccountReadyPage() {
                         <div className="flex items-center gap-3">
                             <SecuredDataIcon className="w-[20px] h-auto text-[#aaaaaa]" />
                             <SvgText text="Secured personal data" weight="500" height={14} className="text-[#aaaaaa]" />
+                        </div>
+                    </div>
+                    {/* Footer Text */}
+                    <div className="flex flex-col items-center gap-1 mt-5 w-full">
+                        <SvgText
+                            text="Your details are private and securely stored with"
+                            weight="500"
+                            height={12}
+                            className="text-[#aaaaaa]"
+                        />
+                        <div className="flex items-center">
+                            <SvgText
+                                text="Axceal. Take a look at"
+                                weight="500"
+                                height={12}
+                                className="text-[#aaaaaa]"
+                            />
+                            <Link href="/privacy-policy" className="hover:opacity-80 transition-opacity">
+                                <SvgText
+                                    text=" Privacy Policies"
+                                    weight="500"
+                                    maxWidth={400}
+                                    height={12}
+                                    className="text-[#0000f4]"
+                                />
+                            </Link>
                         </div>
                     </div>
                 </Squircle>
