@@ -29,6 +29,7 @@ export function useLoginForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [sendingOtp, setSendingOtp] = useState(false);
+    const [verified, setVerified] = useState(false);
     const [resendCountdown, setResendCountdown] = useState(0);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -168,6 +169,7 @@ export function useLoginForm() {
                 setMessage({ kind: "error", text: "Incorrect Code.", field: "otp" });
                 return;
             }
+            setVerified(true);
             router.push(callbackUrl);
         } catch {
             setOtp(["", "", "", ""]);
@@ -254,9 +256,10 @@ export function useLoginForm() {
         handleFocus,
         handleBlur,
         indicatorTop,
-        isOtp,
-        otpCode,
+        isOtp: stage === "otp",
+        otpCode: otp.join(""),
         resendCountdown,
         isFocused,
+        verified,
     };
 }

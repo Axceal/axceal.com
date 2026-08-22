@@ -129,6 +129,7 @@ function CreateAccountForm() {
                     resendCountdown={resendCountdown}
                     isFocused={isFocused}
                     disabled={otpVerified}
+                    verified={otpVerified}
                 />
                 {message?.field === "otp" && (
                     <SvgText text={message.text} align="center" weight="500" height={14} className="text-[#ff0000] self-center -mt-3" />

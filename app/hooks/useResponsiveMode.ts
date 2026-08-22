@@ -8,11 +8,11 @@ import { useEffect, useState } from "react";
 // and the off-viewport subtree unmounts. Visual diff is zero because the
 // hidden subtree was already `display:none` via Tailwind responsive utilities.
 //
-// MD_BREAKPOINT mirrors Tailwind's `md:` breakpoint (768px). Update both if
-// the design system changes the value.
+// MD_BREAKPOINT mirrors Tailwind's `md:` breakpoint (768px). We use 769px here
+// to include 768px (tablets in portrait) in the mobile view.
 export type ResponsiveMode = "both" | "mobile" | "desktop";
 
-const MD_BREAKPOINT_QUERY = "(min-width: 768px)";
+const MD_BREAKPOINT_QUERY = "(min-width: 769px)";
 
 export function useResponsiveMode(): ResponsiveMode {
   const [mode, setMode] = useState<ResponsiveMode>("both");

@@ -61,7 +61,7 @@ export function WhatCanAeroSection({ section, subSlide, goSubSlide }: Props) {
           <div className="absolute right-[clamp(8rem,5vw,6rem)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-10">
             <div className="flex flex-col gap-10 items-end">
               <SvgText as="h2" text="Multi dimensional Cues" weight="600" height={16} maxWidth={Infinity} className="text-[#1e1e1e]" />
-              <SvgText text="Up to milli second Cues latency" weight="600" height={16} className="text-[#1e1e1e]" superscript="1" />
+              <SvgText text="Up to Milli-second Cues latency" weight="600" height={16} className="text-[#1e1e1e]" superscript="1" />
             </div>
             <CuesIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
           </div>
@@ -80,8 +80,8 @@ export function WhatCanAeroSection({ section, subSlide, goSubSlide }: Props) {
           <div className="absolute right-[clamp(8rem,5vw,6rem)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-10">
             <div className="flex flex-col gap-10 items-end">
               <SvgText as="h2" text="All axis anchor navigation" weight="600" height={16} maxWidth={Infinity} className="text-[#1e1e1e]" />
-              <SvgText text="Up to micro second navigation latency" weight="600" height={16} className="text-[#1e1e1e]" superscript="9" />
-              <SvgText text="Up to milli second Wrap Rate" weight="600" height={16} className="text-[#1e1e1e]" />
+              <SvgText text="Up to Micro-second navigation latency" weight="600" height={16} className="text-[#1e1e1e]" superscript="9" />
+              <SvgText text="Up to Milli-second Wrap Rate" weight="600" height={16} className="text-[#1e1e1e]" />
             </div>
             <NavigationIcon className="w-14 h-auto flex-shrink-0" />
           </div>

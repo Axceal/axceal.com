@@ -18,7 +18,7 @@ export function DesktopNav({ nav, goSection, goSubSlide }: Props) {
       <motion.div
         className="absolute cursor-pointer"
         onClick={() => goSection(0)}
-        initial={{ top: "50%", y: "-12px", opacity: 1 }}
+        initial={{ top: "40%", y: "-12px", opacity: 1 }}
         animate={nav.aero}
         transition={SPRING}
       >

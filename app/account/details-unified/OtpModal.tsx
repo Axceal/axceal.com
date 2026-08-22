@@ -14,6 +14,7 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [verifying, setVerifying] = useState(false);
+    const [verified, setVerified] = useState(false);
     const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
     const [canResend, setCanResend] = useState(false);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -105,8 +106,11 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
                 setVerifying(false);
                 return;
             }
-            if (onSuccess) onSuccess();
-            else onClose();
+            setVerified(true);
+            setTimeout(() => {
+                if (onSuccess) onSuccess();
+                else onClose();
+            }, 300);
         } catch {
             setErrorMsg("Network error.");
             setVerifying(false);
@@ -170,13 +174,20 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
                     <div className="flex justify-between items-center w-full px-1">
                         <SvgText text="Verify Code" weight="600" height={16} className="text-[#aaaaaa]" />
                         <div className="flex items-center gap-1">
-                            {canResend ? (
+                            {canResend || verified ? (
                                 <button
                                     type="button"
-                                    onClick={handleResend}
-                                    className="cursor-pointer focus:outline-none"
+                                    onClick={verified ? undefined : handleResend}
+                                    disabled={verified}
+                                    className={`focus:outline-none ${verified ? "cursor-not-allowed" : "cursor-pointer"}`}
                                 >
-                                    <SvgText text="Resend" weight="600" height={16} className="text-[#0000f4]" />
+                                    <SvgText 
+                                        text={verified ? "Done" : "Resend"} 
+                                        weight="600" 
+                                        height={16} 
+                                        className={verified ? "text-[#aaaaaa]" : "text-[#0000f4]"} 
+                                        maxWidth={200} 
+                                    />
                                 </button>
                             ) : (
                                 <>

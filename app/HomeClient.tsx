@@ -119,7 +119,7 @@ export function HomeClient() {
   const showDesktop = mode !== "mobile";
 
   return (
-    <main className="flex-1 overflow-x-hidden md:overflow-hidden relative">
+    <main className="flex-1 overflow-x-hidden min-[769px]:overflow-hidden relative">
 
       {/* Mobile: plain vertical scroll */}
       {showMobile && (
@@ -134,7 +134,7 @@ export function HomeClient() {
 
       {/* Desktop: animated section panels */}
       {showDesktop && (
-        <div className="hidden md:block absolute inset-0 overflow-hidden">
+        <div className="hidden min-[769px]:block absolute inset-0 overflow-hidden">
 
           {/* Left nav labels — animate position based on active section */}
           <DesktopNav nav={nav} goSection={goSection} goSubSlide={goSubSlide} />

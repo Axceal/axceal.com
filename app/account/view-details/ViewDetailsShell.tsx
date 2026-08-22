@@ -23,7 +23,7 @@ export function ViewDetailsShell({ initial, phone: initialPhone }: { initial: Pr
                 <div className="relative flex items-center justify-center w-full mb-6">
                     {/* Back Button */}
                     <Link href="/account" className="absolute left-0 flex items-center whitespace-nowrap hover:opacity-80 transition-opacity">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e]" />
+                        <SvgText text="Back" weight="600" height={16} className="text-[#0000f4]" />
                     </Link>
                     {/* Logo Circle */}
                     <div className="w-[50px] h-[50px] rounded-full bg-[#0000f4] flex items-center justify-center">
@@ -103,8 +103,8 @@ function DetailRow({ label, value, innerRef }: DetailRowProps) {
     }
 
     return (
-        <div 
-            ref={innerRef} 
+        <div
+            ref={innerRef}
             onClick={() => router.push("/account/details-unified")}
             className="relative w-full h-[50px] bg-[#f1f1f1] rounded-full flex items-center justify-center px-4 cursor-pointer"
         >

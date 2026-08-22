@@ -9,9 +9,9 @@ export default function PrivacyPolicy() {
                 {/* Header */}
                 <div className="flex items-center gap-4">
                     <Link href="/" className="flex items-center shrink-0 hover:opacity-80 transition-opacity">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e]" />
+                        <SvgText text="Back" weight="600" height={16} className="text-[#0000f4]" maxWidth={100} />
                     </Link>
-                    <div className="w-[8px] h-[8px] rounded-full bg-[#0000f4]" aria-hidden />
+                    <div className="w-[8px] h-[8px] rounded-full bg-[#aaaaaa]" aria-hidden />
                     <SvgText text="Privacy Policy" weight="600" height={20} className="text-[#1e1e1e]" />
                 </div>
 

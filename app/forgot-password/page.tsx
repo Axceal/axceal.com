@@ -55,7 +55,7 @@ function ForgotPasswordForm() {
             >
                 <div className="flex w-full items-center justify-start gap-[15px]">
                     <Link href="/login" className="flex items-center w-fit shrink-0 whitespace-nowrap hover:opacity-80 transition-opacity">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e]" />
+                        <SvgText text="Back" weight="600" height={16} className="text-[#0000f4]" />
                     </Link>
                     <div className="w-[8px] h-[8px] rounded-full bg-[#0000f4] shrink-0" aria-hidden />
                     <SvgText text="Forgot Password" weight="600" height={20} className="text-[#1e1e1e]" />
@@ -138,6 +138,7 @@ function ForgotPasswordForm() {
                             resendCountdown={resendCountdown}
                             isFocused={isFocused}
                             disabled={otpVerified}
+                            verified={otpVerified}
                         />
                         {message?.field === "otp" && (
                             <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center -mt-3" />

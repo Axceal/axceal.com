@@ -36,6 +36,7 @@ function LoginPageInner() {
         otpCode,
         resendCountdown,
         isFocused,
+        verified,
     } = useLoginForm();
 
     return (
@@ -177,7 +178,21 @@ function LoginPageInner() {
                                     <div className="flex justify-between items-center w-full px-1">
                                         <SvgText text="Verify Code" weight="600" height={16} className="text-[#aaaaaa]" />
                                         <div className="flex items-center gap-1">
-                                            {resendCountdown > 0 ? (
+                                            {verified ? (
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    className="cursor-not-allowed focus:outline-none"
+                                                >
+                                                    <SvgText
+                                                        text="Done"
+                                                        weight="600"
+                                                        height={16}
+                                                        maxWidth={200}
+                                                        className="text-[#aaaaaa]"
+                                                    />
+                                                </button>
+                                            ) : resendCountdown > 0 ? (
                                                 <>
                                                     <SvgText text="Wait," weight="600" height={16} className="text-[#1e1e1e]" />
                                                     <SvgText text={`${resendCountdown}s`} weight="600" height={16} className="text-[#0000f4]" />
@@ -193,6 +208,7 @@ function LoginPageInner() {
                                                         text={sendingOtp ? "Sending..." : "Resend"}
                                                         weight="600"
                                                         height={16}
+                                                        maxWidth={200}
                                                         className="text-[#0000f4]"
                                                     />
                                                 </button>
@@ -263,6 +279,7 @@ function LoginPageInner() {
                         }
                         weight="600"
                         height={16}
+
                         className="text-[#0000f4] group-hover:text-white"
                     />
                 </button>

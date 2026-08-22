@@ -63,7 +63,7 @@ export function AnimatedPasswordField({
                             placeholder={placeholder}
                             value={value}
                             onChange={onChange}
-                            weight="600"
+                            weight="500"
                             height={height}
                             align="center"
                             className="w-full bg-[#f1f1f1] text-[#1e1e1e] rounded-full pl-8 pr-1 py-1 transition-all"

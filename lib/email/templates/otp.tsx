@@ -23,8 +23,15 @@ export function OtpEmail({ code = "0000" }: OtpEmailProps) {
       <Body style={main}>
         <Container style={container}>
           <Section style={contentSection}>
+            <Img
+              src="https://ljnfarynjpnrbrwmesjombj9terggazvam5gufvfasa.canva-cdn.email/8f97ecbad22ce0e411a5461929666c76.png"
+              width="57"
+              height="57"
+              alt="Axceal"
+              style={topLogo}
+            />
             <Text style={greeting}>
-              <strong>Hi User,</strong>
+              <strong>Hi,</strong>
             </Text>
             <Text style={text}>
               To complete your authentication, please enter the following verification code:
@@ -49,9 +56,9 @@ export function OtpEmail({ code = "0000" }: OtpEmailProps) {
 
           <Section style={footer}>
             <Img 
-              src="https://ljnfarynjpnrbrwmesjombj9terggazvam5gufvfasa.canva-cdn.email/7a7a6d3b9c12ef03a8a4c0ae3fa9d0f7.png" 
-              width="56" 
-              height="35" 
+              src="https://ljnfarynjpnrbrwmesjombj9terggazvam5gufvfasa.canva-cdn.email/7a086c55122295fe48729dd1e869f097.png" 
+              width="33" 
+              height="21" 
               alt="Axceal" 
               style={logo}
             />
@@ -70,13 +77,13 @@ export default OtpEmail;
 
 const main = {
   backgroundColor: "#f0f1f5",
-  fontFamily: "Arial, Helvetica, sans-serif",
+  fontFamily: '"Helvetica Now", Helvetica, Arial, sans-serif',
   margin: "0",
   padding: "40px 0",
 };
 
 const container = {
-  backgroundColor: "#ffffff",
+  backgroundColor: "#f1f1f1",
   margin: "0 auto",
   maxWidth: "600px",
 };
@@ -85,21 +92,28 @@ const contentSection = {
   padding: "24px",
 };
 
+const topLogo = {
+  display: "block",
+  margin: "0 0 16px 0",
+};
+
 const greeting = {
-  color: "#aaaaaa",
+  color: "#121212",
   fontSize: "13.3px",
   lineHeight: "17.9px",
   margin: "0 0 16px 0",
 };
 
 const text = {
-  color: "#aaaaaa",
+  color: "#121212",
   fontSize: "13.3px",
   lineHeight: "17.9px",
   margin: "0 0 16px 0",
 };
 
 const codeContainer = {
+  backgroundColor: "#f1f1f1",
+  borderRadius: "100px",
   padding: "40px 0",
   textAlign: "center" as const,
 };
@@ -115,14 +129,14 @@ const codeText = {
 };
 
 const expireText = {
-  color: "#aaaaaa",
+  color: "#121212",
   fontSize: "13.3px",
   textAlign: "center" as const,
   margin: "0 0 16px 0",
 };
 
 const link = {
-  color: "#aaaaaa",
+  color: "#121212",
   textDecoration: "none",
 };
 

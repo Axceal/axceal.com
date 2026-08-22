@@ -75,7 +75,7 @@ export function MobileHome({
   }, []);
 
   return (
-    <div className="md:hidden flex flex-col w-full px-6 pt-10 gap-10 min-h-[calc(100dvh-75px)]">
+    <div className="min-[769px]:hidden flex flex-col w-full px-6 pt-10 gap-10 min-h-[calc(100dvh-75px)]">
 
       {/* Section 1: Aero — full-viewport-height slider */}
       <div className="flex flex-col gap-4 min-h-[calc(100dvh-115px)]">
@@ -141,7 +141,7 @@ export function MobileHome({
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-col gap-4">
               <SvgText as="h3" text="Multi dimensional Cues" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
-              <SvgText text="Up to Milli second Cues latency" weight="600" height={14} className="text-[#aaaaaa]" superscript="1" />
+              <SvgText text="Up to Milli-second Cues latency" weight="600" height={14} className="text-[#aaaaaa]" superscript="1" />
             </div>
             <CuesIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
           </div>
@@ -156,8 +156,8 @@ export function MobileHome({
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-col gap-4">
               <SvgText as="h3" text="All axis anchor navigation" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
-              <SvgText text="Up to Micro second navigation latency" weight="600" height={14} className="text-[#aaaaaa]" superscript="9" />
-              <SvgText text="Up to Milli second Wrap Rate" weight="600" height={14} className="text-[#aaaaaa]" />
+              <SvgText text="Up to Micro-second navigation latency" weight="600" height={14} className="text-[#aaaaaa]" superscript="9" />
+              <SvgText text="Up to Milli-second Wrap Rate" weight="600" height={14} className="text-[#aaaaaa]" />
             </div>
             <NavigationIcon className="w-14 h-auto flex-shrink-0" />
           </div>

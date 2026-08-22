@@ -128,10 +128,9 @@ function JoinDialog({
   onCreate: () => void;
 }) {
   const [nextPosition, setNextPosition] = useState<number | null>(null);
-  const cancelled = useRef(false);
 
   useEffect(() => {
-    cancelled.current = false;
+    let cancelled = false;
     apiFetch("/api/waitlist/next", { method: "GET" })
       .then(async (res) => {
         if (!res.ok) return;
@@ -139,7 +138,7 @@ function JoinDialog({
           ok: boolean;
           data?: { nextPosition: number };
         };
-        if (!cancelled.current && body.ok && body.data) {
+        if (!cancelled && body.ok && body.data) {
           setNextPosition(body.data.nextPosition);
         }
       })
@@ -147,7 +146,7 @@ function JoinDialog({
         // Soft-fail: dialog still renders without the position hint.
       });
     return () => {
-      cancelled.current = true;
+      cancelled = true;
     };
   }, []);
 
