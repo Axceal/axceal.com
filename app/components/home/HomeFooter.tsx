@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { AxcealLogo } from "../icons/brand/AxcealLogo";
 import { SvgText } from "../text/SvgText";
+import { XTwitterIcon } from "../icons/social/XTwitterIcon";
+import { InstagramIcon } from "../icons/social/InstagramIcon";
 
 interface Props {
   section: number;
@@ -37,12 +39,22 @@ export function HomeFooter({ section }: Props) {
       {/* Right: Legal links + Contact info */}
       <div className="flex flex-row items-center gap-12">
         <div className="hidden lg:flex flex-row items-center gap-6">
-          <Link href="/privacy" className="text-[#aaaaaa] hover:text-[#0000f4] transition-colors focus:outline-none">
-            <SvgText text="Privacy Policy" weight="500" height={12} />
-          </Link>
-          <Link href="/terms" className="text-[#aaaaaa] hover:text-[#0000f4] transition-colors focus:outline-none">
-            <SvgText text="Terms & Conditions" weight="500" height={12} />
-          </Link>
+          <div className="flex flex-row items-center gap-6 border-r border-[#aaaaaa] pr-6 h-[16px]">
+            <Link href="https://x.com/Axcealin" target="_blank" rel="noopener noreferrer" className="text-[#aaaaaa] hover:text-[#0000f4] transition-colors focus:outline-none flex items-center justify-center">
+              <XTwitterIcon />
+            </Link>
+            <Link href="https://www.instagram.com/axceal.in/" target="_blank" rel="noopener noreferrer" className="text-[#aaaaaa] hover:text-[#0000f4] transition-colors focus:outline-none flex items-center justify-center">
+              <InstagramIcon />
+            </Link>
+          </div>
+          <div className="flex flex-row items-center gap-6 border-r border-[#aaaaaa] pr-6 h-[16px]">
+            <Link href="/privacy" className="text-[#aaaaaa] hover:text-[#0000f4] transition-colors focus:outline-none flex items-center justify-center">
+              <SvgText text="Privacy Policy" weight="500" height={12} />
+            </Link>
+            <Link href="/terms" className="text-[#aaaaaa] hover:text-[#0000f4] transition-colors focus:outline-none flex items-center justify-center">
+              <SvgText text="Terms & Conditions" weight="500" height={12} />
+            </Link>
+          </div>
         </div>
         <div className="flex flex-col items-end gap-1 lg:gap-2">
           <SvgText text="Contact" weight="500" height={12} className="text-[#aaaaaa]" />
