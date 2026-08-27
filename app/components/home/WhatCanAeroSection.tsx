@@ -95,8 +95,8 @@ export function WhatCanAeroSection({ section, subSlide, goSubSlide }: Props) {
           transition={SPRING}
         >
           {/* Portrait image — constrained by height to avoid overflow */}
-          <div className="absolute left-[47%] -translate-x-1/2 top-[30%]">
-            <AeroSenseSlideIcon alt="Aero inside view" className="h-[clamp(240px,52vh,240px)] w-auto" />
+          <div className="absolute left-[50%] -translate-x-1/2 top-[10%]">
+            <AeroSenseSlideIcon alt="Aero inside view" className="h-[clamp(160px,52vh,160px)] w-auto" />
           </div>
           <div className="absolute right-[clamp(8rem,5vw,6rem)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-10">
             <div className="flex flex-col gap-10 items-end">

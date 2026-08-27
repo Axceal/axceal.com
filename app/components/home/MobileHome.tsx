@@ -23,7 +23,7 @@ const AERO_SLIDES: { Icon: SlideIcon; className: string }[] = [
   { Icon: AeroIcon, className: "w-full h-auto max-h-[300px] object-contain" },
   { Icon: AeroCuesSlideIcon, className: "h-auto w-[360px] max-w-full object-contain" },
   { Icon: AeroNavigationSlideIcon, className: "h-[360px] w-auto max-w-full object-contain" },
-  { Icon: AeroSenseSlideIcon, className: "h-[200px] w-auto max-w-full object-contain" },
+  { Icon: AeroSenseSlideIcon, className: "h-[140px] w-auto max-w-full object-contain" },
   { Icon: AeroFeatherSlideIcon, className: "h-[360px] w-auto max-w-full object-contain" },
   { Icon: AeroBatterySlideIcon, className: "h-[160px] w-auto max-w-full object-contain" },
 ];
