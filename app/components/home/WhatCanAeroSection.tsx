@@ -75,7 +75,7 @@ export function WhatCanAeroSection({ section, subSlide, goSubSlide }: Props) {
           transition={SPRING}
         >
           <div className="absolute left-1/2 -translate-x-1/2 top-[8%]">
-            <AeroNavigationSlideIcon alt="Aero side view" className="w-[clamp(160px,32vw,100px)] h-auto" />
+            <AeroNavigationSlideIcon alt="Aero side view" className="w-[clamp(150px,32vw,100px)] h-auto" />
           </div>
           <div className="absolute right-[clamp(8rem,5vw,6rem)] top-1/2 -translate-y-1/2 flex flex-row items-center gap-10">
             <div className="flex flex-col gap-10 items-end">
