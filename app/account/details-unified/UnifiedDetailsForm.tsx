@@ -51,6 +51,7 @@ function formatPhoneSpaced(p: string): string {
 export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: Profile; phone: string | null }) {
     const router = useRouter();
     const [activeRow, setActiveRow] = useState<"name" | "gender" | "birthday" | "phone" | null>(null);
+    const [phoneFocusTarget, setPhoneFocusTarget] = useState<"cc" | "phone">("cc");
 
     const [firstName, setFirstName] = useState(initial.firstName || "");
     const [lastName, setLastName] = useState(initial.lastName || "");
@@ -60,6 +61,9 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
 
     const [focusedField, setFocusedField] = useState<"first" | "last" | null>(null);
     const [showOtp, setShowOtp] = useState(false);
+    const [nameError, setNameError] = useState(false);
+    const [genderError, setGenderError] = useState(false);
+    const [birthdayError, setBirthdayError] = useState(false);
     const [phoneError, setPhoneError] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
@@ -87,12 +91,30 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
     if (isFullyEmpty) topButtonText = "Skip for now";
 
     const handleConfirm = () => {
-        if (!phone || phone.replace(/\D/g, "").length < 8) {
-            setPhoneError(true);
-            setActiveRow("phone");
+        const pLen = phone.replace(/\D/g, "").length;
+        const isPhoneInvalid = !phone || pLen < 8;
+        const isNameInvalid = !firstName || !lastName;
+        const isGenderInvalid = !gender;
+        const isBdayInvalid = !birthdayIso;
+
+        setNameError(isNameInvalid);
+        setGenderError(isGenderInvalid);
+        setBirthdayError(isBdayInvalid);
+        setPhoneError(isPhoneInvalid);
+
+        if (isNameInvalid || isGenderInvalid || isBdayInvalid || isPhoneInvalid) {
+            if (isPhoneInvalid) {
+                setActiveRow("phone");
+            } else if (isNameInvalid) {
+                setActiveRow("name");
+            } else if (isGenderInvalid) {
+                setActiveRow("gender");
+            } else if (isBdayInvalid) {
+                setActiveRow("birthday");
+            }
             return;
         }
-        setPhoneError(false);
+
         setShowOtp(true);
     };
 
@@ -104,9 +126,9 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                     onSuccess={() => {
                         setShowOtp(false);
                         setActiveRow(null);
-                        router.refresh();
+                        router.push("/account");
                     }}
-                    phone={phone}
+                    phone={phone!.replace(/\s+/g, "")}
                     firstName={firstName || null}
                     lastName={lastName || null}
                     gender={gender || null}
@@ -126,7 +148,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                 </motion.div>
 
                 {/* Fields Container */}
-                <motion.div layout className="w-[300px] flex flex-col border-t-[1.5px] border-b-[1.5px] border-dashed border-[#aaaaaa] divide-y-[1.5px] divide-dashed divide-[#aaaaaa]">
+                <motion.div layout className="w-[320px] flex flex-col border-t-[1.5px] border-b-[1.5px] border-dashed border-[#aaaaaa] divide-y-[1.5px] divide-dashed divide-[#aaaaaa]">
 
                     {/* Name Row */}
                     <motion.div layout className="flex flex-col">
@@ -138,7 +160,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                 <SvgInput
                                     placeholder="First Name"
                                     value={firstName}
-                                    onChange={v => { const c = v.replace(/[^A-Za-z\-']/g, "").slice(0, 18); setFirstName(c.charAt(0).toUpperCase() + c.slice(1)); }}
+                                    onChange={v => { const c = v.replace(/[^A-Za-z\-']/g, "").slice(0, 18); setFirstName(c.charAt(0).toUpperCase() + c.slice(1)); setNameError(false); }}
                                     onFocus={() => { setFocusedField("first"); setActiveRow(null); }}
                                     onBlur={() => setFocusedField(null)}
                                     align="center"
@@ -146,7 +168,9 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                     height={20}
                                     cursorHeightScale={1.5}
                                     cursorColor="#0000f4"
-                                    className="w-full text-[#1e1e1e] bg-transparent cursor-pointer focus:cursor-text"
+                                    placeholderOpacity={1}
+                                    placeholderColor={nameError && !firstName ? "#ff0000" : "#aaaaaa"}
+                                    className={`w-full cursor-pointer focus:cursor-text ${nameError && !firstName ? 'text-[#ff0000]' : 'text-[#1e1e1e]'}`}
                                 />
                             </div>
                             <span className="block w-[8px] h-[8px] rounded-full bg-[#0000f4] shrink-0 mx-2" />
@@ -154,7 +178,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                 <SvgInput
                                     placeholder="Last Name"
                                     value={lastName}
-                                    onChange={v => { const c = v.replace(/[^A-Za-z\-']/g, "").slice(0, 18); setLastName(c.charAt(0).toUpperCase() + c.slice(1)); }}
+                                    onChange={v => { const c = v.replace(/[^A-Za-z\-']/g, "").slice(0, 18); setLastName(c.charAt(0).toUpperCase() + c.slice(1)); setNameError(false); }}
                                     onFocus={() => { setFocusedField("last"); setActiveRow(null); }}
                                     onBlur={() => setFocusedField(null)}
                                     align="center"
@@ -162,7 +186,9 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                     height={20}
                                     cursorHeightScale={1.5}
                                     cursorColor="#0000f4"
-                                    className="w-full text-[#1e1e1e] bg-transparent cursor-pointer focus:cursor-text"
+                                    placeholderOpacity={1}
+                                    placeholderColor={nameError && !lastName ? "#ff0000" : "#aaaaaa"}
+                                    className={`w-full cursor-pointer focus:cursor-text ${nameError && !lastName ? 'text-[#ff0000]' : 'text-[#1e1e1e]'}`}
                                 />
                             </div>
                         </div>
@@ -186,7 +212,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                         text={gender === "private" ? "Keep it Private" : gender === "female" ? "Female" : gender === "male" ? "Male" : "Gender"}
                                         weight={gender ? "600" : "500"}
                                         height={20}
-                                        className={gender ? "text-[#1e1e1e]" : "text-[#aaaaaa]"}
+                                        className={gender ? "text-[#1e1e1e]" : genderError ? "text-[#ff0000]" : "text-[#aaaaaa]"}
                                     />
                                 </motion.div>
                             ) : (
@@ -204,6 +230,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                         onSave={async (g) => {
                                             const mapped = g === "Female" ? "female" : g === "Male" ? "male" : "private";
                                             setGender(mapped);
+                                            setGenderError(false);
                                             setActiveRow(null);
                                         }}
                                     />
@@ -226,7 +253,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                     onClick={() => setActiveRow("birthday")}
                                     className="h-[60px] w-full flex items-center justify-center cursor-pointer"
                                 >
-                                    <SvgText text={birthdayIso ? formatBirthday(birthdayIso) : "Birthday"} weight={birthdayIso ? "600" : "500"} height={20} className={birthdayIso ? "text-[#1e1e1e]" : "text-[#aaaaaa]"} />
+                                    <SvgText text={birthdayIso ? formatBirthday(birthdayIso) : "Birthday"} weight={birthdayIso ? "600" : "500"} height={20} className={birthdayIso ? "text-[#1e1e1e]" : birthdayError ? "text-[#ff0000]" : "text-[#aaaaaa]"} />
                                 </motion.div>
                             ) : (
                                 <motion.div
@@ -242,6 +269,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                         initialBirthday={birthdayIso}
                                         onSave={async (iso) => {
                                             setBirthdayIso(iso);
+                                            setBirthdayError(false);
                                             setActiveRow(null);
                                         }}
                                     />
@@ -261,10 +289,19 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.15 }}
-                                    onClick={() => setActiveRow("phone")}
-                                    className="h-[60px] w-full flex items-center justify-center cursor-pointer"
+                                    onClick={() => {
+                                        setPhoneFocusTarget(phone ? "phone" : "cc");
+                                        setActiveRow("phone");
+                                    }}
+                                    className="h-[60px] w-full flex items-center justify-center px-4 cursor-pointer"
                                 >
-                                    <SvgText text={phone ? formatPhoneSpaced(phone) : "Phone Number"} weight={phone ? "600" : "500"} height={20} className={phone ? "text-[#1e1e1e]" : phoneError ? "text-[#ff0000]" : "text-[#aaaaaa]"} />
+                                    {phone ? (
+                                        <SvgText text={formatPhoneSpaced(phone)} weight="600" height={20} className={phoneError ? "text-[#ff0000]" : "text-[#1e1e1e]"} />
+                                    ) : (
+                                        <div className="flex items-center justify-center w-full h-full" onClick={(e) => { e.stopPropagation(); setPhoneFocusTarget("phone"); setActiveRow("phone"); }}>
+                                            <SvgText text="Phone Number" weight="500" height={20} className={phoneError ? "text-[#ff0000]" : "text-[#aaaaaa]"} />
+                                        </div>
+                                    )}
                                 </motion.div>
                             ) : (
                                 <motion.div
@@ -278,8 +315,11 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                                 >
                                     <PhoneEditor
                                         initialPhone={phone}
+                                        initialFocus={phoneFocusTarget}
+                                        error={phoneError}
                                         onSave={async (p) => {
                                             setPhone(p);
+                                            if (p && p.replace(/\D/g, "").length >= 8) setPhoneError(false);
                                         }}
                                     />
                                 </motion.div>
@@ -315,11 +355,11 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
 
                         <button
                             type="button"
-                            onClick={handleSkip}
+                            onClick={handleConfirm}
                             disabled={submitting}
-                            className="cursor-pointer bg-[#0000f4] rounded-full px-[40px] h-[50px] flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="cursor-pointer bg-[#f1f1f1] max-md:bg-[#0000f4] rounded-full px-[40px] h-[50px] flex items-center justify-center hover:bg-[#0000f4] active:bg-[#f1f1f1] transition-colors group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#f1f1f1] max-md:disabled:hover:bg-[#0000f4]"
                         >
-                            <SvgText text="Confirm" weight="600" height={16} className="text-white" />
+                            <SvgText text="Confirm" weight="600" height={16} maxWidth={Infinity} className="text-[#0000f4] max-md:text-white group-hover:text-white group-disabled:group-hover:text-[#0000f4] max-md:group-disabled:group-hover:text-white group-active:text-[#aaaaaa]" />
                         </button>
                     </motion.div>
                 ) : isFullyFilled ? (
@@ -337,7 +377,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                             disabled={submitting}
                             className="cursor-pointer bg-[#0000f4] rounded-full px-[30px] h-[50px] flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            <SvgText text="Go to Account" weight="600" height={16} className="text-white" />
+                            <SvgText text="Go to Account" weight="600" height={16} maxWidth={Infinity} className="text-white" />
                         </button>
                     </motion.div>
                 ) : topButtonText ? (
@@ -355,7 +395,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                             disabled={submitting}
                             className="flex items-center whitespace-nowrap hover:opacity-80 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            <SvgText text={topButtonText} weight="600" height={16} className="text-[#0000f4] cursor-pointer" />
+                            <SvgText text={topButtonText} weight="600" height={16} maxWidth={Infinity} className="text-[#0000f4] cursor-pointer" />
                         </button>
                     </motion.div>
                 ) : null}

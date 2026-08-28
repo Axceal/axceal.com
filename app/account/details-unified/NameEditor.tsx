@@ -53,6 +53,8 @@ export function NameEditor({ initialFirst, initialLast, onSave }: NameEditorProp
                         align="center"
                         weight="500"
                         height={20}
+                        placeholderOpacity={1}
+                        placeholderColor="#aaaaaa"
                         className="w-full text-[#1e1e1e] bg-transparent"
                     />
                 </div>
@@ -73,7 +75,9 @@ export function NameEditor({ initialFirst, initialLast, onSave }: NameEditorProp
                         onBlur={handleBlur}
                         weight="500"
                         height={20}
-                        className="w-full text-[#1e1e1e] bg-transparent"
+                        placeholderOpacity={1}
+                        placeholderColor="#aaaaaa"
+                        className="w-full text-[#1e1e1e]"
                     />
                 </div>
             </div>

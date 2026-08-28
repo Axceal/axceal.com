@@ -268,7 +268,7 @@ function LoginPageInner() {
                     id="login-submit"
                     type="submit"
                     disabled={submitting || (isOtp && otpCode.length !== 4)}
-                    className="w-fit bg-[#f1f1f1] mt-[50px] rounded-full px-10 py-4.5 cursor-pointer hover:bg-[#0000f4] transition-colors flex justify-center group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#f1f1f1]"
+                    className="w-fit bg-[#f1f1f1] max-md:bg-[#0000f4] mt-[50px] rounded-full px-10 py-4.5 cursor-pointer hover:bg-[#0000f4] active:bg-[#f1f1f1] transition-colors flex justify-center group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#f1f1f1] max-md:disabled:hover:bg-[#0000f4]"
                 >
                     <SvgText
                         text={
@@ -279,7 +279,7 @@ function LoginPageInner() {
                         weight="600"
                         height={16}
 
-                        className="text-[#0000f4] group-hover:text-white"
+                        className="text-[#0000f4] max-md:text-white group-hover:text-white max-md:group-disabled:group-hover:text-white group-active:text-[#aaaaaa]"
                     />
                 </button>
             </form>

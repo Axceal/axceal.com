@@ -66,11 +66,14 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
     // Send OTP on mount (guarded against Strict Mode double-fire)
     const hasSent = useRef(false);
     useEffect(() => {
-        if (!hasSent.current) {
-            hasSent.current = true;
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            sendOtp();
-        }
+        const t = setTimeout(() => {
+            if (!hasSent.current) {
+                hasSent.current = true;
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                sendOtp();
+            }
+        }, 50);
+        return () => clearTimeout(t);
     }, [sendOtp]);
 
     // --- Resend handler ---
@@ -233,9 +236,9 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
                 <button
                     type="button"
                     onClick={!verifying ? handleVerify : undefined}
-                    className={`w-[140px] h-[50px] rounded-full bg-[#f1f1f1] flex items-center justify-center ${verifying ? "[&>*]:opacity-50" : "group cursor-pointer hover:bg-[#0000f4] transition-colors duration-250"}`}
+                    className={`w-[140px] h-[50px] rounded-full bg-[#f1f1f1] max-md:bg-[#0000f4] flex items-center justify-center ${verifying ? "[&>*]:opacity-50" : "group cursor-pointer hover:bg-[#0000f4] active:bg-[#f1f1f1] transition-colors duration-250"}`}
                 >
-                    <ViewDetailsSaveIcon className="text-[#aaaaaa] group-hover:text-white transition-colors duration-250 w-[26px] h-[26px]" />
+                    <ViewDetailsSaveIcon className="text-[#aaaaaa] max-md:text-white group-hover:text-white group-active:text-[#aaaaaa] transition-colors duration-250 w-[26px] h-[26px]" />
                 </button>
             </motion.div>
         </motion.div>

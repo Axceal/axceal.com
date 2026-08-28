@@ -18,12 +18,17 @@ export function PlaceholderLayer(props: {
     cursorHeightScale: number;
     cursorWidth: number;
     cursorColor: string;
+    placeholderOpacity?: number;
+    placeholderColor?: string;
 }) {
-    const { phPaths, phAlignOffset, alignOffset, viewWidth, height, scale, focused, blink, cursorHeightScale, cursorWidth, cursorColor } = props;
+    const { phPaths, phAlignOffset, alignOffset, viewWidth, height, scale, focused, blink, cursorHeightScale, cursorWidth, cursorColor, placeholderOpacity, placeholderColor } = props;
 
     // Calculate vertical bounds based on cursorHeightScale, centered around BASE / 2
     const y1 = (BASE / 2) - (BASE * cursorHeightScale / 2);
     const y2 = (BASE / 2) + (BASE * cursorHeightScale / 2);
+
+    const defaultOpacity = focused ? 0.2 : 0.4;
+    const finalOpacity = placeholderOpacity !== undefined ? placeholderOpacity : defaultOpacity;
 
     return (
         <svg
@@ -31,9 +36,16 @@ export function PlaceholderLayer(props: {
             height={height}
             width={Math.max(viewWidth, 1) * scale}
             preserveAspectRatio="xMinYMid meet"
-            className={`fill-current transition-opacity ${focused ? 'opacity-20' : 'opacity-40'}`}
+            className="transition-opacity"
             aria-hidden="true"
-            style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}
+            style={{ 
+                position: "absolute", 
+                left: 0, 
+                top: 0, 
+                overflow: "visible",
+                opacity: finalOpacity,
+                fill: placeholderColor || "currentColor"
+            }}
         >
             <g transform={phAlignOffset > 0 ? `translate(${phAlignOffset},0)` : undefined}>
                 {phPaths.map((g, i) => (

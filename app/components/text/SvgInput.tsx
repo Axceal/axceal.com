@@ -22,6 +22,8 @@ export interface SvgInputProps {
     readOnly?: boolean;
     autoComplete?: string;
     align?: "left" | "center" | "right";
+    placeholderOpacity?: number;
+    placeholderColor?: string;
     /** Slot to the right of the text area, e.g. a Send OTP button */
     rightSlot?: React.ReactNode;
     /** Called when the hidden input gains focus */
@@ -79,6 +81,8 @@ export function SvgInput({
     readOnly,
     autoComplete,
     align = "left",
+    placeholderOpacity,
+    placeholderColor,
     rightSlot,
     onFocus: onFocusProp,
     onBlur: onBlurProp,
@@ -275,6 +279,8 @@ export function SvgInput({
                             cursorHeightScale={cursorHeightScale}
                             cursorWidth={cursorWidth}
                             cursorColor={cursorColor}
+                            placeholderOpacity={placeholderOpacity}
+                            placeholderColor={placeholderColor}
                         />
                     </div>
                 )}

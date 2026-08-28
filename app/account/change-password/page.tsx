@@ -337,7 +337,7 @@ export default function ChangePasswordPage() {
                                 ? (verifyingOtp || otp.join("").length !== 4)
                                 : submitting
                     }
-                    className="bg-[#f1f1f1] rounded-full px-10 py-4 focus:outline-none mt-40 cursor-pointer transition-colors  disabled:cursor-not-allowed flex items-center justify-center"
+                    className="w-fit bg-[#f1f1f1] max-md:bg-[#0000f4] rounded-full px-10 py-4 focus:outline-none mt-40 cursor-pointer hover:bg-[#0000f4] active:bg-[#f1f1f1] transition-colors flex justify-center group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#f1f1f1] max-md:disabled:hover:bg-[#0000f4]"
                 >
                     <SvgText
                         text={
@@ -349,7 +349,7 @@ export default function ChangePasswordPage() {
                         }
                         weight="600"
                         height={16}
-                        className="text-[#0000f4]"
+                        className="text-[#0000f4] max-md:text-white group-hover:text-white max-md:group-disabled:group-hover:text-white group-disabled:group-hover:text-[#0000f4] group-active:text-[#aaaaaa]"
                     />
                 </button>
             </div>
