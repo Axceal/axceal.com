@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Axceal",
     short_name: "Axceal",
-    description: "Aero x1 by Axceal — precision pocket companion.",
+    description: "Aero x1 by Axceal",
     // F16.5 — explicit id decouples PWA identity from start_url, so future
     // tracking-query additions on start_url won't be treated as a new app
     // and won't strand already-installed users.

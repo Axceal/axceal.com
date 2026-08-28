@@ -53,7 +53,7 @@ export function productLd() {
     brand: { "@type": "Brand", name: "Axceal" },
     image: `${SITE_URL}/opengraph-image`,
     description:
-      "Aero x1 by Axceal — precision pocket companion with multi-dimensional cues, surround sense, all-axis anchor navigation, IP68 build, and up to 23-hour battery life.",
+      "Aero x1 by Axceal — Multi-dimensional cues, surround sense & all-axis anchor navigation",
     offers: {
       "@type": "Offer",
       priceCurrency: "INR",
