@@ -82,7 +82,7 @@ export function useCreateAccountForm() {
     // Clear emailExists when the user edits the email — the alt UI references a
     // specific address and shouldn't persist across edits.
     const setEmailReset = useCallback((next: string) => {
-        setEmail(next.replace(/\s/g, ""));
+        setEmail(next.toLowerCase().replace(/\s/g, ""));
         setEmailExists(false);
     }, []);
 

@@ -236,7 +236,7 @@ export function useForgotPasswordForm() {
 
     // Strip whitespace at the input layer; backend Password / Email schemas
     // also reject whitespace.
-    const setEmailNoSpace = useCallback((v: string) => setEmail(v.replace(/\s/g, "")), []);
+    const setEmailNoSpace = useCallback((v: string) => setEmail(v.toLowerCase().replace(/\s/g, "")), []);
     const setPasswordNoSpace = useCallback((v: string) => setPassword(v.replace(/\s/g, "")), []);
     const setRePasswordNoSpace = useCallback((v: string) => setRePassword(v.replace(/\s/g, "")), []);
 

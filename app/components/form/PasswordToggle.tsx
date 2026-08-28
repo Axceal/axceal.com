@@ -14,7 +14,7 @@ export function PasswordToggle({
             onClick={onToggle}
             aria-label={shown ? "Hide password" : "Show password"}
             aria-pressed={shown}
-            className="bg-[#aaaaaa] rounded-full w-[42px] h-[42px] flex items-center justify-center cursor-pointer hover:bg-[#0000f4] transition-colors shrink-0 focus:outline-none focus-visible:outline-none"
+            className="bg-[#0000f4] rounded-full w-[42px] h-[42px] flex items-center justify-center cursor-pointer transition-colors shrink-0 focus:outline-none focus-visible:outline-none"
         >
             {shown ? (
                 <EyeOpenIcon className="text-white" />

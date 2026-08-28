@@ -232,7 +232,7 @@ export function useLoginForm() {
     // already rejects whitespace, and dev environment has no legacy accounts
     // with space-containing passwords to preserve.
     const setPasswordNoSpace = useCallback((v: string) => setPassword(v.replace(/\s/g, "")), []);
-    const setEmailNoSpace = useCallback((v: string) => setEmail(v.replace(/\s/g, "")), []);
+    const setEmailNoSpace = useCallback((v: string) => setEmail(v.toLowerCase().replace(/\s/g, "")), []);
 
     return {
         email, setEmail: setEmailNoSpace,
