@@ -8,6 +8,8 @@ import {
   Text,
   Img,
   Link,
+  Row,
+  Column,
 } from "@react-email/components";
 import * as React from "react";
 
@@ -15,7 +17,7 @@ type WaitlistEmailProps = { position: number };
 
 export function WaitlistJoinedEmail({ position }: WaitlistEmailProps) {
   const positionLabel = `#${position.toLocaleString("en-IN")}`;
-  
+
   return (
     <Html>
       <Head>
@@ -34,7 +36,7 @@ export function WaitlistJoinedEmail({ position }: WaitlistEmailProps) {
               style={topLogo}
             />
             <Text style={greeting}>
-              <strong>Hi,</strong>
+              Hi,
             </Text>
             <Text style={text}>
               Thanks for joining the waitlist for Aero. We&apos;ll be in touch when it&apos;s your turn to order.
@@ -58,17 +60,23 @@ export function WaitlistJoinedEmail({ position }: WaitlistEmailProps) {
           </Section>
 
           <Section style={footer}>
-            <Img 
-              src="https://axceal.com/assets/email-logo-footer.png" 
-              width="33" 
-              height="21" 
-              alt="Axceal" 
-              style={logo}
-            />
-            <Text style={footerText}>
-              © 2026 Axceal (Aectex Technologies Private Limited)<br />
-              All rights reserved
-            </Text>
+            <Row>
+              <Column style={{ width: "33px", paddingRight: "16px" }}>
+                <Img
+                  src="https://axceal.com/assets/email-logo-footer.png"
+                  width="33"
+                  height="21"
+                  alt="Axceal"
+                  style={logo}
+                />
+              </Column>
+              <Column>
+                <Text style={footerText}>
+                  © 2026 Axceal (Aectex Technologies Private Limited)<br />
+                  All rights reserved
+                </Text>
+              </Column>
+            </Row>
           </Section>
         </Container>
       </Body>
@@ -97,7 +105,7 @@ const contentSection = {
 
 const topLogo = {
   display: "block",
-  margin: "0 0 16px 0",
+  margin: "0 auto 16px auto",
 };
 
 const greeting = {
@@ -139,12 +147,11 @@ const link = {
 const footer = {
   backgroundColor: "#0000f4",
   padding: "16px",
-  textAlign: "center" as const,
 };
 
 const logo = {
   display: "block",
-  margin: "0 auto 16px auto",
+  margin: "0",
 };
 
 const footerText = {
@@ -152,5 +159,5 @@ const footerText = {
   fontSize: "10.7px",
   lineHeight: "1.4",
   margin: "0",
-  textAlign: "center" as const,
+  textAlign: "left" as const,
 };
