@@ -142,6 +142,7 @@ export async function getNextWaitlistPosition(): Promise<number> {
   );
   // drizzle-orm/neon-http returns { rows: [...] } shape via execute.
   // Defensive narrow: support both array-style and { rows } envelopes.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const row = (Array.isArray(rows) ? rows[0] : (rows as any).rows?.[0]) as
     | { last_value: number | string; is_called: boolean }
     | undefined;

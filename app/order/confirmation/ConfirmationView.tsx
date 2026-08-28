@@ -39,6 +39,7 @@ export function ConfirmationView({ initial }: { initial: OrderDetailResponse }) 
     useEffect(() => {
         if (typeof window === "undefined") return;
         const mql = window.matchMedia("(min-width: 768px)");
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsDesktop(mql.matches);
         const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
         mql.addEventListener("change", handler);

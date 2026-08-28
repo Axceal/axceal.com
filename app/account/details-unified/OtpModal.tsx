@@ -35,7 +35,7 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
                 return prev - 1;
             });
         }, 1000);
-    }, []);
+    }, [onClose]);
 
     useEffect(() => {
         return () => {
@@ -68,6 +68,7 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
     useEffect(() => {
         if (!hasSent.current) {
             hasSent.current = true;
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             sendOtp();
         }
     }, [sendOtp]);

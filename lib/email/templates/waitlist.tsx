@@ -18,13 +18,16 @@ export function WaitlistJoinedEmail({ position }: WaitlistEmailProps) {
   
   return (
     <Html>
-      <Head />
+      <Head>
+        <meta name="color-scheme" content="light" />
+        <meta name="supported-color-schemes" content="light" />
+      </Head>
       <Preview>You&apos;re in the Aero queue at {positionLabel}</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={contentSection}>
             <Img
-              src="https://ljnfarynjpnrbrwmesjombj9terggazvam5gufvfasa.canva-cdn.email/8f97ecbad22ce0e411a5461929666c76.png"
+              src="https://axceal.com/assets/email-logo-header.png"
               width="57"
               height="57"
               alt="Axceal"
@@ -56,7 +59,7 @@ export function WaitlistJoinedEmail({ position }: WaitlistEmailProps) {
 
           <Section style={footer}>
             <Img 
-              src="https://ljnfarynjpnrbrwmesjombj9terggazvam5gufvfasa.canva-cdn.email/7a086c55122295fe48729dd1e869f097.png" 
+              src="https://axceal.com/assets/email-logo-footer.png" 
               width="33" 
               height="21" 
               alt="Axceal" 

@@ -54,6 +54,7 @@ export default async function ConfirmationPage({
             country: "US"
         },
         items: []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
     
     /*

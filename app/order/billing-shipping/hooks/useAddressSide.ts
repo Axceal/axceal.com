@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useLayoutEffect } from "react";
 import countriesData from "../../../data/countries.json";
 import statesData from "../../../data/states.json";
 import {
@@ -51,7 +51,12 @@ export function useAddressSide(prefix: "b" | "s") {
         [`${prefix}Zip`]: zipRef,
         [`${prefix}Phone`]: phoneRef,
     };
-    const pos = indicatorPos(refMap[activeField]?.current ?? null);
+
+    const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+    useLayoutEffect(() => {
+        setPos(indicatorPos(refMap[activeField]?.current ?? null));
+    }, [activeField]);
 
     const onFocus = useCallback((f: string) => setActiveField(f), []);
     const onBlur = useCallback(() => setActiveField(`${prefix}First`), [prefix]);

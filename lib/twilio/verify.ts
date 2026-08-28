@@ -20,6 +20,7 @@ export async function sendPhoneOtp(phone: string): Promise<void> {
     await client.verify.v2
       .services(serviceSid)
       .verifications.create({ to: phone, channel: "sms" });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     throw new AppError(
       ErrorCode.VALIDATION_FAILED,

@@ -104,7 +104,7 @@ function CreateAccountForm() {
                         />
                     </div>
                     {!emailExists && message?.field === "email" && (
-                        <SvgText text={message.text} weight="500" align="center" height={14} className="text-[#ff0000] self-center" />
+                        <SvgText text={message.text} weight="500" align="center" height={14} maxWidth={Infinity} className="text-[#ff0000] self-center" />
                     )}
                 </div>
 
@@ -132,7 +132,7 @@ function CreateAccountForm() {
                     verified={otpVerified}
                 />
                 {message?.field === "otp" && (
-                    <SvgText text={message.text} align="center" weight="500" height={14} className="text-[#ff0000] self-center -mt-3" />
+                    <SvgText text={message.text} align="center" weight="500" height={14} maxWidth={Infinity} className="text-[#ff0000] self-center -mt-3" />
                 )}
 
                 {emailExists && (
@@ -197,7 +197,7 @@ function CreateAccountForm() {
                         isFocused={isFocused}
                     />
                     {otpVerified && message?.field === "password" && (
-                        <SvgText text={message.text} weight="500" align="center" height={14} className="text-[#ff0000] self-center -mt-3" />
+                        <SvgText text={message.text} weight="500" align="center" height={14} maxWidth={Infinity} className="text-[#ff0000] self-center -mt-3" />
                     )}
 
                     {/* Password constraints */}
@@ -237,7 +237,7 @@ function CreateAccountForm() {
                         isFocused={isFocused}
                     />
                     {passwordValid && message?.field === "repassword" && (
-                        <SvgText text={message.text} weight="500" height={14} align="center" className="text-[#ff0000] self-center" />
+                        <SvgText text={message.text} weight="500" height={14} align="center" maxWidth={Infinity} className="text-[#ff0000] self-center" />
                     )}
 
                     {/* General (network/server) errors only */}
@@ -247,6 +247,7 @@ function CreateAccountForm() {
                                 text={message.text}
                                 weight="600"
                                 height={12}
+                                maxWidth={Infinity}
                                 className={message.kind === "error" ? "text-[#ff0000]" : "text-[#0000f4]"}
                             />
                         )}

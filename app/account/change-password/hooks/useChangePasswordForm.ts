@@ -67,7 +67,7 @@ export function useChangePasswordForm() {
             setRePassword("");
         }
         prevCurrentPassword.current = currentPassword;
-    });
+    }, [currentPassword, currentPasswordVerified]);
 
     const currentPasswordWrapRef = useRef<HTMLDivElement>(null);
     const otpWrapRef = useRef<HTMLDivElement>(null);

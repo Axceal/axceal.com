@@ -27,7 +27,7 @@ type SitemapEntry = {
 // `dir` is always resolved relative to this file (__dirname) so the scan
 // can never escape the project tree regardless of CWD.
 function getRoutes(dir: string, basePath = ""): string[] {
-  let routes: string[] = [];
+  const routes: string[] = [];
   try {
     const entries = readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
