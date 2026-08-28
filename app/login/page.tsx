@@ -132,7 +132,7 @@ function LoginPageInner() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -4 }}
                                 transition={SPRING}
-                                className="flex flex-col items-center gap-3 w-full py-2"
+                                className="flex flex-row items-center justify-between w-full py-2 px-3"
                             >
                                 <Link
                                     href="/forgot-password"
