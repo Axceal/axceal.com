@@ -52,7 +52,7 @@ export function useAddressSide(prefix: "b" | "s") {
         [`${prefix}Phone`]: phoneRef,
     };
 
-    const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
     useLayoutEffect(() => {
         setPos(indicatorPos(refMap[activeField]?.current ?? null));
