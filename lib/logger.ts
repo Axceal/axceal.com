@@ -7,25 +7,7 @@ const axiomEnabled = isProd && !!env.AXIOM_TOKEN && !!env.AXIOM_DATASET;
 
 const transport = isDev
   ? { target: "pino-pretty", options: { colorize: true } }
-  : axiomEnabled
-    ? {
-        targets: [
-          {
-            target: "pino/file",
-            level: "info",
-            options: { destination: 1 },
-          },
-          {
-            target: "@axiomhq/pino",
-            level: "info",
-            options: {
-              dataset: env.AXIOM_DATASET,
-              token: env.AXIOM_TOKEN,
-            },
-          },
-        ],
-      }
-    : undefined;
+  : undefined;
 
 export const logger = pino({
   level: isProd ? "info" : "debug",
