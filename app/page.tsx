@@ -7,13 +7,13 @@ import { jsonLdScript, productLd } from "@/lib/seo/jsonld";
 export const metadata: Metadata = {
   title: "Aero x1 by Axceal",
   description:
-    "Aero x1 by Axceal. Order direct with secure checkout.",
+    "Aero x1 by Axceal. Queue for yours now.",
   alternates: { canonical: "/" },
   openGraph: {
     url: "/",
-    title: "Aero x1 Axceal",
+    title: "Axceal Aero x1",
     description:
-      "Aero x1 by Axceal. Precision pocket companion. Order direct with secure checkout.",
+      "Aero x1 by Axceal.",
   },
 };
 
