@@ -144,7 +144,7 @@ export default function ChangePasswordPage() {
                                         smoothing={60}
                                         className="absolute inset-0 bg-[#f1f1f1] -z-10"
                                     />
-                                    <div className="flex justify-between items-center w-full px-1">
+                                    <div className="flex justify-between items-center w-full px-1 h-[16px]">
                                         <SvgText text="Verify Code" weight="600" height={16} className="text-[#aaaaaa]" />
                                         <div className="flex items-center gap-1">
                                             {otpVerified ? (

@@ -30,11 +30,12 @@ export function OtpEmail({ code = "0000" }: OtpEmailProps) {
           <Section style={contentSection}>
             <Img
               src="https://axceal.com/assets/email-logo-header.png"
-              width="57"
-              height="57"
+              width="56"
+              height="56"
               alt="Axceal"
               style={topLogo}
             />
+            <br />
             <Text style={text}>
               To complete your authentication, please enter the following verification code:
             </Text>
@@ -58,7 +59,7 @@ export function OtpEmail({ code = "0000" }: OtpEmailProps) {
 
           <Section style={footer}>
             <Row>
-              <Column style={{ width: "33px", paddingRight: "16px" }}>
+              <Column style={{ width: "32px", paddingRight: "16px" }}>
                 <Img
                   src="https://axceal.com/assets/email-logo-footer.png"
                   width="33"

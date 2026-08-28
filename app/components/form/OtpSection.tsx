@@ -77,7 +77,7 @@ export function OtpSection({
                             />
                         )}
 
-                        <div className="flex justify-between items-center w-full px-1">
+                        <div className="flex justify-between items-center w-full px-1 h-[16px]">
                             <SvgText text="Verify Code" weight="600" height={16} className="text-[#aaaaaa]" />
                             <div className="flex items-center gap-1">
                                 {verified ? (

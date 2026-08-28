@@ -30,11 +30,12 @@ export function WaitlistJoinedEmail({ position }: WaitlistEmailProps) {
           <Section style={contentSection}>
             <Img
               src="https://axceal.com/assets/email-logo-header.png"
-              width="57"
-              height="57"
+              width="56"
+              height="56"
               alt="Axceal"
               style={topLogo}
             />
+            <br />
             <Text style={greeting}>
               Hi,
             </Text>
@@ -61,7 +62,7 @@ export function WaitlistJoinedEmail({ position }: WaitlistEmailProps) {
 
           <Section style={footer}>
             <Row>
-              <Column style={{ width: "33px", paddingRight: "16px" }}>
+              <Column style={{ width: "32px", paddingRight: "16px" }}>
                 <Img
                   src="https://axceal.com/assets/email-logo-footer.png"
                   width="33"
