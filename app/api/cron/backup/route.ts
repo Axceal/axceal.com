@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error("[cron/backup] Failed:", err);
     return NextResponse.json(
-      { error: "Backup failed", detail: String(err) },
+      { error: "Backup failed" },
       { status: 500 },
     );
   }
