@@ -79,7 +79,7 @@ function LoginPageInner() {
                         onBlur={handleBlur}
                     />
                     {message?.field === "email" && (
-                        <SvgText text={message.text} weight="500" height={14} maxWidth={Infinity} className="text-[#ff0000] self-center mt-2" />
+                        <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center mt-2" />
                     )}
                 </div>
 
@@ -105,7 +105,7 @@ function LoginPageInner() {
                         }
                     />
                     {message?.field === "password" && (
-                        <SvgText text={message.text} weight="500" height={14} maxWidth={Infinity} className="text-[#ff0000] self-center" />
+                        <SvgText text={message.text} weight="500" height={14} className="text-[#ff0000] self-center" />
                     )}
                 </div>
 
@@ -116,7 +116,6 @@ function LoginPageInner() {
                             weight="500"
                             height={14}
                             align="center"
-                            maxWidth={Infinity}
                             className={message.kind === "error" ? "text-[#ff0000]" : "text-[#0000f4]"}
                         />
                     )}
@@ -253,7 +252,6 @@ function LoginPageInner() {
                                             text={message.text}
                                             weight="500"
                                             height={14}
-                                            maxWidth={Infinity}
                                             className="text-[#ff0000]"
                                         />
                                     </div>
