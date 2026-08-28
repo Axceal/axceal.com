@@ -15,7 +15,7 @@ interface Props {
 export function HomeFooter({ section }: Props) {
   return (
     <motion.div
-      className="absolute bottom-0 left-0 right-0 lg:left-[clamp(1.5rem,8vw,7.5rem)] lg:right-[clamp(1.5rem,8vw,7.5rem)] bg-[#f1f1f1] rounded-none lg:rounded-t-[20px] py-5 lg:py-6 px-6 lg:px-8 flex flex-row items-center justify-between z-20"
+      className="absolute bottom-0 left-0 right-0 lg:left-[clamp(1.5rem,8vw,7.5rem)] lg:right-[clamp(1.5rem,8vw,7.5rem)] bg-[#f1f1f1] rounded-none lg:rounded-t-[20px] py-5 lg:py-6 px-2 lg:px-8 flex flex-row items-center justify-between z-20"
       initial={{ y: "100%" }}
       animate={{ y: section === 2 ? "0%" : "100%" }}
       transition={{ duration: 0.25, ease: "easeOut" }}
