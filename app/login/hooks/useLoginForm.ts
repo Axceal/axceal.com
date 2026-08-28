@@ -170,7 +170,7 @@ export function useLoginForm() {
                 return;
             }
             setVerified(true);
-            router.push(callbackUrl);
+            window.location.assign(callbackUrl);
         } catch {
             setOtp(["", "", "", ""]);
             setActiveField("otp");

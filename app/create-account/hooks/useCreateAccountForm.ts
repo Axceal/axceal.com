@@ -159,7 +159,7 @@ export function useCreateAccountForm() {
                 setMessage({ kind: "error", text: "Sign-in failed. Please request a new Code." });
                 return;
             }
-            router.push(from);
+            window.location.assign(from);
         } finally {
             setOtpLoginInProgress(false);
         }
