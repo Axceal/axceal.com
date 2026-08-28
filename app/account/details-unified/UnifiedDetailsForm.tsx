@@ -357,9 +357,9 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                             type="button"
                             onClick={handleConfirm}
                             disabled={submitting}
-                            className="cursor-pointer bg-[#f1f1f1] max-md:bg-[#0000f4] rounded-full px-[40px] h-[50px] flex items-center justify-center hover:bg-[#0000f4] active:bg-[#f1f1f1] transition-colors group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#f1f1f1] max-md:disabled:hover:bg-[#0000f4]"
+                            className="cursor-pointer rounded-full px-[40px] h-[50px] flex items-center justify-center transition-colors group bg-[#f1f1f1] max-md:bg-[#0000f4] hover:bg-[#0000f4] active:bg-[#f1f1f1] max-md:active:bg-[#f1f1f1] disabled:bg-[#f1f1f1] max-md:disabled:bg-[#f1f1f1] disabled:hover:bg-[#f1f1f1] max-md:disabled:hover:bg-[#f1f1f1] disabled:cursor-not-allowed"
                         >
-                            <SvgText text="Confirm" weight="600" height={16} maxWidth={Infinity} className="text-[#0000f4] max-md:text-white group-hover:text-white group-disabled:group-hover:text-[#0000f4] max-md:group-disabled:group-hover:text-white group-active:text-[#aaaaaa]" />
+                            <SvgText text="Confirm" weight="600" height={16} maxWidth={Infinity} className="text-[#0000f4] max-md:text-white group-hover:text-white group-active:text-[#aaaaaa] max-md:group-active:text-[#aaaaaa] group-disabled:text-[#aaaaaa] max-md:group-disabled:text-[#aaaaaa] group-disabled:group-hover:text-[#aaaaaa] max-md:group-disabled:group-hover:text-[#aaaaaa]" />
                         </button>
                     </motion.div>
                 ) : isFullyFilled ? (

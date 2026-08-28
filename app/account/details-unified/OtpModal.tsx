@@ -235,10 +235,11 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
                 {/* Confirm Button */}
                 <button
                     type="button"
-                    onClick={!verifying ? handleVerify : undefined}
-                    className={`w-[140px] h-[50px] rounded-full bg-[#f1f1f1] max-md:bg-[#0000f4] flex items-center justify-center ${verifying ? "[&>*]:opacity-50" : "group cursor-pointer hover:bg-[#0000f4] active:bg-[#f1f1f1] transition-colors duration-250"}`}
+                    onClick={handleVerify}
+                    disabled={verifying}
+                    className="w-[140px] h-[50px] rounded-full flex items-center justify-center transition-colors duration-250 group cursor-pointer bg-[#f1f1f1] max-md:bg-[#0000f4] hover:bg-[#0000f4] active:bg-[#f1f1f1] max-md:active:bg-[#f1f1f1] disabled:bg-[#f1f1f1] max-md:disabled:bg-[#f1f1f1] disabled:hover:bg-[#f1f1f1] max-md:disabled:hover:bg-[#f1f1f1] disabled:cursor-not-allowed"
                 >
-                    <ViewDetailsSaveIcon className="text-[#aaaaaa] max-md:text-white group-hover:text-white group-active:text-[#aaaaaa] transition-colors duration-250 w-[26px] h-[26px]" />
+                    <ViewDetailsSaveIcon className="transition-colors duration-250 w-[26px] h-[26px] text-[#aaaaaa] max-md:text-white group-hover:text-white group-active:text-[#aaaaaa] max-md:group-active:text-[#aaaaaa] group-disabled:text-[#aaaaaa] max-md:group-disabled:text-[#aaaaaa] group-disabled:group-hover:text-[#aaaaaa] max-md:group-disabled:group-hover:text-[#aaaaaa]" />
                 </button>
             </motion.div>
         </motion.div>
