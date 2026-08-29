@@ -286,7 +286,7 @@ export function MobileHome({
               <AxcealLogo className="h-3 w-auto text-[#aaaaaa]" />
               <SvgText text="Axceal" weight="600" height={12} className="text-[#aaaaaa]" />
             </div>
-            <SvgText text="All Right Belongs to Axceal Pvt. Ltd." weight="500" height={10} className="text-[#aaaaaa]" />
+            <SvgText text="All Right Belongs to Aectex Technologies Pvt. Ltd." weight="500" height={10} maxWidth={200} className="text-[#aaaaaa]" />
           </div>
           <div className="flex flex-col items-end gap-1">
             <SvgText text="Contact" weight="500" height={12} className="text-[#aaaaaa]" />
