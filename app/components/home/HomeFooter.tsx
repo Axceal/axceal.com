@@ -28,7 +28,7 @@ export function HomeFooter({ section }: Props) {
         </div>
         {/* Mobile text */}
         <div className="flex lg:hidden">
-          <SvgText text="All Right Belongs to Aectex Technologies Pvt. Ltd." weight="500" height={10} maxWidth={200} className="text-[#aaaaaa]" />
+          <SvgText text="All Right Belongs to Aectex Technologies Pvt. Ltd." weight="500" height={10} maxWidth={160} className="text-[#aaaaaa]" />
         </div>
         {/* Desktop text */}
         <div className="hidden lg:flex">
