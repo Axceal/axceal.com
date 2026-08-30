@@ -151,8 +151,8 @@ function JoinDialog({
   }, []);
 
   return (
-    <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-full flex flex-col items-center justify-between pt-8 pb-4 px-4 text-center gap-3">
-      <div className="flex flex-col gap-5 items-center justify-center">
+    <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-full flex flex-col items-center justify-between pt-8 pb-[15px] text-center gap-3">
+      <div className="flex flex-col gap-5 items-center justify-center px-6 w-full">
         <SvgText
           text={"Join the queue by creating an\nAxceal Account"}
           weight="600"
@@ -175,7 +175,7 @@ function JoinDialog({
         />
       </div>
 
-      <div className="flex relative items-center w-full !gap-0">
+      <div className="flex relative items-center w-full px-[5px]">
         <button
           type="button"
           onClick={onCancel}
@@ -223,7 +223,7 @@ function StatusDialog({ position, onOkay }: { position: number; onOkay: () => vo
         <div className="flex-1 pl-2 flex items-center justify-center min-w-0">
           <SvgText
             text={`In queue at ${formatPosition(position)}`}
-            weight="500"
+            weight="600"
             height={16}
             className="text-[#aaaaaa]"
           />
