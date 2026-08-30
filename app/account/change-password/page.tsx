@@ -60,7 +60,7 @@ export default function ChangePasswordPage() {
                     <Link href="/account" className="flex items-center w-fit shrink-0 whitespace-nowrap hover:opacity-80 transition-opacity">
                         <SvgText text="Back" weight="600" height={16} className="text-[#0000f4]" />
                     </Link>
-                    <div className="w-[8px] h-[8px] rounded-full bg-[#0000f4] shrink-0" aria-hidden />
+                    <div className="w-[8px] h-[8px] rounded-full bg-[#aaaaaa] shrink-0" aria-hidden />
                     <SvgText text="Change Password" weight="600" height={20} className="text-[#1e1e1e]" />
                 </div>
 
@@ -110,7 +110,7 @@ export default function ChangePasswordPage() {
                                 className="flex flex-col items-center w-full overflow-hidden"
                             >
                                 <Link
-                                    href="/forgot-password"
+                                    href="/forgot-password?from=change-password"
                                     className="hover:opacity-90 transition-opacity py-1"
                                 >
                                     <SvgText

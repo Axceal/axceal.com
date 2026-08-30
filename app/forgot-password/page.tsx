@@ -1,6 +1,7 @@
 "use client";
 import { Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { SvgText } from "../components/text/SvgText";
 import { SvgInput } from "../components/text/SvgInput";
 import { PasswordConstraints } from "../components/form/PasswordConstraints";
@@ -46,6 +47,9 @@ function ForgotPasswordForm() {
         resendCountdown,
         isFocused,
     } = useForgotPasswordForm();
+    const searchParams = useSearchParams();
+    const from = searchParams.get("from");
+    const backHref = from === "change-password" ? "/account/change-password" : "/login";
 
     return (
         <main className="flex-1 flex items-center justify-center">
@@ -54,10 +58,10 @@ function ForgotPasswordForm() {
                 className="relative flex flex-col items-center gap-5 w-[min(100vw-2rem,320px)]"
             >
                 <div className="flex w-full items-center justify-start gap-[15px]">
-                    <Link href="/login" className="flex items-center w-fit shrink-0 whitespace-nowrap hover:opacity-80 transition-opacity">
+                    <Link href={backHref} className="flex items-center w-fit shrink-0 whitespace-nowrap hover:opacity-80 transition-opacity">
                         <SvgText text="Back" weight="600" height={16} className="text-[#0000f4]" />
                     </Link>
-                    <div className="w-[8px] h-[8px] rounded-full bg-[#0000f4] shrink-0" aria-hidden />
+                    <div className="w-[8px] h-[8px] rounded-full bg-[#aaaaaa] shrink-0" aria-hidden />
                     <SvgText text="Forgot Password" weight="600" height={20} className="text-[#1e1e1e]" />
                 </div>
 
