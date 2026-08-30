@@ -102,6 +102,7 @@ export function BirthdayEditor({ initialBirthday, onSave }: BirthdayEditorProps)
                         weight="600"
                         height={20}
                         align="center"
+                        inputMode="numeric"
                         cursorHeightScale={1.5}
                         cursorColor="#0000f4"
                         className={`w-full ${getFieldColor("day", day)} bg-transparent`}
@@ -121,6 +122,7 @@ export function BirthdayEditor({ initialBirthday, onSave }: BirthdayEditorProps)
                         weight="600"
                         height={20}
                         align="center"
+                        inputMode="numeric"
                         cursorHeightScale={1.5}
                         cursorColor="#0000f4"
                         className={`w-full ${getFieldColor("month", month)} bg-transparent`}
@@ -140,6 +142,7 @@ export function BirthdayEditor({ initialBirthday, onSave }: BirthdayEditorProps)
                         weight="600"
                         height={20}
                         align="center"
+                        inputMode="numeric"
                         cursorHeightScale={1.5}
                         cursorColor="#0000f4"
                         className={`w-full ${getFieldColor("year", year)} bg-transparent`}

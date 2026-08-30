@@ -205,6 +205,7 @@ export default function ChangePasswordPage() {
                                                         height={18}
                                                         weight="600"
                                                         align="center"
+                                                        inputMode="numeric"
                                                         cursorHeightScale={1.5}
                                                         cursorColor="#0000f4"
                                                         className={`text-[#1e1e1e] w-full text-center bg-transparent ${otpVerified ? "cursor-not-allowed" : ""}`}

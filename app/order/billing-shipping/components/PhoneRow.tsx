@@ -115,6 +115,7 @@ export function PhoneRow({
                                     height={16}
                                     weight="600"
                                     align="center"
+                                    inputMode="numeric"
                                     className={`w-full ${digit || focusedId === id ? "text-[#0000f4]" : "text-[#aaaaaa]"}`}
                                 />
                             </div>
@@ -135,6 +136,7 @@ export function PhoneRow({
                                     height={16}
                                     weight="600"
                                     align="center"
+                                    inputMode="numeric"
                                     className={`w-full ${digit || focusedId === id ? "text-[#0000f4]" : "text-[#aaaaaa]"}`}
                                 />
                             </div>

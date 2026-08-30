@@ -37,6 +37,8 @@ export interface SvgInputProps {
     cursorWidth?: number;
     /** Custom typing indicator color. Default is "currentColor" */
     cursorColor?: string;
+    /** HTML inputMode hint for mobile keyboards (e.g. "numeric", "tel") */
+    inputMode?: "none" | "text" | "decimal" | "numeric" | "tel" | "search" | "email" | "url";
 }
 
 // Tracks the clip element's pixel width via ResizeObserver. Pulled out so the
@@ -90,6 +92,7 @@ export function SvgInput({
     cursorHeightScale = 1.0,
     cursorWidth = 1.5,
     cursorColor = "currentColor",
+    inputMode,
 }: SvgInputProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const clipRef = useRef<HTMLDivElement>(null);
@@ -225,7 +228,7 @@ export function SvgInput({
                 // setSelectionRange work reliably. For password we keep the
                 // native type so autofill / password managers still work.
                 type={type === "password" ? "password" : "text"}
-                inputMode={type === "email" ? "email" : undefined}
+                inputMode={inputMode ?? (type === "email" ? "email" : undefined)}
                 value={value}
                 required={required}
                 readOnly={readOnly}

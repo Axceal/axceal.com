@@ -217,6 +217,7 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
                                         align="center"
                                         weight="600"
                                         height={18}
+                                        inputMode="numeric"
                                         cursorHeightScale={1.5}
                                         cursorColor="#0000f4"
                                         className="w-full text-center bg-transparent cursor-pointer focus:cursor-text text-[#1e1e1e]"
