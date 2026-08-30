@@ -173,7 +173,7 @@ export function MobileHome({
             <SenseIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
             <div className="flex flex-col gap-4">
               <SvgText as="h3" text="Surround Sense" weight="500" height={16} maxWidth={Infinity} className="text-[#aaaaaa]" />
-              <SvgText text={"Receive multi dimensional updates for Cues"} weight="500" maxWidth={Infinity} height={16} className="text-[#aaaaaa]" />
+              <SvgText text={"Receive multi dimensional updates for Cues"} weight="500" maxWidth={300} height={16} className="text-[#aaaaaa]" />
               <SvgText text="Omni-Fit have on Softech design" weight="500" height={16} className="text-[#aaaaaa]" />
             </div>
           </div>
@@ -190,7 +190,7 @@ export function MobileHome({
             <div className="flex flex-col gap-4">
               <SvgText as="h3" text="90g on your Palm" weight="500" height={16} maxWidth={Infinity} className="text-[#aaaaaa]" />
               <SvgText text="Light Aluminum and glass build" weight="500" height={16} className="text-[#aaaaaa]" />
-              <SvgText text={"IP68 water, dust rating and IK06 impact rating"} weight="500" height={16} maxWidth={Infinity} className="text-[#aaaaaa]" />
+              <SvgText text={"IP68 water, dust rating and IK06 impact rating"} weight="500" height={16} maxWidth={300} className="text-[#aaaaaa]" />
             </div>
           </div>
         </div>
