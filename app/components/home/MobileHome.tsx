@@ -141,8 +141,8 @@ export function MobileHome({
           <div className="flex flex-col items-start gap-8">
             <CuesIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
             <div className="flex flex-col gap-4">
-              <SvgText as="h3" text="Multi dimensional Cues" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
-              <SvgText text="Up to Milli-second Cues latency" weight="600" height={14} className="text-[#aaaaaa]" superscript="1" />
+              <SvgText as="h3" text="Multi dimensional Cues" weight="500" height={16} maxWidth={Infinity} className="text-[#aaaaaa]" />
+              <SvgText text="Up to Milli-second Cues latency" weight="500" height={16} className="text-[#aaaaaa]" superscript="1" maxWidth={Infinity} />
             </div>
           </div>
         </div>
@@ -156,9 +156,9 @@ export function MobileHome({
           <div className="flex flex-col items-start gap-8">
             <NavigationIcon className="w-14 h-auto flex-shrink-0" />
             <div className="flex flex-col gap-4">
-              <SvgText as="h3" text="All axis anchor navigation" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
-              <SvgText text="Up to Micro-second navigation latency" weight="600" height={14} className="text-[#aaaaaa]" superscript="9" />
-              <SvgText text="Up to Milli-second Wrap Rate" weight="600" height={14} className="text-[#aaaaaa]" />
+              <SvgText as="h3" text="All axis anchor navigation" weight="500" height={16} maxWidth={Infinity} className="text-[#aaaaaa]" />
+              <SvgText text="Up to Micro-second navigation latency" weight="500" height={16} className="text-[#aaaaaa]" superscript="9" maxWidth={Infinity} />
+              <SvgText text="Up to Milli-second Wrap Rate" weight="500" height={16} className="text-[#aaaaaa]" />
             </div>
           </div>
         </div>
@@ -172,9 +172,9 @@ export function MobileHome({
           <div className="flex flex-col items-start gap-8">
             <SenseIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
             <div className="flex flex-col gap-4">
-              <SvgText as="h3" text="Surround Sense" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
-              <SvgText text={"Receive multi dimensional updates for Cues"} weight="600" maxWidth={Infinity} height={14} className="text-[#aaaaaa]" />
-              <SvgText text="Omni-Fit have on Softech design" weight="600" height={14} className="text-[#aaaaaa]" />
+              <SvgText as="h3" text="Surround Sense" weight="500" height={16} maxWidth={Infinity} className="text-[#aaaaaa]" />
+              <SvgText text={"Receive multi dimensional updates for Cues"} weight="500" maxWidth={Infinity} height={16} className="text-[#aaaaaa]" />
+              <SvgText text="Omni-Fit have on Softech design" weight="500" height={16} className="text-[#aaaaaa]" />
             </div>
           </div>
         </div>
@@ -188,9 +188,9 @@ export function MobileHome({
           <div className="flex flex-col items-start gap-8">
             <FeatherIcon className="w-8 h-auto text-[#aaaaaa] flex-shrink-0" />
             <div className="flex flex-col gap-4">
-              <SvgText as="h3" text="90g on your Palm" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
-              <SvgText text="Light Aluminum and glass build" weight="600" height={14} className="text-[#aaaaaa]" />
-              <SvgText text={"IP68 water, dust rating and IK06 impact rating"} weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" />
+              <SvgText as="h3" text="90g on your Palm" weight="500" height={16} maxWidth={Infinity} className="text-[#aaaaaa]" />
+              <SvgText text="Light Aluminum and glass build" weight="500" height={16} className="text-[#aaaaaa]" />
+              <SvgText text={"IP68 water, dust rating and IK06 impact rating"} weight="500" height={16} maxWidth={Infinity} className="text-[#aaaaaa]" />
             </div>
           </div>
         </div>
@@ -204,8 +204,8 @@ export function MobileHome({
           <div className="flex flex-col items-start gap-8">
             <BatteryIcon className="w-9 h-auto text-[#aaaaaa] flex-shrink-0" />
             <div className="flex flex-col gap-4">
-              <SvgText as="h3" text="Up to 23hr Battery Life" weight="600" height={14} maxWidth={Infinity} className="text-[#aaaaaa]" superscript="2" />
-              <SvgText text="25W Type-C charging" weight="600" height={14} className="text-[#aaaaaa]" />
+              <SvgText as="h3" text="Up to 23hr Battery Life" weight="500" height={16} maxWidth={Infinity} className="text-[#aaaaaa]" superscript="2" />
+              <SvgText text="25W Type-C charging" weight="500" height={16} className="text-[#aaaaaa]" />
             </div>
           </div>
 
@@ -215,7 +215,7 @@ export function MobileHome({
       {/* CTA — fixed at bottom-8, translates up when footer enters viewport */}
       <motion.div
         className="fixed bottom-8 left-0 right-0 z-50 flex justify-center"
-        animate={{ y: footerVisible ? -90 : 0 }}
+        animate={{ y: footerVisible ? -100 : 0 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
       >
         {ctaIsButton ? (
@@ -286,7 +286,7 @@ export function MobileHome({
               <AxcealLogo className="h-3 w-auto text-[#aaaaaa]" />
               <SvgText text="Axceal" weight="600" height={12} className="text-[#aaaaaa]" />
             </div>
-            <SvgText text="All Right Belongs to Aectex Technologies Pvt. Ltd." weight="500" height={10} maxWidth={160} className="text-[#aaaaaa]" />
+            <SvgText text="Copyrights Belongs to Aectex Technologies Pvt. Ltd." weight="500" height={10} maxWidth={160} className="text-[#aaaaaa]" />
           </div>
           <div className="flex flex-col items-end gap-1">
             <SvgText text="Contact" weight="500" height={12} className="text-[#aaaaaa]" />
