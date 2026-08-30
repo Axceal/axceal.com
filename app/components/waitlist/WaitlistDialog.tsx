@@ -45,7 +45,7 @@ export function useWaitlistDialog(): WaitlistDialogContextValue {
 }
 
 const BACKDROP = "fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4";
-const PANEL = "relative z-10 flex flex-col items-stretch gap-[5px] w-[320px] mx-6";
+const PANEL = "relative z-10 flex flex-col items-stretch gap-[5px] w-[360px] max-w-[calc(100vw-3rem)] mx-auto";
 const FOOTER = "bg-[#f1f1f1] rounded-full p-[5px] flex items-center gap-4 w-full";
 
 const SPRING = { type: "spring", stiffness: 400, damping: 35 } as const;
