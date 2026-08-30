@@ -151,7 +151,7 @@ function JoinDialog({
   }, []);
 
   return (
-    <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-full flex flex-col items-center justify-between pt-8 pb-4 px-6 text-center gap-3">
+    <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-full flex flex-col items-center justify-between pt-8 pb-4 px-4 text-center gap-3">
       <div className="flex flex-col gap-5 items-center justify-center">
         <SvgText
           text={"Join the queue by creating an\nAxceal Account"}
