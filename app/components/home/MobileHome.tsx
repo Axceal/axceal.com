@@ -263,10 +263,10 @@ export function MobileHome({
 
         <div className="flex flex-row items-center justify-center gap-4 w-full">
           <Squircle borderRadius={20} className="w-[160px] h-[160px] bg-[#f1f1f1] flex items-center justify-center shrink-0">
-            <SvgText text="Aero x1" weight="600" height={14} className="text-[#1e1e1e]" />
+            <SvgText text="Aero x1" weight="600" height={16} className="text-[#1e1e1e]" />
           </Squircle>
           <Squircle borderRadius={20} className="w-[160px] h-[160px] bg-[#f1f1f1] flex items-center justify-center shrink-0">
-            <SvgText text="Dock-C Cable" weight="600" height={14} className="text-[#1e1e1e]" />
+            <SvgText text="Dock-C Cable" weight="600" height={16} className="text-[#1e1e1e]" />
           </Squircle>
         </div>
       </div>
