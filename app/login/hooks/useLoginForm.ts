@@ -188,7 +188,22 @@ export function useLoginForm() {
     };
 
     const handleOtpChange = (index: number, value: string) => {
-        const v = value.replace(/\D/g, "").slice(-1);
+        const digits = value.replace(/\D/g, "");
+        if (!digits) return;
+        // Multi-digit paste: distribute across fields starting at `index`
+        if (digits.length > 1) {
+            const updated = [...otp];
+            for (let i = 0; i < digits.length && index + i < 4; i++) {
+                updated[index + i] = digits[i];
+            }
+            setOtp(updated);
+            const lastFilled = Math.min(index + digits.length, 4) - 1;
+            if (lastFilled < 3) {
+                setTimeout(() => document.getElementById(`login-otp-digit-${lastFilled + 1}`)?.focus(), 10);
+            }
+            return;
+        }
+        const v = digits.slice(-1);
         const updated = [...otp];
         updated[index] = v;
         setOtp(updated);

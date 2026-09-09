@@ -123,7 +123,22 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
 
     // --- OTP input handlers ---
     const handleOtpChange = (val: string, index: number) => {
-        const clean = val.replace(/\D/g, "").slice(0, 1);
+        const digits = val.replace(/\D/g, "");
+        if (!digits) return;
+        // Multi-digit paste: distribute across fields starting at `index`
+        if (digits.length > 1) {
+            const newOtp = [...otp];
+            for (let i = 0; i < digits.length && index + i < 4; i++) {
+                newOtp[index + i] = digits[i];
+            }
+            setOtp(newOtp);
+            const lastFilled = Math.min(index + digits.length, 4) - 1;
+            if (lastFilled < 3) {
+                setTimeout(() => document.getElementById(`otp-input-${lastFilled + 1}`)?.focus(), 10);
+            }
+            return;
+        }
+        const clean = digits.slice(0, 1);
         const newOtp = [...otp];
         newOtp[index] = clean;
         setOtp(newOtp);
