@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ViewDetailsAddIcon } from "../../components/icons/action/ViewDetailsAddIcon";
 import { ViewDetailsSaveIcon } from "../../components/icons/action/ViewDetailsSaveIcon";
 import { AxcealLogo } from "../../components/icons/brand/AxcealLogo";
+import { BackIcon } from "../../components/icons/action/BackIcon";
 import { SvgText } from "../../components/text/SvgText";
 import { useEditDetailsForm } from "./hooks/useEditDetailsForm";
 import type { Profile } from "@/lib/contracts/profile";
@@ -23,7 +24,7 @@ export function ViewDetailsShell({ initial, phone: initialPhone }: { initial: Pr
                 <div className="relative flex items-center justify-center w-full mb-6">
                     {/* Back Button */}
                     <Link href="/account" className="absolute left-0 flex items-center whitespace-nowrap hover:opacity-80 transition-opacity">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#0000f4]" />
+                        <BackIcon className="text-[#0000f4]" />
                     </Link>
                     {/* Logo Circle */}
                     <div className="w-[50px] h-[50px] rounded-full bg-[#0000f4] flex items-center justify-center">

@@ -5,6 +5,7 @@ import { SvgText } from "../../components/text/SvgText";
 import { SvgInput } from "../../components/text/SvgInput";
 import { PasswordToggle } from "../../components/form/PasswordToggle";
 import { PasswordConstraints } from "../../components/form/PasswordConstraints";
+import { BackIcon } from "../../components/icons/action/BackIcon";
 import { Squircle } from "@/app/components/layout/Squircle";
 import { useChangePasswordForm } from "./hooks/useChangePasswordForm";
 import { useAuthGate } from "@/app/hooks/useAuthGate";
@@ -58,7 +59,7 @@ export default function ChangePasswordPage() {
             <div className="relative flex flex-col items-center gap-4 w-[min(100vw-2rem,320px)]">
                 <div className="flex w-full items-center justify-start gap-[15px] mb-2 lg:mb-0">
                     <Link href="/account" className="flex items-center w-fit shrink-0 whitespace-nowrap hover:opacity-80 transition-opacity">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#0000f4]" />
+                        <BackIcon className="text-[#0000f4]" />
                     </Link>
                     <div className="w-[8px] h-[8px] rounded-full bg-[#aaaaaa] shrink-0" aria-hidden />
                     <SvgText text="Change Password" weight="600" height={20} className="text-[#1e1e1e]" />

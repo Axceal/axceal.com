@@ -3,6 +3,7 @@ import { SvgText } from "../components/text/SvgText";
 import { HomeFooter } from "../components/home/HomeFooter";
 import { ExpandableSection } from "../components/layout/ExpandableSection";
 import { AxcealLogo } from "../components/icons/brand/AxcealLogo";
+import { BackIcon } from "../components/icons/action/BackIcon";
 
 export default function TermsAndConditions() {
     return (
@@ -11,7 +12,7 @@ export default function TermsAndConditions() {
                 {/* Header */}
                 <div className="flex items-center gap-4">
                     <Link href="/" className="flex items-center shrink-0">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#0000f4]" />
+                        <BackIcon className="text-[#0000f4]" />
                     </Link>
                     <div className="w-[8px] h-[8px] rounded-full bg-[#aaaaaa]" aria-hidden />
                     <div className="flex items-center justify-center w-[52px] h-[52px] rounded-full bg-[#0000f4] shrink-0">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { SvgText } from "../../components/text/SvgText";
+import { BackIcon } from "../../components/icons/action/BackIcon";
 import { Squircle } from "@/app/components/layout/Squircle";
 import { OrderCard } from "./components/OrderCard";
 import type { OrderListResponse } from "@/lib/contracts/order";
@@ -16,12 +17,12 @@ export function OrderList({ initial }: { initial: Order[] }) {
                 <div className="relative flex flex-col lg:flex-row lg:items-center w-[320px] lg:w-[300px] self-center pb-6 lg:pb-4 z-10 bg-white">
                     {/* Desktop Back Button */}
                     <Link href="/account" className="hidden lg:flex absolute right-full mr-[30px] top-[22px] whitespace-nowrap">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#0000f4] " />
+                        <BackIcon className="text-[#0000f4] " />
                     </Link>
                     {/* Mobile Back Button */}
                     <div className="flex lg:hidden w-full items-center justify-start mb-5">
                         <Link href="/account" className="flex items-center w-fit shrink-0 whitespace-nowrap">
-                            <SvgText text="Back" weight="600" height={16} className="text-[#1e1e1e] " />
+                            <BackIcon className="text-[#1e1e1e] " />
                         </Link>
                     </div>
 

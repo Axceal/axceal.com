@@ -11,6 +11,7 @@ import { AnimatedPasswordField } from "../components/form/AnimatedPasswordField"
 import { motion, AnimatePresence } from "framer-motion";
 import { useForgotPasswordForm } from "./hooks/useForgotPasswordForm";
 import { Squircle } from "@/app/components/layout/Squircle";
+import { BackIcon } from "@/app/components/icons/action/BackIcon";
 
 const LAYOUT_ID = "forgot-password-indicator";
 
@@ -59,7 +60,7 @@ function ForgotPasswordForm() {
             >
                 <div className="flex w-full items-center justify-start gap-[15px]">
                     <Link href={backHref} className="flex items-center w-fit shrink-0 whitespace-nowrap hover:opacity-80 transition-opacity">
-                        <SvgText text="Back" weight="600" height={16} className="text-[#0000f4]" />
+                        <BackIcon className="text-[#0000f4]" />
                     </Link>
                     <div className="w-[8px] h-[8px] rounded-full bg-[#aaaaaa] shrink-0" aria-hidden />
                     <SvgText text="Forgot Password" weight="600" height={20} className="text-[#1e1e1e]" />
