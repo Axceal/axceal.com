@@ -108,7 +108,7 @@ export function MobileHome({
               {aeroSlide === 0 ? (
                 <div className="relative w-full max-w-[360px] mx-auto">
                   <AeroIcon alt="Aero x1" className={AERO_SLIDES[0].className} priority />
-                  <div className="absolute left-[57%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
+                  <div className="absolute left-[57%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-1">
                     <AxcealLogo className="h-3 w-auto text-[#0000f4]" />
                     <SvgText text="Aero x1" weight="600" maxWidth={Infinity} className="text-[#0000f4]" height={16} />
                   </div>
