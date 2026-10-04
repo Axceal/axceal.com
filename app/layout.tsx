@@ -5,6 +5,8 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NavigationBar } from "./components/layout/NavigationBar";
 import { Providers } from "./components/layout/Providers";
 import { jsonLdScript, organizationLd, websiteLd } from "@/lib/seo/jsonld";
+import Script from "next/script";
+import { X_PIXEL_BASE_SNIPPET } from "@/lib/analytics/xPixel";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://axceal.com";
 
@@ -110,6 +112,11 @@ export default function RootLayout({
             Vitals). Both no-op outside the Vercel runtime. */}
         <Analytics />
         <SpeedInsights />
+        {/* X (Twitter) Ads conversion tracking base code. Events are fired
+            from client code via lib/analytics/xPixel.ts. */}
+        <Script id="x-pixel-base" strategy="afterInteractive">
+          {X_PIXEL_BASE_SNIPPET}
+        </Script>
       </body>
     </html>
   );

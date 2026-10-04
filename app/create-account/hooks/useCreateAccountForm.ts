@@ -12,6 +12,7 @@ import {
 } from "./createAccountApi";
 import { sessionKeys, writeSession } from "@/lib/sessionKeys";
 import { safeInternalPath } from "@/lib/http/safe-redirect";
+import { trackXSignUp } from "@/lib/analytics/xPixel";
 
 type ActiveField = "email" | "otp" | "password" | "repassword";
 type MessageField = ActiveField | null;
@@ -262,6 +263,8 @@ export function useCreateAccountForm() {
         try {
             const result = await apiRegister(email, password, otpToken, intent);
             if (!result.ok) { setMessage({ kind: "error", text: result.message }); return; }
+            // X Ads — sign-up conversion (account successfully created).
+            trackXSignUp();
             writeSession(sessionKeys.pendingSignup, {
                 signupSessionToken: result.data.signupSessionToken,
                 from: from ?? "",
