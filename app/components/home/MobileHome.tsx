@@ -280,17 +280,33 @@ export function MobileHome({
         </div>
 
         {/* Footer — full width */}
-        <div className="-mx-6 bg-[#f1f1f1] px-2 py-5 flex flex-row items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <div className="flex flex-row items-center gap-2">
-              <AxcealLogo className="h-3 w-auto text-[#aaaaaa]" />
-              <SvgText text="Axceal" weight="600" height={12} className="text-[#aaaaaa]" />
+        <div className="-mx-6 bg-[#f1f1f1] px-2 py-5 flex flex-col">
+          <div className="flex flex-row items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <div className="flex flex-row items-center gap-2">
+                <AxcealLogo className="h-3 w-auto text-[#aaaaaa]" />
+                <SvgText text="Axceal" weight="600" height={12} className="text-[#aaaaaa]" />
+              </div>
+              <SvgText text="Copyrights Belongs to Aectex Technologies Pvt. Ltd." weight="500" height={10} maxWidth={160} className="text-[#aaaaaa]" />
             </div>
-            <SvgText text="Copyrights Belongs to Aectex Technologies Pvt. Ltd." weight="500" height={10} maxWidth={160} className="text-[#aaaaaa]" />
+            <div className="flex flex-col items-end gap-1">
+              <SvgText text="Contact" weight="500" height={12} className="text-[#aaaaaa]" />
+              <div className="flex flex-row items-center gap-1 text-[#aaaaaa]">
+                <a href="mailto:contact@axceal.com" aria-label="Email contact@axceal.com" className="hover:text-[#0000f4] transition-colors flex items-center">
+                  <SvgText text="contact@axceal.com" weight="500" height={10} />
+                </a>
+                <SvgText text="| +91 88302-61513" weight="500" height={10} />
+              </div>
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            <SvgText text="Contact" weight="500" height={12} className="text-[#aaaaaa]" />
-            <SvgText text="contact@axceal.com | +91 88302-61513" weight="500" height={10} className="text-[#aaaaaa]" />
+          {/* Legal links — centered row */}
+          <div className="flex flex-row items-center justify-end gap-4">
+            <Link href="/privacy" aria-label="Privacy Policy" className="text-[#aaaaaa] hover:text-[#0000f4] transition-colors flex items-center">
+              <SvgText text="Privacy Policy" weight="500" height={10} />
+            </Link>
+            <Link href="/terms" aria-label="Terms & Conditions" className="text-[#aaaaaa] hover:text-[#0000f4] transition-colors flex items-center">
+              <SvgText text="Terms & Conditions" weight="500" height={10} maxWidth={200} />
+            </Link>
           </div>
         </div>
       </div>

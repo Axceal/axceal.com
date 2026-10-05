@@ -34,7 +34,7 @@ export function AeroSection({ section }: Props) {
                   phase, so server-rendered glyph paths are final on first
                   paint. Removes the measure → reflow → CLS cycle for hero
                   labels that never need to soft-wrap. */}
-              <SvgText as="h1" text="Aero x1" weight="600" maxWidth={Infinity} className="text-[#0000f4]" height={20} />
+              <SvgText as="h2" text="Aero x1" weight="600" maxWidth={Infinity} className="text-[#0000f4]" height={20} />
             </div>
           </div>
         </div>

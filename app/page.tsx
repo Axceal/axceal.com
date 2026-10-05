@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import ReactDOM from "react-dom";
 import { HomeClient } from "./HomeClient";
 import { jsonLdScript, productLd } from "@/lib/seo/jsonld";
+import { HomeSeoContent } from "./components/home/HomeSeoContent";
 
 export const metadata: Metadata = {
   title: "Aero x1 by Axceal",
@@ -30,6 +31,10 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={jsonLdScript(productLd())}
       />
+      {/* Crawler / ad-reviewer readable copy. Must stay OUTSIDE the Suspense
+          boundary below — its fallback is null, so anything inside is absent
+          from the server HTML. */}
+      <HomeSeoContent />
       {/* W9 debug — HomeClient calls useSearchParams (for the ?joined=1
           waitlist redirect). Next 15 requires a Suspense boundary around any
           client subtree that reads search params, or the page silently opts

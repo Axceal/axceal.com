@@ -30,6 +30,15 @@ export function HomeFooter({ section }: Props) {
         <div className="flex lg:hidden">
           <SvgText text="Copyrights Belongs to Aectex Technologies Pvt. Ltd." weight="500" height={10} maxWidth={160} className="text-[#aaaaaa]" />
         </div>
+        {/* Legal links below lg — the lg+ row on the right is hidden here */}
+        <div className="flex lg:hidden flex-row items-center gap-3 mt-1">
+          <Link href="/privacy" aria-label="Privacy Policy" className="text-[#aaaaaa] hover:text-[#0000f4] transition-colors flex items-center">
+            <SvgText text="Privacy Policy" weight="500" height={10} />
+          </Link>
+          <Link href="/terms" aria-label="Terms & Conditions" className="text-[#aaaaaa] hover:text-[#0000f4] transition-colors flex items-center">
+            <SvgText text="Terms & Conditions" weight="500" height={10} />
+          </Link>
+        </div>
         {/* Desktop text */}
         <div className="hidden lg:flex">
           <SvgText text="All intellectual property belongs to Aectex Technologies Pvt. Ltd." weight="500" height={12} maxWidth={Infinity} className="text-[#aaaaaa]" />
