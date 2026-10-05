@@ -7,6 +7,8 @@ import { Providers } from "./components/layout/Providers";
 import { jsonLdScript, organizationLd, websiteLd } from "@/lib/seo/jsonld";
 import Script from "next/script";
 import { X_PIXEL_BASE_SNIPPET } from "@/lib/analytics/xPixel";
+import { META_PIXEL_BASE_SNIPPET, META_PIXEL_ID } from "@/lib/analytics/metaPixel";
+import { MetaPixelPageView } from "./components/analytics/MetaPixelPageView";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://axceal.com";
 
@@ -117,6 +119,22 @@ export default function RootLayout({
         <Script id="x-pixel-base" strategy="afterInteractive">
           {X_PIXEL_BASE_SNIPPET}
         </Script>
+        {/* Meta Pixel base code (init + initial PageView). Later client-side
+            route changes are tracked by <MetaPixelPageView />. */}
+        <Script id="meta-pixel-base" strategy="afterInteractive">
+          {META_PIXEL_BASE_SNIPPET}
+        </Script>
+        <MetaPixelPageView />
+        <noscript>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            height="1"
+            width="1"
+            style={{ display: "none" }}
+            alt=""
+            src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
+          />
+        </noscript>
       </body>
     </html>
   );
