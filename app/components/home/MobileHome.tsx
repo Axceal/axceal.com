@@ -40,6 +40,7 @@ interface Props {
   ctaIsButton: boolean;
   onCtaClick?: (e: React.MouseEvent) => void;
   isSessionLoading?: boolean;
+  isAuthed?: boolean;
 }
 
 // Mobile layout — simple vertical scroll through all three sections.
@@ -51,6 +52,7 @@ export function MobileHome({
   ctaIsButton,
   onCtaClick,
   isSessionLoading = false,
+  isAuthed = false,
 }: Props) {
   const footerRef = useRef<HTMLDivElement>(null);
   const [footerVisible, setFooterVisible] = useState(false);
@@ -232,7 +234,7 @@ export function MobileHome({
             className="flex items-center gap-3 bg-[#f1f1f1] rounded-full p-[5px] pr-[30px] cursor-pointer hover:opacity-90 transition-opacity"
           >
             <div className="px-8 py-4 bg-[#0000f4] rounded-full flex items-center justify-center">
-              <SvgText text="Get One" weight="600" height={18} className="text-white" />
+              <SvgText text={isAuthed ? "In Queue" : "Join Queue"} weight="600" height={18} className="text-white" />
             </div>
             <SvgText text={ctaSubLabel} weight="500" height={18} className="text-[#aaaaaa]" />
           </button>
@@ -250,7 +252,7 @@ export function MobileHome({
             className="flex items-center gap-3 bg-[#f1f1f1] rounded-full p-[5px] pr-[30px] cursor-pointer hover:opacity-90 transition-opacity"
           >
             <div className="px-8 py-4 bg-[#0000f4] rounded-full flex items-center justify-center">
-              <SvgText text="Get One" weight="600" height={18} className="text-white" />
+              <SvgText text={isAuthed ? "In Queue" : "Join Queue"} weight="600" height={18} className="text-white" />
             </div>
             <SvgText text={ctaSubLabel} weight="500" height={18} className="text-[#aaaaaa]" />
           </Link>

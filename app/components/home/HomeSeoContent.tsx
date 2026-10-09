@@ -38,7 +38,7 @@ export function HomeSeoContent() {
       </section>
 
       <p>
-        <Link href="/auth?from=order">Get One</Link>
+        <Link href="/auth?from=order">Join Queue</Link>
       </p>
 
       <p>
