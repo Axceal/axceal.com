@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NavigationBar } from "./components/layout/NavigationBar";
 import { Providers } from "./components/layout/Providers";
+import { PageScrollbar } from "./components/layout/PageScrollbar";
 import { jsonLdScript, organizationLd, websiteLd } from "@/lib/seo/jsonld";
 import Script from "next/script";
 import { X_PIXEL_BASE_SNIPPET } from "@/lib/analytics/xPixel";
@@ -110,6 +111,7 @@ export default function RootLayout({
           <NavigationBar />
           {children}
         </Providers>
+        <PageScrollbar />
         {/* §14 — Vercel Analytics (page views) + Speed Insights (Core Web
             Vitals). Both no-op outside the Vercel runtime. */}
         <Analytics />
