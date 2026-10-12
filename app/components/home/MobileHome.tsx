@@ -231,7 +231,7 @@ export function MobileHome({
               onCtaClick?.(e);
             }}
             aria-disabled={isSessionLoading}
-            className="flex items-center gap-3 bg-[#f1f1f1] rounded-full p-[5px] pr-[30px] cursor-pointer hover:opacity-90 transition-opacity"
+            className="flex items-center gap-3 bg-[#f1f1f1] rounded-full p-[4px] pr-[30px] cursor-pointer hover:opacity-90 transition-opacity"
           >
             <div className="px-8 py-4 bg-[#0000f4] rounded-full flex items-center justify-center">
               <SvgText text={isAuthed ? "In Queue" : "Join Queue"} weight="600" height={18} className="text-white" />
