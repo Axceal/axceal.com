@@ -36,9 +36,9 @@ export function AccountShell({ userCard }: { userCard: ReactNode }) {
                     // W7 — Orders + Anchor Dock cards are hidden in waitlist
                     // mode. Position renders as plain blue text above Logout
                     // (matches the spec mock).
-                    <div className="relative z-0 -mt-[40px] flex justify-center min-h-[106px] items-start">
+                    <div className="relative z-0 -mt-[40px] flex justify-center min-h-[100px] items-start">
                         {queueReady ? (
-                            <Squircle borderRadius={24} smoothing={50} className="bg-[#0000f4] w-[300px] pt-[65px] pb-[25px] flex justify-center items-center">
+                            <Squircle borderRadius={24} smoothing={50} className="bg-[#1e1e1e] w-[300px] pt-[65px] pb-[25px] flex justify-center items-center">
                                 <SvgText
                                     text={`In Queue at ${formatPosition(waitlistStatus.position)}`}
                                     weight="600"
