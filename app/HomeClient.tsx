@@ -80,7 +80,7 @@ export function HomeClient() {
   const subLabel = waitlistMode
     ? waitlistStatus.kind === "in"
       ? `At ${formatPosition(waitlistStatus.position)} in Queue`
-      : "Add me to Queue"
+      : "Sign Up to Join"
     : `INR ` + formatINR(AERO.priceInPaise);
 
   // Authed users in waitlist mode always see popup-2; the join popup is for
