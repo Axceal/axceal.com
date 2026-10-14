@@ -26,7 +26,7 @@ const TRACK_STYLE: React.CSSProperties = {
   top: "50%",
   right: 100,
   zIndex: 60,
-  width: 10,
+  width: 7.5,
   height: TRACK_HEIGHT,
   borderRadius: 9999,
   background: "#aaaaaa85",
@@ -41,7 +41,7 @@ const TRACK_STYLE: React.CSSProperties = {
 };
 
 const THUMB_STYLE: React.CSSProperties = {
-  width: 10,
+  width: 7.5,
   height: TRACK_HEIGHT,
   borderRadius: 9999,
   background: "#eeeeee",
