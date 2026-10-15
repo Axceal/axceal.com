@@ -140,7 +140,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
             <Squircle as={motion.div} layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} borderRadius={20} smoothing={60} className="w-[360px] bg-[#f1f1f1] flex flex-col items-center pt-[30px] pb-[40px] relative overflow-hidden">
                 {/* Icon Circle */}
                 <motion.div layout className="w-[50px] h-[50px] rounded-full bg-[#0000f4] flex items-center justify-center shrink-0">
-                    <UserIcon className="w-[24px] h-[24px] text-white stroke-[#0000f4]" />
+                    <UserIcon className="w-[24px] h-[24px] text-white" />
                 </motion.div>
 
                 <motion.div layout className="mt-[10px] mb-[15px]">

@@ -46,7 +46,7 @@ export async function UserCard() {
             <Squircle borderRadius={20} smoothing={60} className="absolute inset-0 bg-[#f1f1f1] -z-10" />
             <div className="flex items-center gap-4">
                 <div className="w-[52px] h-[52px] rounded-full pb-[2px] bg-[#0000f4] flex items-center justify-center shrink-0">
-                    <UserIcon className="w-[24px] h-[24px] text-white stroke-[#0000f4]" />
+                    <UserIcon className="w-[24px] h-[24px] text-white" />
                 </div>
                 <div className="flex flex-col gap-1 w-full overflow-visible">
                     <SvgText text={localPart || " "} weight="600" height={16} className="text-[#1e1e1e] truncate" />

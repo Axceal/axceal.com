@@ -30,7 +30,7 @@ function AuthChoiceContent() {
                     <div className="flex items-center gap-3">
                         <AxcealLogo className="w-8 h-auto text-[#0000f4]" />
                         <span className="w-[8px] h-[8px] rounded-full bg-[#aaaaaa]" />
-                        <UserIcon className="w-[24px] h-[24px] text-[#0000f4]" stroke="#f1f1f1" />
+                        <UserIcon className="w-[26px] h-[26px] text-[#aaaaaa]" />
                         <SvgText text="Axceal Account" weight="600" height={18} className="text-[#1e1e1e]" />
                     </div>
 

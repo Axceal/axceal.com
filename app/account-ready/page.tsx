@@ -128,7 +128,7 @@ export default function AccountReadyPage() {
                 <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-[320px] h-[400px] pt-[30px] px-[30px] pb-[40px] flex flex-col items-center">
                     {/* Header Icon */}
                     <div className="w-[50px] h-[50px] rounded-full bg-[#0000f4] flex items-center justify-center shrink-0">
-                        <UserIcon className="w-[24px] h-[24px] text-white" stroke="#0000f4" />
+                        <UserIcon className="w-[24px] h-[24px] text-white" />
                     </div>
 
                     {/* Title */}

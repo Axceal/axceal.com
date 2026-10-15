@@ -29,10 +29,10 @@ export function NavigationBar() {
 
             <Link
                 href={accountHref}
-                className={`flex items-center gap-2 text-[16px] font-semibold px-6 py-3.5 rounded-full transition-colors -mr-4 ${isAccount ? "bg-[#1e1e1e] text-white" : "bg-transparent text-[#1e1e1e]"
+                className={`flex items-center gap-1 text-[16px] font-semibold px-6 py-3.5 rounded-full transition-colors -mr-4 ${isAccount ? "bg-[#1e1e1e] text-white" : "bg-transparent text-[#1e1e1e]"
                     }`}
             >
-                <UserIcon className={`w-[20px] h-[20px] ${isAccount ? "text-white" : "text-[#aaaaaa]"}`} stroke={isAccount ? "#1e1e1e" : "#ffffff"} />
+                <UserIcon className={`w-[20px] h-[20px] ${isAccount ? "text-white" : "text-[#aaaaaa]"}`} />
                 <SvgText text="Account" weight="600" height={16} className={`h-[14px] mt-[1px] ${isAccount ? "text-white" : "text-[#1e1e1e]"}`} />
             </Link>
         </nav>
