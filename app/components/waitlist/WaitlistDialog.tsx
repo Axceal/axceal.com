@@ -220,12 +220,12 @@ function StatusDialog({ position, onOkay }: { position: number; onOkay: () => vo
         />
       </Squircle>
       <div className={FOOTER}>
-        <div className="flex-1 pl-2 flex items-center justify-center min-w-0">
+        <div className="flex-1 flex items-center justify-center min-w-0">
           <SvgText
             text={`In queue at ${formatPosition(position)}`}
             weight="600"
             height={16}
-            className="text-[#aaaaaa]"
+            className="text-[#1e1e1e]"
           />
         </div>
         <button

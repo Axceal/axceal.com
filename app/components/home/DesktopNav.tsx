@@ -9,6 +9,11 @@ interface Props {
   goSubSlide: (n: number) => void;
 }
 
+const NAV_TRANSITION = {
+  ...SPRING,
+  opacity: { duration: 0.2 },
+};
+
 // Left-side section navigation labels (desktop only).
 // Each label animates to a different top/y/opacity based on which section is active.
 // Clicking a label jumps directly to that section; clicking S1 also resets subSlide to 0.
@@ -20,7 +25,8 @@ export function DesktopNav({ nav, goSection, goSubSlide }: Props) {
         onClick={() => goSection(0)}
         initial={{ top: "40%", y: "-12px", opacity: 1 }}
         animate={nav.aero}
-        transition={SPRING}
+        whileHover={{ opacity: 1 }}
+        transition={NAV_TRANSITION}
       >
         <SvgText text="Aero" weight="700" className="text-[#1e1e1e]" height={30} maxWidth={80} />
       </motion.div>
@@ -30,7 +36,8 @@ export function DesktopNav({ nav, goSection, goSubSlide }: Props) {
         onClick={() => { goSection(1); goSubSlide(0); }}
         initial={{ top: "70%", y: "27px", opacity: 0.4 }}
         animate={nav.whatcan}
-        transition={SPRING}
+        whileHover={{ opacity: 1 }}
+        transition={NAV_TRANSITION}
       >
         <SvgText text={"What can Aero \ndo"} weight="700" className="text-[#1e1e1e]" height={28} />
       </motion.div>
@@ -40,7 +47,8 @@ export function DesktopNav({ nav, goSection, goSubSlide }: Props) {
         onClick={() => goSection(2)}
         initial={{ top: "90%", y: "20px", opacity: 0.4 }}
         animate={nav.whatsinside}
-        transition={SPRING}
+        whileHover={{ opacity: 1 }}
+        transition={NAV_TRANSITION}
       >
         <SvgText text={"What's inside the \nbox"} weight="700" className="text-[#1e1e1e]" height={28} />
       </motion.div>
