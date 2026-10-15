@@ -79,7 +79,7 @@ function AuthChoiceContent() {
                 </Squircle>
 
                 {/* Bottom Pill */}
-                <div className="w-[320px] bg-[#f1f1f1] rounded-full p-[4px] flex items-center justify-between">
+                <div className="w-[320px] bg-[#f1f1f1] rounded-full p-[2.5px] flex items-center justify-between">
                     <div className="flex-1 flex items-center justify-evenly">
                         <Link href={`/login${suffix}`} className="flex-shrink-0 flex items-center">
                             <SvgText text="Login" weight="600" height={16} className="text-[#0000f4]" maxWidth={100} />
