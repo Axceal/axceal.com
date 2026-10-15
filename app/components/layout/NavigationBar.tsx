@@ -16,8 +16,8 @@ export function NavigationBar() {
     const accountHref = status === "loading" || session ? "/account" : "/auth";
 
     return (
-        <nav className="h-[75px] flex items-center justify-between px-[clamp(1.5rem,8vw,7.5rem)] sticky top-0 z-50 bg-white">
-            <Link href="/" className="flex flex-row gap-[10px]">
+        <nav className="h-[75px] flex items-center justify-between px-[clamp(1.5rem,8vw,7.5rem)] sticky top-0 z-50 bg-white/70 backdrop-blur-md backdrop-saturate-200 transition-colors">
+            <Link href="/" className="flex flex-row gap-[7.5px]">
                 <AxcealLogo className="w-[26px] h-[18px] text-[#0000f4]" />
                 <SvgText
                     text="Axceal"

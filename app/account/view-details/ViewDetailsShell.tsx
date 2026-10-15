@@ -112,9 +112,9 @@ function DetailRow({ label, value, innerRef }: DetailRowProps) {
             {/* Left Icon (Absolute) */}
             <div className="absolute left-[12px] top-1/2 -translate-y-1/2 flex items-center justify-center w-[26px] h-[26px]">
                 {value ? (
-                    <ViewDetailsSaveIcon className="text-[#aaaaaa] w-[24px] h-[24px]" />
+                    <ViewDetailsSaveIcon className="text-[#aaaaaa] w-[30px] h-[30px]" />
                 ) : (
-                    <ViewDetailsAddIcon className="text-[#aaaaaa] w-[26px] h-[26px]" />
+                    <ViewDetailsAddIcon className="text-[#aaaaaa] w-[30px] h-[30px]" />
                 )}
             </div>
 
