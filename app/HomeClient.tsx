@@ -161,7 +161,7 @@ export function HomeClient() {
                 type="button"
                 onClick={handleCtaClick}
                 aria-disabled={isSessionLoading}
-                className="group flex items-center gap-4 bg-[#ffffff] border-[2px] border-[#f1f1f1] rounded-full p-[2px] pr-[30px] cursor-pointer transition-opacity"
+                className="group flex items-center gap-4 bg-white/70 backdrop-blur-md backdrop-saturate-150 transition-colors border-[2px] border-[#f1f1f1] rounded-full p-[2px] pr-[30px] cursor-pointer transition-opacity"
               >
                 <div className="px-8 py-4 bg-[#0000f4] rounded-full flex items-center justify-center">
                   <SvgText text={isAuthed ? "In Queue" : "Join Queue"} weight="600" height={18} className="text-white" />
@@ -178,7 +178,7 @@ export function HomeClient() {
                 href={liveHref}
                 onClick={handleCtaClick}
                 aria-disabled={isSessionLoading}
-                className="group flex items-center gap-4 bg-[#f1f1f1] rounded-full p-[5px] pr-[30px] cursor-pointer transition-opacity"
+                className="group flex items-center gap-4 bg-white/70 backdrop-blur-md backdrop-saturate-150 transition-colors border-[2px] border-[#f1f1f1] rounded-full p-[2px] pr-[30px] cursor-pointer transition-opacity"
               >
                 <div className="px-8 py-4 bg-[#0000f4] rounded-full flex items-center justify-center">
                   <SvgText text={isAuthed ? "In Queue" : "Join Queue"} weight="600" height={18} className="text-white" />
