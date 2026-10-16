@@ -198,7 +198,7 @@ export default function AccountReadyPage() {
                             type="button"
                             onClick={handleSkip}
                             disabled={submitting}
-                            className="cursor-pointer flex-shrink-0 flex items-center disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="cursor-pointer flex-shrink-0 flex -mr-[10px] items-center disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             <SvgText text="Skip" weight="600" height={16} className="text-[#0000f4]" />
                         </button>
