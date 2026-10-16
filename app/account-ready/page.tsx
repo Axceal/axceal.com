@@ -192,7 +192,7 @@ export default function AccountReadyPage() {
                 </Squircle>
 
                 {/* Bottom Pill */}
-                <div className="w-[320px] bg-[#f1f1f1] rounded-full p-[2.5px] flex items-center justify-between">
+                <div className="w-[320px] bg-[#ffffff] border-[2px] border-[#f1f1f1] rounded-full p-[1px] flex items-center justify-between">
                     <div className="flex-1 flex items-center justify-evenly">
                         <button
                             type="button"

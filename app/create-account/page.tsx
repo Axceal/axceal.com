@@ -151,7 +151,7 @@ function CreateAccountForm() {
                                 className="text-[#0000f4]"
                             />
                         </Squircle>
-                        <div className="w-full bg-[#f1f1f1] rounded-full p-[2.5px] flex items-center justify-between gap-3">
+                        <div className="w-full bg-[#ffffff] border-[2px] border-[#f1f1f1] rounded-full p-[1px] flex items-center justify-between gap-3">
                             <button
                                 type="button"
                                 onClick={handleOtpLogin}
