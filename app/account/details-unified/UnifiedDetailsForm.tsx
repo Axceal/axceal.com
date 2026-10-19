@@ -149,7 +149,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
 
                 {/* Fields Container */}
                 <motion.div layout className="w-[320px] flex flex-col">
-                    <motion.div layout className="w-full h-[2px] bg-white rounded-full shrink-0" aria-hidden="true" />
+                    <motion.div layout className="w-[90%] self-center h-[2px] bg-white rounded-full shrink-0" aria-hidden="true" />
 
                     {/* Name Row */}
                     <motion.div layout className="flex flex-col">
@@ -195,7 +195,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                         </div>
                     </motion.div>
 
-                    <motion.div layout className="w-full h-[2px] bg-white rounded-full shrink-0" aria-hidden="true" />
+                    <motion.div layout className="w-[90%] self-center h-[2px] bg-white rounded-full shrink-0" aria-hidden="true" />
 
                     {/* Gender Row */}
                     <motion.div layout className="flex flex-col relative justify-center min-h-[60px]">
@@ -242,7 +242,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                         </AnimatePresence>
                     </motion.div>
 
-                    <motion.div layout className="w-full h-[2px] bg-white rounded-full shrink-0" aria-hidden="true" />
+                    <motion.div layout className="w-[90%] self-center h-[2px] bg-white rounded-full shrink-0" aria-hidden="true" />
 
                     {/* Birthday Row */}
                     <motion.div layout className="flex flex-col relative justify-center min-h-[60px]">
@@ -283,7 +283,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                         </AnimatePresence>
                     </motion.div>
 
-                    <motion.div layout className="w-full h-[2px] bg-white rounded-full shrink-0" aria-hidden="true" />
+                    <motion.div layout className="w-[90%] self-center h-[2px] bg-white rounded-full shrink-0" aria-hidden="true" />
 
                     {/* Phone Row */}
                     <motion.div layout className="flex flex-col relative justify-center min-h-[60px]">
@@ -334,7 +334,7 @@ export function UnifiedDetailsForm({ initial, phone: initialPhone }: { initial: 
                         </AnimatePresence>
                     </motion.div>
 
-                    <motion.div layout className="w-full h-[2px] bg-white rounded-full shrink-0" aria-hidden="true" />
+                    <motion.div layout className="w-[90%] self-center h-[2px] bg-white rounded-full shrink-0" aria-hidden="true" />
                 </motion.div>
 
                 {/* Footer Text */}
