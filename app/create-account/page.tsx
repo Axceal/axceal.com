@@ -151,12 +151,12 @@ function CreateAccountForm() {
                                 className="text-[#0000f4]"
                             />
                         </Squircle>
-                        <div className="w-full bg-[#ffffff] border-[2px] border-[#f1f1f1] rounded-full p-[1px] flex items-center justify-between gap-3">
+                        <div className="w-full flex items-center justify-between">
                             <button
                                 type="button"
                                 onClick={handleOtpLogin}
                                 disabled={otpLoginInProgress}
-                                className="bg-[#0000f4] rounded-full px-8 py-4 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="h-[50px] px-[26px] bg-[#0000f4] rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 <SvgText
                                     text={otpLoginInProgress ? "in..." : "Login"}
@@ -165,11 +165,11 @@ function CreateAccountForm() {
                                     className="text-white"
                                 />
                             </button>
-                            <span className="w-[10px] aspect-square rounded-full bg-[#aaaaaa] translate-x-2" aria-hidden />
+                            <span className="w-[10px] h-[10px] rounded-full bg-[#aaaaaa] flex-shrink-0" aria-hidden />
                             <button
                                 type="button"
                                 onClick={handleForgotPassword}
-                                className="pl-4 pr-8 py-4 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
+                                className="h-[50px] px-[20px] bg-[#ffffff] border-[2px] border-[#f1f1f1] rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
                             >
                                 <SvgText text="Forgot Password" weight="600" height={16} className="text-[#0000f4]" />
                             </button>

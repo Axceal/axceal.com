@@ -78,15 +78,19 @@ function AuthChoiceContent() {
                     </div>
                 </Squircle>
 
-                {/* Bottom Pill */}
-                <div className="w-[320px] bg-[#ffffff] border-[2px] border-[#f1f1f1] rounded-full p-[1px] flex items-center justify-between">
-                    <div className="flex-1 flex items-center justify-evenly">
-                        <Link href={`/login${suffix}`} className="flex-shrink-0 flex items-center -mr-[10px]">
-                            <SvgText text="Login" weight="600" height={16} className="text-[#0000f4]" maxWidth={100} />
-                        </Link>
-                        <span className="block w-[10px] h-[10px] rounded-full bg-[#aaaaaa] flex-shrink-0" />
-                    </div>
-                    <Link href={`/create-account${suffix}`} className="bg-[#0000f4] rounded-full px-[30px] py-[14px] flex items-center justify-center flex-shrink-0">
+                {/* Bottom Action Buttons */}
+                <div className="w-[320px] flex items-center justify-between">
+                    <Link
+                        href={`/login${suffix}`}
+                        className="h-[50px] px-[30px] bg-[#ffffff] border-[2px] border-[#f1f1f1] rounded-full flex items-center justify-center flex-shrink-0"
+                    >
+                        <SvgText text="Login" weight="600" height={16} className="text-[#0000f4]" maxWidth={100} />
+                    </Link>
+                    <span className="w-[10px] h-[10px] rounded-full bg-[#aaaaaa] flex-shrink-0" />
+                    <Link
+                        href={`/create-account${suffix}`}
+                        className="h-[50px] px-[30px] bg-[#0000f4] rounded-full flex items-center justify-center flex-shrink-0"
+                    >
                         <SvgText text="Create Account" weight="600" height={16} className="text-white" />
                     </Link>
                 </div>

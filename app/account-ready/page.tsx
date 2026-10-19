@@ -191,24 +191,22 @@ export default function AccountReadyPage() {
                     </div>
                 </Squircle>
 
-                {/* Bottom Pill */}
-                <div className="w-[320px] bg-[#ffffff] border-[2px] border-[#f1f1f1] rounded-full p-[1px] flex items-center justify-between">
-                    <div className="flex-1 flex items-center justify-evenly">
-                        <button
-                            type="button"
-                            onClick={handleSkip}
-                            disabled={submitting}
-                            className="cursor-pointer flex-shrink-0 flex -mr-[10px] items-center disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                            <SvgText text="Skip" weight="600" height={16} className="text-[#0000f4]" />
-                        </button>
-                        <span className="block w-[10px] h-[10px] rounded-full bg-[#aaaaaa] flex-shrink-0" />
-                    </div>
+                {/* Bottom Action Buttons */}
+                <div className="w-[320px] flex items-center justify-between">
+                    <button
+                        type="button"
+                        onClick={handleSkip}
+                        disabled={submitting}
+                        className="h-[50px] px-[30px] bg-[#ffffff] border-[2px] border-[#f1f1f1] rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        <SvgText text="Skip" weight="600" height={16} className="text-[#0000f4]" />
+                    </button>
+                    <span className="w-[10px] h-[10px] rounded-full bg-[#aaaaaa] flex-shrink-0" />
                     <button
                         type="button"
                         onClick={handleAddDetails}
                         disabled={submitting}
-                        className="cursor-pointer bg-[#0000f4] rounded-full px-[40px] py-[14px] flex items-center justify-center flex-shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="h-[50px] px-[30px] bg-[#0000f4] rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <SvgText text="Add Details" weight="600" height={16} className="text-white" />
                     </button>
