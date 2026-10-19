@@ -39,6 +39,8 @@ export interface SvgInputProps {
     cursorColor?: string;
     /** HTML inputMode hint for mobile keyboards (e.g. "numeric", "tel") */
     inputMode?: "none" | "text" | "decimal" | "numeric" | "tel" | "search" | "email" | "url";
+    /** Optional HTML pattern attribute (e.g. "[0-9]*" for iOS digit-only keypad) */
+    pattern?: string;
 }
 
 // Tracks the clip element's pixel width via ResizeObserver. Pulled out so the
@@ -93,6 +95,7 @@ export function SvgInput({
     cursorWidth = 1.5,
     cursorColor = "currentColor",
     inputMode,
+    pattern,
 }: SvgInputProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const clipRef = useRef<HTMLDivElement>(null);
@@ -229,6 +232,7 @@ export function SvgInput({
                 // native type so autofill / password managers still work.
                 type={type === "password" ? "password" : "text"}
                 inputMode={inputMode ?? (type === "email" ? "email" : undefined)}
+                pattern={pattern ?? (inputMode === "numeric" ? "[0-9]*" : undefined)}
                 value={value}
                 required={required}
                 readOnly={readOnly}
