@@ -180,7 +180,7 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Top Pill (Message) */}
-                <div className="bg-[#f1f1f1] rounded-full h-[60px] flex items-center justify-start pl-[15px] pr-[15px] w-[300px] sm:w-[320px]">
+                <div className="bg-[#ffffff] rounded-full h-[60px] flex items-center justify-start pl-[15px] pr-[15px] w-[300px] sm:w-[320px]">
                     <SecuredDataIcon className="text-[#aaaaaa] w-[30px] h-[30px] shrink-0 mr-2" />
                     <div className="flex items-center">
                         <SvgText text="4 Digit Code sent to " weight="600" height={16} className="text-[#1e1e1e] mr-1" />
@@ -189,7 +189,7 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
                 </div>
 
                 {/* Main Modal */}
-                <Squircle borderRadius={20} smoothing={60} className="bg-[#f1f1f1] w-[300px] sm:w-[320px] pt-6 pb-6 px-6 flex flex-col gap-4">
+                <Squircle borderRadius={20} smoothing={60} className="bg-[#ffffff] w-[300px] sm:w-[320px] pt-6 pb-6 px-6 flex flex-col gap-4">
                     <div className="flex justify-between items-center w-full px-1 h-[16px]">
                         <SvgText text="Verify Code" weight="600" height={16} className="text-[#aaaaaa]" />
                         <div className="flex items-center gap-1">
@@ -200,12 +200,12 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
                                     disabled={verified}
                                     className={`focus:outline-none ${verified ? "cursor-not-allowed" : "cursor-pointer"}`}
                                 >
-                                    <SvgText 
-                                        text={verified ? "Done" : "Resend"} 
-                                        weight="600" 
-                                        height={16} 
-                                        className={verified ? "text-[#aaaaaa]" : "text-[#0000f4]"} 
-                                        maxWidth={200} 
+                                    <SvgText
+                                        text={verified ? "Done" : "Resend"}
+                                        weight="600"
+                                        height={16}
+                                        className={verified ? "text-[#aaaaaa]" : "text-[#0000f4]"}
+                                        maxWidth={200}
                                     />
                                 </button>
                             ) : (
@@ -221,7 +221,7 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
                         {[0, 1, 2, 3].map((i) => {
                             const isActive = focusedIndex === i || otp[i];
                             return (
-                                <div key={i} className={`w-[56px] h-[56px] rounded-full flex items-center justify-center bg-white ${isActive ? "border-[2px] border-[#0000f4]" : ""} overflow-hidden`}>
+                                <div key={i} className={`w-[56px] h-[56px] rounded-full flex items-center justify-center bg-[#f1f1f1] ${isActive ? "border-[2px] border-[#0000f4]" : ""} overflow-hidden`}>
                                     <SvgInput
                                         id={`otp-input-${i}`}
                                         value={otp[i]}
