@@ -46,7 +46,7 @@ export function useWaitlistDialog(): WaitlistDialogContextValue {
 
 const BACKDROP = "fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4";
 const PANEL = "relative z-10 flex flex-col items-stretch gap-[5px] w-[360px] max-w-[calc(100vw-3rem)] mx-auto";
-const FOOTER = "bg-[#f1f1f1] rounded-full p-[5px] flex items-center gap-4 w-full";
+const FOOTER = "bg-[#ffffff] rounded-full p-[5px] flex items-center gap-4 w-full";
 
 const SPRING = { type: "spring", stiffness: 400, damping: 35 } as const;
 
@@ -201,7 +201,7 @@ function JoinDialog({
 function StatusDialog({ position, onOkay }: { position: number; onOkay: () => void }) {
   return (
     <>
-      <Squircle borderRadius={20} smoothing={50} className="bg-[#f1f1f1] w-full h-[160px] flex flex-col items-center justify-center gap-5 px-6 text-center">
+      <Squircle borderRadius={20} smoothing={50} className="bg-[#ffffff] w-full h-[160px] flex flex-col items-center justify-center gap-5 px-6 text-center">
         <SvgText
           text={"Your Axceal account is already in the\nqueue"}
           weight="600"
