@@ -253,9 +253,9 @@ export function OtpModal({ onClose, onSuccess, phone, firstName, lastName, gende
                     type="button"
                     onClick={handleVerify}
                     disabled={verifying}
-                    className="w-[140px] h-[50px] rounded-full flex items-center justify-center transition-colors duration-250 group cursor-pointer bg-[#f1f1f1] max-md:bg-[#0000f4] hover:bg-[#0000f4] active:bg-[#f1f1f1] max-md:active:bg-[#f1f1f1] disabled:bg-[#f1f1f1] max-md:disabled:bg-[#f1f1f1] disabled:hover:bg-[#f1f1f1] max-md:disabled:hover:bg-[#f1f1f1] disabled:cursor-not-allowed"
+                    className="w-[140px] h-[50px] rounded-full flex items-center justify-center transition-colors duration-250 group cursor-pointer bg-[#f1f1f1] max-md:bg-[#0000f4] hover:bg-[#0000f4] active:bg-[#ffffff] max-md:active:bg-[#ffffff] disabled:bg-[#ffffff] max-md:disabled:bg-[#ffffff] disabled:hover:bg-[#ffffff] max-md:disabled:hover:bg-[#ffffff] disabled:cursor-not-allowed"
                 >
-                    <ViewDetailsSaveIcon className="transition-colors duration-250 w-[26px] h-[26px] text-[#aaaaaa] max-md:text-white group-hover:text-white group-active:text-[#aaaaaa] max-md:group-active:text-[#aaaaaa] group-disabled:text-[#aaaaaa] max-md:group-disabled:text-[#aaaaaa] group-disabled:group-hover:text-[#aaaaaa] max-md:group-disabled:group-hover:text-[#aaaaaa]" />
+                    <ViewDetailsSaveIcon className="transition-colors duration-250 w-[26px] h-[26px] text-[#f1f1f1] max-md:text-white group-hover:text-white group-active:text-[#f1f1f1] max-md:group-active:text-[#f1f1f1] group-disabled:text-[#f1f1f1] max-md:group-disabled:text-[#f1f1f1] group-disabled:group-hover:text-[#f1f1f1] max-md:group-disabled:group-hover:text-[#f1f1f1]" />
                 </button>
             </motion.div>
         </motion.div>
